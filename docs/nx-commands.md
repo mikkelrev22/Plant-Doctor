@@ -4,6 +4,37 @@ This repo is an [Nx](https://nx.dev) monorepo. Nx organizes code into **projects
 
 Run every command below from the **repository root** after `npm install`.
 
+## Environment variables
+
+Copy the example env file before your first run:
+
+```bash
+cp .env.example .env
+```
+
+| Variable       | Used by   | Purpose                                      |
+|----------------|-----------|----------------------------------------------|
+| `HOST`         | backend   | Network interface the API binds to           |
+| `PORT`         | backend   | Port the API listens on                      |
+| `FRONTEND_URL` | both      | Public URL of the React app                  |
+| `BACKEND_URL`  | both      | Public URL of the Fastify API                |
+
+Both apps read from the **root** `.env` file (gitignored). Use the per-app config modules in code:
+
+```ts
+// apps/frontend/src/config.ts
+import { config } from './config';
+fetch(`${config.backendUrl}/...`);
+
+// apps/backend/src/config.ts
+import { config } from './config';
+// e.g. config.frontendUrl for CORS
+```
+
+**Frontend without SSR:** the React app can read `.env` values — no server-side rendering required. Vite injects matching variables into the client bundle at **dev/build time** via `import.meta.env`. Restart `npm run dev` after changing `.env`.
+
+Only variables with these prefixes are exposed to the browser: `VITE_`, `FRONTEND_`, `BACKEND_`. Anything with those prefixes is **public** (fine for URLs; never put secrets there). The backend reads vars at **runtime** via `process.env`.
+
 ## Quick start (local dev)
 
 The fastest way to run the app locally:

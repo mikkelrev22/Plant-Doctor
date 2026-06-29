@@ -6,10 +6,6 @@ import AutoLoad from '@fastify/autoload';
 export interface AppOptions {}
 
 export async function app(fastify: FastifyInstance, opts: AppOptions) {
-  // Place here your custom code!
-
-  // Do not touch the following lines
-
   // This loads all plugins defined in plugins
   // those should be support plugins that are reused
   // through your application

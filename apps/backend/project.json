@@ -66,17 +66,19 @@
       "continuous": true,
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
-      "dependsOn": ["build"],
       "options": {
-        "buildTarget": "backend:build",
-        "runBuildTargetDependencies": false
+        "buildTarget": "backend:build:development",
+        "runBuildTargetDependencies": false,
+        "inspect": false
       },
       "configurations": {
         "development": {
-          "buildTarget": "backend:build:development"
+          "buildTarget": "backend:build:development",
+          "inspect": false
         },
         "production": {
-          "buildTarget": "backend:build:production"
+          "buildTarget": "backend:build:production",
+          "inspect": false
         }
       }
     },

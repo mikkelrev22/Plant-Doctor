@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/apps/frontend',
+  envDir: '../../',
+  envPrefix: ['VITE_', 'FRONTEND_', 'BACKEND_'],
   resolve: {
     tsconfigPaths: true,
   },

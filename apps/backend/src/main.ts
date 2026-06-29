@@ -1,23 +1,21 @@
 import Fastify from 'fastify';
 import { app } from './app/app';
+import { config } from './config';
 
-const host = process.env.HOST ?? 'localhost';
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+async function start() {
+  const server = Fastify({
+    logger: true,
+  });
 
-// Instantiate Fastify with some config
-const server = Fastify({
-  logger: true,
-});
+  await server.register(app);
 
-// Register your application as a normal plugin.
-server.register(app);
-
-// Start listening.
-server.listen({ port, host }, (err) => {
-  if (err) {
+  try {
+    await server.listen({ port: config.port, host: config.host });
+    console.log(`[ ready ] ${config.backendUrl}`);
+  } catch (err) {
     server.log.error(err);
     process.exit(1);
-  } else {
-    console.log(`[ ready ] http://${host}:${port}`);
   }
-});
+}
+
+start();
