@@ -12,14 +12,16 @@ Copy the example env file before your first run:
 cp .env.example .env
 ```
 
-| Variable       | Used by   | Purpose                                      |
-|----------------|-----------|----------------------------------------------|
-| `HOST`         | backend   | Network interface the API binds to           |
-| `PORT`         | backend   | Port the API listens on                      |
-| `FRONTEND_URL` | both      | Public URL of the React app                  |
-| `BACKEND_URL`  | both      | Public URL of the Fastify API                |
+| Variable          | Used by    | Purpose                                      |
+|-------------------|------------|----------------------------------------------|
+| `HOST`            | backend    | Network interface the API binds to           |
+| `PORT`            | backend    | Port the Node API listens on                 |
+| `BACKEND_PY_PORT` | backend-py | Port the Python API listens on               |
+| `FRONTEND_URL`    | all        | Public URL of the React app                  |
+| `BACKEND_URL`     | both       | Public URL of the Fastify API                |
+| `BACKEND_PY_URL`  | backend-py | Public URL of the FastAPI service            |
 
-Both apps read from the **root** `.env` file (gitignored). Use the per-app config modules in code:
+All apps read from the **root** `.env` file (gitignored). Use the per-app config modules in code:
 
 ```ts
 // apps/frontend/src/config.ts
@@ -29,6 +31,12 @@ fetch(`${config.backendUrl}/...`);
 // apps/backend/src/config.ts
 import { config } from './config';
 // e.g. config.frontendUrl for CORS
+```
+
+```python
+# apps/backend-py/src/backend_py/config.py
+from backend_py.config import config
+# e.g. config.frontend_url for CORS
 ```
 
 **Frontend without SSR:** the React app can read `.env` values — no server-side rendering required. Vite injects matching variables into the client bundle at **dev/build time** via `import.meta.env`. Restart `npm run dev` after changing `.env`.
@@ -49,16 +57,18 @@ That script is defined in the root `package.json` and starts both apps in parall
 "dev": "nx run-many -t serve -p frontend backend"
 ```
 
-| App        | What it is              | Default URL              |
-|------------|-------------------------|--------------------------|
-| `frontend` | React + Vite UI         | http://localhost:4000    |
-| `backend`  | Fastify API             | http://localhost:3000    |
+| App          | What it is              | Default URL              |
+|--------------|-------------------------|--------------------------|
+| `frontend`   | React + Vite UI         | http://localhost:4000    |
+| `backend`    | Fastify API (Node)      | http://localhost:4100    |
+| `backend-py` | FastAPI (Python + uv)   | http://localhost:4101    |
 
 To run a single app instead:
 
 ```bash
 npx nx serve frontend
 npx nx serve backend
+npx nx serve backend-py
 ```
 
 > **Tip:** Use `npx nx` (or install Nx globally) — there is no separate `nx` binary in `PATH` unless you use `npx`.
@@ -73,6 +83,7 @@ npx nx show projects
 |----------------|-----------------------|--------------------------------|
 | `frontend`     | `apps/frontend`       | React app (Vite)               |
 | `backend`      | `apps/backend`        | Fastify API (esbuild + Node)   |
+| `backend-py`   | `apps/backend-py`     | FastAPI (uv + Python 3.12)     |
 | `frontend-e2e` | `apps/frontend-e2e`   | Playwright end-to-end tests    |
 
 To see all tasks available for a project:
@@ -97,7 +108,9 @@ npx nx build frontend          # production build → dist/apps/frontend
 npx nx build backend           # production build → dist/apps/backend
 npx nx test frontend           # Vitest unit tests
 npx nx test backend            # Jest unit tests
+npx nx test backend-py         # pytest unit tests
 npx nx lint frontend           # ESLint
+npx nx lint backend-py         # ruff
 npx nx e2e frontend-e2e        # Playwright e2e tests
 ```
 
@@ -159,11 +172,13 @@ npx nx watch --all -- echo $NX_PROJECT_NAME   # print project name on any change
 ```
 npm run dev
     └── nx run-many -t serve -p frontend backend
-            ├── frontend:serve  →  vite dev server (port 4000)
-            └── backend:serve   →  build + node (port 3000)
+            ├── frontend:serve    →  vite dev server (port 4000)
+            └── backend:serve     →  build + node (port 4100)
+
+npx nx serve backend-py          →  uvicorn (port 4101, separate from npm run dev)
 ```
 
-- **Project** = `frontend`, `backend`, `frontend-e2e`
+- **Project** = `frontend`, `backend`, `backend-py`, `frontend-e2e`
 - **Target / task** = `serve`, `build`, `test`, `lint`, `e2e`, …
 - **Invocation** = `npx nx <target> <project>`
 

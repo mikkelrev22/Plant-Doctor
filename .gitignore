@@ -12,3 +12,14 @@ node_modules
 .env.production.local
 tmp/
 dist/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage/
+reports/

@@ -55,9 +55,22 @@
       "options": {
         "targetName": "test"
       }
+    },
+    {
+      "plugin": "@nxlv/python",
+      "options": {
+        "packageManager": "uv"
+      }
     }
   ],
   "generators": {
+    "@nxlv/python:uv-project": {
+      "projectNameAndRootFormat": "as-provided",
+      "srcDir": true,
+      "buildSystem": "uv",
+      "linter": "ruff",
+      "unitTestRunner": "pytest"
+    },
     "@nx/react": {
       "application": {
         "babel": true,

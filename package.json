@@ -20,6 +20,7 @@
     "@nx/vite": "23.0.1",
     "@nx/vitest": "23.0.1",
     "@nx/web": "23.0.1",
+    "@nxlv/python": "^22.2.1",
     "@playwright/test": "^1.37.0",
     "@swc/cli": "~0.8.0",
     "@swc/core": "~1.15.5",
