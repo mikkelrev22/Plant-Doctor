@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "nx serve frontend"
+    "dev": "npx nx serve frontend"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
