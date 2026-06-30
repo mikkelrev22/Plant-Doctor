@@ -1,0 +1,66 @@
+{
+  "name": "db",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/db/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/libs/db",
+        "format": ["cjs"],
+        "bundle": true,
+        "main": "libs/db/src/index.ts",
+        "tsConfig": "libs/db/tsconfig.lib.json",
+        "assets": [
+          {
+            "input": "libs/db",
+            "glob": "package.json",
+            "output": "."
+          }
+        ],
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        }
+      },
+      "configurations": {
+        "production": {
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit generate --config=libs/db/drizzle.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit migrate --config=libs/db/drizzle.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "studio": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-kit studio --config=libs/db/drizzle.config.ts",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  },
+  "tags": []
+}
