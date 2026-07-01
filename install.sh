@@ -7,6 +7,26 @@ cd "$ROOT_DIR"
 DEFAULT_DATABASE_URL="postgres://plant_doctor:plant_doctor@localhost:5432/plant_doctor"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:17-alpine}"
 POSTGRES_CONTAINER_NAME="${POSTGRES_CONTAINER_NAME:-plant-doctor-postgres}"
+RESET_DB=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --reset-db) RESET_DB=true ;;
+    -h|--help)
+      cat <<'EOF'
+Usage: ./install.sh [--reset-db]
+
+  --reset-db  Remove the local PostgreSQL container and data volume, then reinstall.
+              Use this after the initial migration was replaced or your local schema
+              no longer matches libs/db/migrations/.
+EOF
+      exit 0
+      ;;
+    *)
+      fail "Unknown argument: $arg (try ./install.sh --help)"
+      ;;
+  esac
+done
 
 log() {
   printf '\n==> %s\n' "$1"
@@ -92,6 +112,20 @@ container_running() {
   [[ "$(docker inspect -f '{{.State.Running}}' "$POSTGRES_CONTAINER_NAME" 2>/dev/null || true)" == "true" ]]
 }
 
+reset_local_database() {
+  log "Resetting local PostgreSQL data"
+
+  if container_running; then
+    docker stop "$POSTGRES_CONTAINER_NAME" >/dev/null
+  fi
+
+  if container_exists; then
+    docker rm "$POSTGRES_CONTAINER_NAME" >/dev/null
+  fi
+
+  docker volume rm "${POSTGRES_CONTAINER_NAME}-data" >/dev/null 2>&1 || true
+}
+
 wait_for_postgres() {
   log "Waiting for PostgreSQL to accept connections"
 
@@ -131,6 +165,10 @@ if [[ "$DB_HOST" != "localhost" && "$DB_HOST" != "127.0.0.1" ]]; then
   fail "install.sh manages a local Docker database, but DATABASE_URL host is '$DB_HOST'"
 fi
 
+if [[ "$RESET_DB" == "true" ]]; then
+  reset_local_database
+fi
+
 log "Pulling PostgreSQL image: $POSTGRES_IMAGE"
 docker pull "$POSTGRES_IMAGE"
 
@@ -162,6 +200,8 @@ if [[ ! -d "node_modules" ]]; then
 fi
 
 log "Running database migrations"
-npx nx run db:migrate
+if ! npx nx run db:migrate; then
+  fail "Database migration failed. If the initial migration changed, reset local data and retry: ./install.sh --reset-db"
+fi
 
 log "PostgreSQL is ready and migrations are applied"
