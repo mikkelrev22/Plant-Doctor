@@ -130,7 +130,10 @@ wait_for_postgres() {
   log "Waiting for PostgreSQL to accept connections"
 
   for _ in {1..60}; do
-    if docker exec "$POSTGRES_CONTAINER_NAME" pg_isready -U "$DB_USER" -d postgres >/dev/null 2>&1; then
+    if docker exec \
+      -e PGPASSWORD="$DB_PASSWORD" \
+      "$POSTGRES_CONTAINER_NAME" \
+      psql -U "$DB_USER" -d postgres -c 'SELECT 1' >/dev/null 2>&1; then
       return
     fi
     sleep 1
@@ -142,17 +145,34 @@ wait_for_postgres() {
 ensure_database() {
   log "Ensuring database '$DB_NAME' exists"
 
-  docker exec \
-    -e PGPASSWORD="$DB_PASSWORD" \
-    "$POSTGRES_CONTAINER_NAME" \
-    psql -U "$DB_USER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" |
-    tr -d '[:space:]' |
-    grep -q '^1$' && return
+  for _ in {1..30}; do
+    local exists create_output
 
-  docker exec \
-    -e PGPASSWORD="$DB_PASSWORD" \
-    "$POSTGRES_CONTAINER_NAME" \
-    createdb -U "$DB_USER" "$DB_NAME"
+    exists="$(docker exec \
+      -e PGPASSWORD="$DB_PASSWORD" \
+      "$POSTGRES_CONTAINER_NAME" \
+      psql -U "$DB_USER" -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" 2>/dev/null |
+      tr -d '[:space:]' || true)"
+
+    if [[ "$exists" == "1" ]]; then
+      return
+    fi
+
+    if create_output="$(docker exec \
+      -e PGPASSWORD="$DB_PASSWORD" \
+      "$POSTGRES_CONTAINER_NAME" \
+      createdb -U "$DB_USER" "$DB_NAME" 2>&1)"; then
+      return
+    fi
+
+    if echo "$create_output" | grep -qi 'already exists'; then
+      return
+    fi
+
+    sleep 1
+  done
+
+  fail "Could not ensure database '$DB_NAME' exists"
 }
 
 require_command docker
