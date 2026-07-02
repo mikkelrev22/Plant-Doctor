@@ -24,15 +24,23 @@ npx nx run db:generate
 
 This compares the Drizzle schema to the previous snapshot and creates a new SQL migration in `libs/db/migrations/`.
 
-3. Review the generated SQL migration.
+3. Regenerate the ER diagram (Mermaid) for docs:
 
-4. Apply it to your local database:
+```bash
+npx nx run db:diagram
+```
+
+This writes `docs/database-schema.mmd` from the TypeScript schema. Preview it in VS Code with a Mermaid extension, or paste the file into [mermaid.live](https://mermaid.live).
+
+4. Review the generated SQL migration.
+
+5. Apply it to your local database:
 
 ```bash
 npx nx run db:migrate
 ```
 
-5. Use the inferred TS types from the schema in backend code:
+6. Use the inferred TS types from the schema in backend code:
 
 ```ts
 import { plants, type Plant, type NewPlant } from '@plant-doctor/db';

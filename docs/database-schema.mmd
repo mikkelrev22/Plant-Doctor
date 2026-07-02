@@ -1,0 +1,95 @@
+erDiagram
+
+    users {
+        serial id PK "not null, increment"
+        text display_name "not null, default: 'Research User'"
+        timestamptz created_at "not null, default: `now()`"
+        timestamptz updated_at "not null, default: `now()`"
+    }
+    plants {
+        serial id PK "not null, increment"
+        integer user_id "not null"
+        text name "not null"
+        text notes
+        timestamptz created_at "not null, default: `now()`"
+        timestamptz updated_at "not null, default: `now()`"
+    }
+    plant_photos {
+        serial id PK "not null, increment"
+        integer plant_id "not null"
+        integer plant_report_id
+        text image_url "not null"
+        text storage_key
+        text mime_type
+        integer width
+        integer height
+        timestamptz captured_at
+        timestamptz created_at "not null, default: `now()`"
+    }
+    plant_reports {
+        serial id PK "not null, increment"
+        integer plant_id "not null"
+        timestamptz reported_at "not null, default: `now()`"
+        text stressors "not null"
+        text summary "not null"
+        text recommendations "not null"
+        timestamptz created_at "not null, default: `now()`"
+    }
+    plant_report_stress_signs {
+        integer plant_report_id PK "not null"
+        text stress_sign_id PK "not null"
+        text notes
+        timestamptz created_at "not null, default: `now()`"
+    }
+    stress_sign_variables {
+        text stress_sign_id PK "not null"
+        text stress_variable_id PK "not null"
+    }
+    stress_signs {
+        text id PK "not null"
+        text name "not null"
+        integer sort_order "not null"
+    }
+    stress_variables {
+        text id PK "not null"
+        text name "not null"
+    }
+    llm_requests {
+        serial id PK "not null, increment"
+        integer user_id "not null"
+        integer plant_id
+        integer plant_report_id
+        text action "not null"
+        text prompt "not null"
+        text response
+        text model
+        text provider
+        jsonb request_metadata
+        jsonb response_metadata
+        integer latency_ms
+        text error
+        timestamptz created_at "not null, default: `now()`"
+    }
+    user_events {
+        serial id PK "not null, increment"
+        integer user_id "not null"
+        integer plant_id
+        integer plant_report_id
+        text event_name "not null"
+        jsonb properties "not null, default: `{}`"
+        timestamptz created_at "not null, default: `now()`"
+    }
+llm_requests ||--o{ users : "llm_requests-users"
+llm_requests ||--o{ plants : "llm_requests-plants"
+llm_requests ||--o{ plant_reports : "llm_requests-plant_reports"
+plant_photos ||--o{ plants : "plant_photos-plants"
+plant_photos ||--o{ plant_reports : "plant_photos-plant_reports"
+plants ||--o{ users : "plants-users"
+plant_reports ||--o{ plants : "plant_reports-plants"
+plant_report_stress_signs ||--o{ plant_reports : "plant_report_stress_signs-plant_reports"
+plant_report_stress_signs ||--o{ stress_signs : "plant_report_stress_signs-stress_signs"
+stress_sign_variables ||--o{ stress_signs : "stress_sign_variables-stress_signs"
+stress_sign_variables ||--o{ stress_variables : "stress_sign_variables-stress_variables"
+user_events ||--o{ users : "user_events-users"
+user_events ||--o{ plants : "plants-user_events"
+user_events ||--o{ plant_reports : "plant_reports-user_events"

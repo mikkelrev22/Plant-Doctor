@@ -146,6 +146,12 @@ Open Drizzle Studio for local inspection:
 npx nx run db:studio
 ```
 
+Regenerate the ER diagram written to `docs/database-schema.mmd`:
+
+```bash
+npx nx run db:diagram
+```
+
 ## Exploring the workspace
 
 ```bash

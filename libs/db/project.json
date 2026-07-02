@@ -60,6 +60,13 @@
         "command": "drizzle-kit studio --config=libs/db/drizzle.config.ts",
         "cwd": "{workspaceRoot}"
       }
+    },
+    "diagram": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "drizzle-mermaid-generator --dialect pg --schema libs/db/src/schema/index.ts --relational --out docs/database-schema.mmd",
+        "cwd": "{workspaceRoot}"
+      }
     }
   },
   "tags": []
