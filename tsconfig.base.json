@@ -13,7 +13,11 @@
     "lib": ["es2020", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
-    "paths": {}
+    "baseUrl": ".",
+    "paths": {
+      "@plant-doctor/db": ["libs/db/src/index.ts"],
+      "@plant-doctor/db/schema": ["libs/db/src/schema/index.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }

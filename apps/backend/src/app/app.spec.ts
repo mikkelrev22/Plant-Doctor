@@ -4,9 +4,14 @@ import { app } from './app';
 describe('GET /', () => {
   let server: FastifyInstance;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     server = Fastify();
-    server.register(app);
+    await server.register(app);
+    await server.ready();
+  });
+
+  afterEach(async () => {
+    await server.close();
   });
 
   it('should respond with a message', async () => {
@@ -15,6 +20,6 @@ describe('GET /', () => {
       url: '/',
     });
 
-    expect(response.json()).toEqual({ message: 'Hello API' });
+    expect(response.json()).toEqual({ message: 'Node.js backend is running' });
   });
 });

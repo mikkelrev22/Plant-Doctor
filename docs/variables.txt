@@ -1,0 +1,8 @@
+water
+light
+nutrients
+pests
+disease
+humidity
+temperature
+other

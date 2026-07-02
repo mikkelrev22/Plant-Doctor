@@ -17,6 +17,7 @@ cp .env.example .env
 | `HOST`            | backend    | Network interface the API binds to           |
 | `PORT`            | backend    | Port the Node API listens on                 |
 | `BACKEND_PY_PORT` | backend-py | Port the Python API listens on               |
+| `DATABASE_URL`    | backend/db | PostgreSQL connection string                 |
 | `FRONTEND_URL`    | all        | Public URL of the React app                  |
 | `BACKEND_URL`     | both       | Public URL of the Fastify API                |
 | `BACKEND_PY_URL`  | backend-py | Public URL of the FastAPI service            |
@@ -84,6 +85,7 @@ npx nx show projects
 | `frontend`     | `apps/frontend`       | React app (Vite)               |
 | `backend`      | `apps/backend`        | Fastify API (esbuild + Node)   |
 | `backend-py`   | `apps/backend-py`     | FastAPI (uv + Python 3.12)     |
+| `db`           | `libs/db`             | Drizzle schema and migrations  |
 | `frontend-e2e` | `apps/frontend-e2e`   | Playwright end-to-end tests    |
 
 To see all tasks available for a project:
@@ -120,6 +122,34 @@ Run the same task across multiple projects:
 npx nx run-many -t build -p frontend backend
 npx nx run-many -t test --all
 npx nx run-many -t lint --all
+```
+
+## Database schema and migrations
+
+PostgreSQL schema definitions live in `libs/db/src/schema/` as Drizzle TypeScript tables. Generated SQL migrations live in `libs/db/migrations/` and are the portable artifact to run from Node, Python, CI, or deployment tooling.
+
+After editing the TypeScript schema, generate and commit a migration:
+
+```bash
+npx nx run db:generate
+```
+
+Apply pending migrations to the database in `DATABASE_URL`:
+
+```bash
+npx nx run db:migrate
+```
+
+Open Drizzle Studio for local inspection:
+
+```bash
+npx nx run db:studio
+```
+
+Regenerate the ER diagram written to `docs/database-schema.mmd`:
+
+```bash
+npx nx run db:diagram
 ```
 
 ## Exploring the workspace
