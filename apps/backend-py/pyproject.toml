@@ -22,7 +22,14 @@ description = "Plant Doctor Python API"
 requires-python = ">=3.11,<3.14"
 readme = 'README.md'
 dependencies = [
+    "aiosqlite>=0.20.0",
     "fastapi[standard]>=0.138.2",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.3.0",
+    "langgraph>=0.4.0",
+    "langgraph-checkpoint-postgres>=2.0.0",
+    "langgraph-checkpoint-sqlite>=2.0.0",
+    "psycopg[binary]>=3.2.0",
     "python-dotenv>=1.2.2",
 ]
 
