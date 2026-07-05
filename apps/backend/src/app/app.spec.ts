@@ -1,3 +1,10 @@
+jest.mock('@plant-doctor/db', () => ({
+  createDatabaseClient: () => ({
+    db: {},
+    close: jest.fn(),
+  }),
+}));
+
 import Fastify, { FastifyInstance } from 'fastify';
 import { app } from './app';
 

@@ -1,13 +1,8 @@
-import { createDatabaseClient, type Database } from '../../../../../libs/db/src';
+import { createDatabaseClient } from '@plant-doctor/db';
 import { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { config } from '../../config';
-
-declare module 'fastify' {
-  interface FastifyInstance {
-    db: Database;
-  }
-}
+import '../types/fastify';
 
 export default fp(async function (fastify: FastifyInstance) {
   const client = createDatabaseClient(config.databaseUrl);

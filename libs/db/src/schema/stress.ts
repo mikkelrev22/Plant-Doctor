@@ -20,7 +20,7 @@ export const stressSigns = pgTable(
     name: text('name').notNull(),
     sortOrder: integer('sort_order').notNull(),
   },
-  (table) => [uniqueIndex('stress_signs_sort_order_idx').on(table.sortOrder)]
+  (table) => [uniqueIndex('stress_signs_sort_order_idx').on(table.sortOrder)],
 );
 
 export const stressSignVariables = pgTable(
@@ -37,7 +37,7 @@ export const stressSignVariables = pgTable(
     primaryKey({
       columns: [table.stressSignId, table.stressVariableId],
     }),
-  ]
+  ],
 );
 
 export const plantReportStressSigns = pgTable(
@@ -49,6 +49,9 @@ export const plantReportStressSigns = pgTable(
     stressSignId: text('stress_sign_id')
       .notNull()
       .references(() => stressSigns.id, { onDelete: 'restrict' }),
+    status: text('status').default('unknown').notNull(),
+    severity: text('severity').default('none').notNull(),
+    confidence: integer('confidence'),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -58,7 +61,7 @@ export const plantReportStressSigns = pgTable(
     primaryKey({
       columns: [table.plantReportId, table.stressSignId],
     }),
-  ]
+  ],
 );
 
 export type StressVariable = typeof stressVariables.$inferSelect;

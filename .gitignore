@@ -3,6 +3,7 @@ vitest.config.*.timestamp*
 node_modules
 .DS_Store
 .idea
+.junie
 .vscode
 .nx
 .env
@@ -12,6 +13,7 @@ node_modules
 .env.production.local
 tmp/
 dist/
+uploads/
 
 # Python
 .venv/

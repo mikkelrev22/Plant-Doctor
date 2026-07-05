@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@plant-doctor/api-types": ["libs/api-types/src/index.ts"],
       "@plant-doctor/db": ["libs/db/src/index.ts"],
       "@plant-doctor/db/schema": ["libs/db/src/schema/index.ts"]
     }
