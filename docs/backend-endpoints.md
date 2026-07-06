@@ -47,6 +47,7 @@ Uploads a plant image, requests an LLM diagnosis, logs the request, and stores t
   - `image` (file, required): The plant photo to analyze.
   - `plantId` (string, optional): ID of an existing plant.
   - `plantName` (string, optional): Name for a new or existing plant.
+  - `process` (string, optional): When `true` (default), the image is resized to a vision-friendly size and converted to JPEG before being sent to the LLM. Set to `false` to send the raw uploaded image.
 - **Response**: `{ "plant": { ... }, "report": { ... } }`
 - **Errors**: 502 Bad Gateway if LLM analysis fails.
 

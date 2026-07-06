@@ -48,6 +48,7 @@ export function analyzePlantReport(params: {
   image: File;
   plantId?: number;
   plantName?: string;
+  process?: boolean;
 }) {
   const formData = new FormData();
 
@@ -57,6 +58,10 @@ export function analyzePlantReport(params: {
 
   if (params.plantName) {
     formData.append('plantName', params.plantName);
+  }
+
+  if (params.process !== undefined) {
+    formData.append('process', String(params.process));
   }
 
   formData.append('image', params.image);

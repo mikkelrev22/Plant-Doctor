@@ -1,37 +1,49 @@
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
 import { createPlant, listPlants } from '../services/plants.service';
 import { listReportsForPlant } from '../services/reports.service';
 
-function bodyRecord(body: unknown): Record<string, unknown> {
-  return typeof body === 'object' && body !== null && !Array.isArray(body)
-    ? (body as Record<string, unknown>)
-    : {};
-}
-
 export default async function (fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<ZodTypeProvider>();
+
   // Lists preview plants for the Research User dropdown.
-  fastify.get('/plants', async function () {
+  server.get('/plants', async function () {
     return listPlants(fastify.db);
   });
 
   // Creates a plant for the Research User, generating a friendly name if blank.
-  fastify.post('/plants', async function (request) {
-    const body = bodyRecord(request.body);
-    const name = typeof body.name === 'string' ? body.name : undefined;
+  server.post(
+    '/plants',
+    {
+      schema: {
+        body: z.object({
+          name: z.string().optional(),
+        }),
+      },
+    },
+    async function (request) {
+      const { name } = request.body;
 
-    return createPlant(fastify.db, name);
-  });
+      return createPlant(fastify.db, name);
+    }
+  );
 
   // Returns report history for one Research User plant.
-  fastify.get('/plants/:plantId/reports', async function (request) {
-    const params = request.params as { plantId?: string };
-    const plantId = Number(params.plantId);
+  server.get(
+    '/plants/:plantId/reports',
+    {
+      schema: {
+        params: z.object({
+          plantId: z.coerce.number().int(),
+        }),
+      },
+    },
+    async function (request) {
+      const { plantId } = request.params;
 
-    if (!Number.isInteger(plantId)) {
-      throw fastify.httpErrors.badRequest('Invalid plant id');
+      return listReportsForPlant(fastify.db, plantId);
     }
-
-    return listReportsForPlant(fastify.db, plantId);
-  });
+  );
 }

@@ -8,6 +8,7 @@ import {
   stressSeverityLevels,
   stressSignStatuses,
 } from '@plant-doctor/api-types';
+import sharp from 'sharp';
 import { config } from '../../config';
 
 interface AnalyzePlantImageParams {
@@ -16,6 +17,37 @@ interface AnalyzePlantImageParams {
     buffer: Buffer;
     mimeType: string;
   };
+  process?: boolean;
+}
+
+const LLM_VISION_MAX_DIMENSION = 1024;
+const LLM_VISION_JPEG_QUALITY = 85;
+
+export async function processImageForLlm(
+  buffer: Buffer,
+  mimeType: string,
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const image = sharp(buffer);
+  const metadata = await image.metadata();
+  const width = metadata.width ?? 0;
+  const height = metadata.height ?? 0;
+
+  const resizeOptions: sharp.ResizeOptions = {
+    fit: 'inside',
+    width: LLM_VISION_MAX_DIMENSION,
+    height: LLM_VISION_MAX_DIMENSION,
+    withoutEnlargement: true,
+  };
+
+  // Convert to JPEG for broad LLM compatibility and controlled file size.
+  const processed = image.resize(resizeOptions).jpeg({
+    quality: LLM_VISION_JPEG_QUALITY,
+    progressive: true,
+    force: true,
+  });
+
+  const processedBuffer = await processed.toBuffer();
+  return { buffer: processedBuffer, mimeType: 'image/jpeg' };
 }
 
 interface LlmCallResult {
@@ -130,12 +162,22 @@ export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
 export async function callPlantAnalysisLlm({
   prompt,
   image,
+  process = true,
 }: AnalyzePlantImageParams): Promise<LlmCallResult> {
   if (!config.llmApiKey) {
     throw new Error('LLM_API_KEY is not configured');
   }
 
   const startedAt = Date.now();
+  let imageForLlm = image;
+  if (process) {
+    try {
+      imageForLlm = await processImageForLlm(image.buffer, image.mimeType);
+    } catch (error) {
+      // Keep the original image so the request can still succeed.
+      console.error('Failed to process image for LLM, using original:', error);
+    }
+  }
   const body = {
     model: config.llmApiModel,
     temperature: 0.2,
@@ -148,7 +190,7 @@ export async function callPlantAnalysisLlm({
           {
             type: 'image_url',
             image_url: {
-              url: `data:${image.mimeType};base64,${image.buffer.toString(
+              url: `data:${imageForLlm.mimeType};base64,${imageForLlm.buffer.toString(
                 'base64',
               )}`,
             },

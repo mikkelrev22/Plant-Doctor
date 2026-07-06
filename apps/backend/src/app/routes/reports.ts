@@ -1,4 +1,6 @@
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { config } from '../../config';
 import '../types/fastify';
 import {
@@ -20,26 +22,23 @@ import {
   type StoredUpload,
 } from '../services/uploads.service';
 
-function optionalNumber(value: string | undefined) {
-  if (!value) {
-    return undefined;
-  }
-
-  const parsed = Number(value);
-  return Number.isInteger(parsed) ? parsed : undefined;
-}
-
 export default async function (fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<ZodTypeProvider>();
+
   // Returns a full report with photo, checklist, and LLM log summary.
-  fastify.get('/reports/:reportId', async function (request) {
-    const params = request.params as { reportId?: string };
-    const reportId = Number(params.reportId);
+  server.get(
+    '/reports/:reportId',
+    {
+      schema: {
+        params: z.object({
+          reportId: z.coerce.number().int(),
+        }),
+      },
+    },
+    async function (request) {
+      const { reportId } = request.params;
 
-    if (!Number.isInteger(reportId)) {
-      throw fastify.httpErrors.badRequest('Invalid report id');
-    }
-
-    const report = await getReportDetail(fastify.db, reportId);
+      const report = await getReportDetail(fastify.db, reportId);
 
     if (!report) {
       throw fastify.httpErrors.notFound('Report not found');
@@ -49,7 +48,7 @@ export default async function (fastify: FastifyInstance) {
   });
 
   // Uploads a plant image, asks the LLM for diagnosis, logs it, and stores a report.
-  fastify.post('/reports/analyze', async function (request) {
+  server.post('/reports/analyze', async function (request) {
     const fields: Record<string, string> = {};
     let upload: StoredUpload | null = null;
 
@@ -65,9 +64,29 @@ export default async function (fastify: FastifyInstance) {
       throw fastify.httpErrors.badRequest('A plant image is required');
     }
 
+    const analyzeFieldsSchema = z.object({
+      process: z
+        .preprocess(
+          (val) =>
+            val === undefined ? undefined : val !== 'false' && val !== '0',
+          z.boolean()
+        )
+        .default(true),
+      plantId: z
+        .preprocess(
+          (val) => (val === undefined || val === '' ? undefined : Number(val)),
+          z.number().int()
+        )
+        .optional(),
+      plantName: z.string().optional(),
+    });
+
+    const validatedFields = analyzeFieldsSchema.parse(fields);
+
+    const processImage = validatedFields.process;
     const plant = await findOrCreatePlant(fastify.db, {
-      plantId: optionalNumber(fields.plantId),
-      plantName: fields.plantName,
+      plantId: validatedFields.plantId,
+      plantName: validatedFields.plantName,
     });
     const stressSigns = await listStressSigns(fastify.db);
     const prompt = buildPlantAnalysisPrompt(stressSigns);
@@ -89,6 +108,7 @@ export default async function (fastify: FastifyInstance) {
           buffer: upload.buffer,
           mimeType: upload.mimeType,
         },
+        process: processImage,
       });
       const analysis = parsePlantAnalysis(llmResponse.content);
 

@@ -29,4 +29,13 @@ describe('GET /', () => {
 
     expect(response.json()).toEqual({ message: 'Node.js backend is running' });
   });
+
+  it('should return 400 for invalid reportId', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/reports/abc',
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
 });
