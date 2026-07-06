@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import App from './app';
 
@@ -55,12 +56,17 @@ function jsonResponse(body: unknown) {
 }
 
 function renderApp() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MantineProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </MantineProvider>,
+    <QueryClientProvider client={queryClient}>
+      <MantineProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </MantineProvider>
+    </QueryClientProvider>,
   );
 }
 

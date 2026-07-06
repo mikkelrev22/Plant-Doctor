@@ -1,0 +1,83 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type {
+  AnalyzeReportResponse,
+  PlantDto,
+  PlantReportDetailDto,
+  PlantReportSummaryDto,
+  StressSignDto,
+} from '@plant-doctor/api-types';
+import {
+  analyzePlantReport,
+  getPlantReports,
+  getPlants,
+  getReport,
+  getStressSigns,
+} from './api/api';
+
+export const plantKeys = {
+  all: ['plants'] as const,
+};
+
+export const stressSignKeys = {
+  all: ['stress-signs'] as const,
+};
+
+export const reportKeys = {
+  all: ['reports'] as const,
+  byPlant: (plantId: number) => [...reportKeys.all, 'plant', plantId] as const,
+  byId: (reportId: number) => [...reportKeys.all, 'detail', reportId] as const,
+};
+
+export function usePlants() {
+  return useQuery<PlantDto[]>({
+    queryKey: plantKeys.all,
+    queryFn: getPlants,
+  });
+}
+
+export function useStressSigns() {
+  return useQuery<StressSignDto[]>({
+    queryKey: stressSignKeys.all,
+    queryFn: getStressSigns,
+  });
+}
+
+export function usePlantReports(plantId: number | null) {
+  return useQuery<PlantReportSummaryDto[]>({
+    queryKey: reportKeys.byPlant(plantId ?? 0),
+    queryFn: () => {
+      if (plantId === null) throw new Error('plantId is required');
+      return getPlantReports(plantId);
+    },
+    enabled: plantId !== null,
+  });
+}
+
+export function useReport(reportId: number | null) {
+  return useQuery<PlantReportDetailDto>({
+    queryKey: reportKeys.byId(reportId ?? 0),
+    queryFn: () => {
+      if (reportId === null) throw new Error('reportId is required');
+      return getReport(reportId);
+    },
+    enabled: reportId !== null,
+  });
+}
+
+export function useAnalyzeReport() {
+  const queryClient = useQueryClient();
+
+  return useMutation<AnalyzeReportResponse, Error, {
+    image: File;
+    plantId?: number;
+    plantName?: string;
+  }>({
+    mutationFn: analyzePlantReport,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: plantKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.byPlant(data.plant.id),
+      });
+    },
+  });
+}
