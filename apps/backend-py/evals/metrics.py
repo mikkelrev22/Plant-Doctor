@@ -1,9 +1,8 @@
-"""Evaluation metrics — guardrail scorecards and aggregate stats."""
+"""Guardrail evaluation metrics."""
 
 from collections import defaultdict
 
 from backend_py.observability.guardrails import Rail
-
 from evals.record import RunRecord
 
 
@@ -24,4 +23,4 @@ def guardrail_scorecard(
                     c["warranted"] += 1
                 else:
                     c["fp"] += 1
-    return cells  # -> fire_rate, recall, false_positive_rate per (target, rail)
+    return cells
