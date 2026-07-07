@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
 import { createPlant, getPlantForUser, listPlants, updatePlantName } from '../services/plants.service';
-import { listReportsForPlant } from '../services/reports.service';
+import { listReportsForPlant, listReportsForPlantExtended } from '../services/reports.service';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
@@ -65,6 +65,25 @@ export default async function (fastify: FastifyInstance) {
       const { plantId } = request.params;
 
       return listReportsForPlant(fastify.db, plantId);
+    }
+  );
+
+  // Returns report history for one Research User plant, including per-report
+  // stress-sign evaluations (used by the over-time stress-sign table). The
+  // simpler GET /plants/:plantId/reports above stays available for other uses.
+  server.get(
+    '/plants/:plantId/reports/extended',
+    {
+      schema: {
+        params: z.object({
+          plantId: z.coerce.number().int(),
+        }),
+      },
+    },
+    async function (request) {
+      const { plantId } = request.params;
+
+      return listReportsForPlantExtended(fastify.db, plantId);
     }
   );
 

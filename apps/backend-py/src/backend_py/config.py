@@ -11,7 +11,7 @@ load_dotenv(_workspace_root / ".env")
 
 class Config:
     llm_api_key: str = os.getenv("LLM_API_KEY", "")
-    llm_model: str = os.getenv("LLM_MODEL", "gpt-4o-mini")
+    llm_model: str = os.getenv("LLM_API_MODEL", "")
     embedding_model: str = os.getenv("LLM_API_EMBEDDING", "text-embedding-3-small")
     vector_store_url: str = os.getenv(
         "VECTOR_STORE_URL",

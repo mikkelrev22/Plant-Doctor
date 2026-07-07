@@ -1,0 +1,199 @@
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Alert,
+  Badge,
+  Image,
+  Loader,
+  ScrollArea,
+  Stack,
+  Table,
+  Text,
+  Title,
+  Tooltip,
+} from '@mantine/core';
+import type {
+  PlantReportExtendedDto,
+  ReportStressSignDto,
+  StressSeverity,
+} from '@plant-doctor/api-types';
+import { usePlantReportsExtended } from '../queries';
+import { formatDate, severityColor, statusLabel } from '../utils/formatters';
+import styles from '../app.module.css';
+
+interface ReportsTableProps {
+  plantId: number;
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function presentBadgeLabel(severity: StressSeverity) {
+  return severity === 'none' ? 'Present' : capitalize(severity);
+}
+
+function presentBadgeColor(severity: StressSeverity) {
+  return severity === 'none' ? 'red' : severityColor(severity);
+}
+
+function stressTooltipLabel(sign: ReportStressSignDto) {
+  const parts = [statusLabel(sign.status)];
+  if (sign.confidence !== null) {
+    parts.push(`${sign.confidence}%`);
+  }
+  if (sign.notes) {
+    parts.push(sign.notes);
+  }
+  return parts.join(' · ');
+}
+
+function StressSignBadge({ sign }: { sign: ReportStressSignDto }) {
+  const label = stressTooltipLabel(sign);
+  const badge =
+    sign.status === 'present' ? (
+      <Badge
+        color={presentBadgeColor(sign.severity)}
+        variant="filled"
+        size="xs"
+        radius="sm"
+      >
+        {presentBadgeLabel(sign.severity)}
+      </Badge>
+    ) : (
+      <span>-</span>
+    );
+
+  return (
+    <Tooltip label={label} multiline w={240} position="top" withArrow>
+      {badge}
+    </Tooltip>
+  );
+}
+
+export function ReportsTable({ plantId }: ReportsTableProps) {
+  const navigate = useNavigate();
+  const reportsQuery = usePlantReportsExtended(plantId);
+
+  const reports = useMemo(
+    () => reportsQuery.data ?? [],
+    [reportsQuery.data],
+  );
+
+  // Columns are the full stress-sign checklist in sortOrder. The service
+  // returns every report's stress signs in sortOrder, so the first report gives
+  // the canonical column set; every other report is matched by stressSignId.
+  const columns = useMemo(() => {
+    const first = reports[0]?.stressSigns ?? [];
+    const seen = new Set<string>();
+    return first.filter((sign) => {
+      if (seen.has(sign.stressSignId)) return false;
+      seen.add(sign.stressSignId);
+      return true;
+    });
+  }, [reports]);
+
+  if (reportsQuery.isLoading) {
+    return <Loader />;
+  }
+
+  if (reportsQuery.error) {
+    return (
+      <Alert color="red" title="Error">
+        {reportsQuery.error.message}
+      </Alert>
+    );
+  }
+
+  return (
+    <Stack gap="md">
+      <Title order={3}>Reports</Title>
+      {reports.length ? (
+        <ScrollArea scrollbars="x" type="scroll" offsetScrollbars>
+          <Table
+            horizontalSpacing="xs"
+            verticalSpacing="xs"
+            className={styles.reportsTable}
+            striped="even"
+            withTableBorder
+            withColumnBorders
+            layout="fixed"
+            style={{ minWidth: '42rem' }}
+          >
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th className={styles.reportLabelHeader}>Report</Table.Th>
+                {columns.map((sign) => (
+                  <Table.Th
+                    key={sign.stressSignId}
+                    className={styles.signHeader}
+                  >
+                    {sign.name}
+                  </Table.Th>
+                ))}
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {reports.map((report: PlantReportExtendedDto) => {
+                const signById = new Map(
+                  report.stressSigns.map((sign) => [sign.stressSignId, sign]),
+                );
+                return (
+                  <Table.Tr key={report.id}>
+                    <Table.Td
+                      className={styles.reportLabelCell}
+                      onClick={() => navigate(`/report/${report.id}`)}
+                    >
+                      <Stack gap={4}>
+                        <Text size="xs" fw={700}>
+                          {formatDate(report.reportedAt)}
+                        </Text>
+                        {report.photo?.thumbnailUrl ? (
+                          <Image
+                            src={report.photo.thumbnailUrl}
+                            alt={report.identifiedPlantName ?? report.plantName}
+                            radius="sm"
+                            w={48}
+                            h={48}
+                            fit="cover"
+                          />
+                        ) : null}
+                      </Stack>
+                    </Table.Td>
+                    {columns.map((column) => {
+                      const sign = signById.get(column.stressSignId);
+                      return (
+                        <Table.Td
+                          key={column.stressSignId}
+                          className={styles.signCell}
+                        >
+                          {sign ? (
+                            <StressSignBadge sign={sign} />
+                          ) : (
+                            <StressSignBadge
+                              sign={{
+                                stressSignId: column.stressSignId,
+                                name: column.name,
+                                status: 'unknown',
+                                severity: 'none',
+                                confidence: null,
+                                notes: null,
+                                variables: [],
+                              }}
+                            />
+                          )}
+                        </Table.Td>
+                      );
+                    })}
+                  </Table.Tr>
+                );
+              })}
+            </Table.Tbody>
+          </Table>
+        </ScrollArea>
+      ) : (
+        <Text c="dimmed">No reports yet for this plant.</Text>
+      )}
+    </Stack>
+  );
+}

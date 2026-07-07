@@ -1,8 +1,10 @@
 import type {
   AnalyzeReportResponse,
+  LlmRequestDetailDto,
   PlantDto,
   PlantListItemDto,
   PlantReportDetailDto,
+  PlantReportExtendedDto,
   PlantReportSummaryDto,
   StressSignDto,
 } from '@plant-doctor/api-types';
@@ -53,8 +55,18 @@ export function getPlantReports(plantId: number) {
   return fetchJson<PlantReportSummaryDto[]>(`/plants/${plantId}/reports`);
 }
 
+export function getPlantReportsExtended(plantId: number) {
+  return fetchJson<PlantReportExtendedDto[]>(
+    `/plants/${plantId}/reports/extended`,
+  );
+}
+
 export function getReport(reportId: number) {
   return fetchJson<PlantReportDetailDto>(`/reports/${reportId}`);
+}
+
+export function getLlmRequest(llmRequestId: number) {
+  return fetchJson<LlmRequestDetailDto>(`/llm-requests/${llmRequestId}`);
 }
 
 export function analyzePlantReport(params: {
