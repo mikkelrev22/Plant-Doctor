@@ -1,0 +1,252 @@
+import type {
+  LlmPlantAnalysisResult,
+  LlmStressSignResult,
+  StressSeverity,
+  StressSignStatus,
+} from '@plant-doctor/api-types';
+import {
+  stressSeverityLevels,
+  stressSignStatuses,
+} from '@plant-doctor/api-types';
+import sharp from 'sharp';
+import { config } from '../../config';
+
+interface AnalyzePlantImageParams {
+  prompt: string;
+  image: {
+    buffer: Buffer;
+    mimeType: string;
+  };
+  process?: boolean;
+}
+
+const LLM_VISION_MAX_DIMENSION = 1024;
+const LLM_VISION_JPEG_QUALITY = 85;
+
+export async function processImageForLlm(
+  buffer: Buffer,
+  mimeType: string,
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const image = sharp(buffer);
+  const metadata = await image.metadata();
+  const width = metadata.width ?? 0;
+  const height = metadata.height ?? 0;
+
+  const resizeOptions: sharp.ResizeOptions = {
+    fit: 'inside',
+    width: LLM_VISION_MAX_DIMENSION,
+    height: LLM_VISION_MAX_DIMENSION,
+    withoutEnlargement: true,
+  };
+
+  // Convert to JPEG for broad LLM compatibility and controlled file size.
+  const processed = image.resize(resizeOptions).jpeg({
+    quality: LLM_VISION_JPEG_QUALITY,
+    progressive: true,
+    force: true,
+  });
+
+  const processedBuffer = await processed.toBuffer();
+  return { buffer: processedBuffer, mimeType: 'image/jpeg' };
+}
+
+interface LlmCallResult {
+  content: string;
+  responseMetadata: Record<string, unknown>;
+  latencyMs: number;
+}
+
+function chatCompletionsUrl() {
+  const trimmedUrl = config.llmApiUrl.replace(/\/$/, '');
+  return trimmedUrl.endsWith('/chat/completions')
+    ? trimmedUrl
+    : `${trimmedUrl}/chat/completions`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function numberOrNull(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function statusValue(value: unknown): StressSignStatus {
+  return stressSignStatuses.includes(value as StressSignStatus)
+    ? (value as StressSignStatus)
+    : 'unknown';
+}
+
+function severityValue(value: unknown): StressSeverity {
+  return stressSeverityLevels.includes(value as StressSeverity)
+    ? (value as StressSeverity)
+    : 'none';
+}
+
+function extractJsonObject(content: string) {
+  const withoutFence = content
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```$/i, '')
+    .trim();
+  const firstBrace = withoutFence.indexOf('{');
+  const lastBrace = withoutFence.lastIndexOf('}');
+
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error('LLM response did not contain a JSON object');
+  }
+
+  return JSON.parse(withoutFence.slice(firstBrace, lastBrace + 1)) as unknown;
+}
+
+function normalizeStressSign(value: unknown): LlmStressSignResult | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const stressSignId = stringValue(value.stressSignId).trim();
+
+  if (!stressSignId) {
+    return null;
+  }
+
+  return {
+    stressSignId,
+    status: statusValue(value.status),
+    severity: severityValue(value.severity),
+    confidence: numberOrNull(value.confidence),
+    notes: stringValue(value.notes),
+  };
+}
+
+export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
+  const parsed = extractJsonObject(content);
+
+  if (!isRecord(parsed)) {
+    throw new Error('LLM response JSON was not an object');
+  }
+
+  const stressSigns = Array.isArray(parsed.stressSigns)
+    ? parsed.stressSigns
+        .map((item) => normalizeStressSign(item))
+        .filter((item): item is LlmStressSignResult => Boolean(item))
+    : [];
+
+  return {
+    identifiedPlantName: stringValue(
+      parsed.identifiedPlantName,
+      'Unknown plant',
+    ),
+    scientificName:
+      typeof parsed.scientificName === 'string' ? parsed.scientificName : null,
+    identificationConfidence: numberOrNull(parsed.identificationConfidence),
+    likelyStressors: Array.isArray(parsed.likelyStressors)
+      ? parsed.likelyStressors
+          .filter((value): value is string => typeof value === 'string')
+          .map((value) => value.trim())
+          .filter(Boolean)
+      : [],
+    summary: stringValue(parsed.summary, 'No summary returned.'),
+    recommendations: stringValue(
+      parsed.recommendations,
+      'No recommendations returned.',
+    ),
+    stressSigns,
+    detectedRegions: numberOrNull(parsed.detectedRegions) ?? 0,
+  };
+}
+
+export async function callPlantAnalysisLlm({
+  prompt,
+  image,
+  process = true,
+}: AnalyzePlantImageParams): Promise<LlmCallResult> {
+  if (!config.llmApiKey) {
+    throw new Error('LLM_API_KEY is not configured');
+  }
+
+  const startedAt = Date.now();
+  let imageForLlm = image;
+  if (process) {
+    try {
+      imageForLlm = await processImageForLlm(image.buffer, image.mimeType);
+    } catch (error) {
+      // Keep the original image so the request can still succeed.
+      console.error('Failed to process image for LLM, using original:', error);
+    }
+  }
+  const body = {
+    model: config.llmApiModel,
+    temperature: 0.2,
+    max_tokens: config.llmMaxTokens,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are Plant Doctor, a houseplant health analysis assistant. You analyze plant images and return structured JSON. You must return your analysis as a single JSON object. Ensure the JSON is complete and follows the requested schema.',
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${imageForLlm.mimeType};base64,${imageForLlm.buffer.toString(
+                'base64',
+              )}`,
+              detail: 'high',
+            },
+          },
+          { type: 'text', text: prompt },
+        ],
+      },
+    ],
+  };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.llmTimeoutMs);
+
+  try {
+    const response = await fetch(chatCompletionsUrl(), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.llmApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const responseText = await response.text();
+    const latencyMs = Date.now() - startedAt;
+
+    if (!response.ok) {
+      throw new Error(
+        `LLM request failed with ${response.status}: ${responseText}`,
+      );
+    }
+
+    const responseJson = JSON.parse(responseText) as Record<string, unknown>;
+    const choices = Array.isArray(responseJson.choices)
+      ? responseJson.choices
+      : [];
+    const firstChoice = choices[0];
+    const message = isRecord(firstChoice) ? firstChoice.message : undefined;
+    const content = isRecord(message) ? stringValue(message.content) : '';
+
+    if (!content) {
+      throw new Error('LLM response did not include message content');
+    }
+
+    return {
+      content,
+      responseMetadata: responseJson,
+      latencyMs,
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}

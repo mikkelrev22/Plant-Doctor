@@ -1,27 +1,40 @@
 import {
+  index,
   integer,
+  jsonb,
   pgTable,
   serial,
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
+import type { LlmPlantAnalysisResult } from '@plant-doctor/api-types';
 import { plants } from './plants';
 
-export const plantReports = pgTable('plant_reports', {
-  id: serial('id').primaryKey(),
-  plantId: integer('plant_id')
-    .notNull()
-    .references(() => plants.id, { onDelete: 'cascade' }),
-  reportedAt: timestamp('reported_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  stressors: text('stressors').notNull(),
-  summary: text('summary').notNull(),
-  recommendations: text('recommendations').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const plantReports = pgTable(
+  'plant_reports',
+  {
+    id: serial('id').primaryKey(),
+    plantId: integer('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    reportedAt: timestamp('reported_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    stressors: text('stressors').notNull(),
+    summary: text('summary').notNull(),
+    recommendations: text('recommendations').notNull(),
+    reportPayload: jsonb('report_payload').$type<LlmPlantAnalysisResult>(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('plant_reports_plant_reported_at_idx').on(
+      table.plantId,
+      table.reportedAt,
+    ),
+  ],
+);
 
 export const plantPhotos = pgTable('plant_photos', {
   id: serial('id').primaryKey(),
