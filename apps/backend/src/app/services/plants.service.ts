@@ -83,3 +83,21 @@ export async function findOrCreatePlant(
 
   return createPlant(db, params.plantName);
 }
+
+export async function updatePlantName(
+  db: Database,
+  plantId: number,
+  name: string,
+): Promise<PlantDto> {
+  const [updated] = await db
+    .update(plants)
+    .set({ name, updatedAt: new Date() })
+    .where(and(eq(plants.userId, RESEARCH_USER_ID), eq(plants.id, plantId)))
+    .returning();
+
+  if (!updated) {
+    throw new Error('Plant not found');
+  }
+
+  return toPlantDto(updated);
+}

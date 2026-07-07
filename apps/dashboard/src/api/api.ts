@@ -24,6 +24,10 @@ export function getPlants() {
   return fetchJson<PlantDto[]>('/plants');
 }
 
+export function getPlant(id: number) {
+  return fetchJson<PlantDto>(`/plants/${id}`);
+}
+
 export function createPlant(name?: string) {
   return fetchJson<PlantDto>('/plants', {
     method: 'POST',

@@ -5,14 +5,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import App from './app';
 
+const plantResponse = {
+  id: 1,
+  name: 'Sunny Aloe',
+  notes: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 const reportResponse = {
-  plant: {
-    id: 1,
-    name: 'Sunny Aloe',
-    notes: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+  plant: plantResponse,
   report: {
     id: 10,
     plantId: 1,
@@ -55,7 +57,8 @@ function jsonResponse(body: unknown) {
   });
 }
 
-function renderApp() {
+function renderApp(initialPath = '/') {
+  window.history.pushState({}, '', initialPath);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -78,19 +81,23 @@ describe('App', () => {
         const url = String(input);
 
         if (url.endsWith('/plants')) {
-          return Promise.resolve(jsonResponse([]));
+          return Promise.resolve(jsonResponse([plantResponse]));
         }
 
-        if (url.endsWith('/stress-signs')) {
-          return Promise.resolve(jsonResponse([]));
-        }
-
-        if (url.endsWith('/reports/analyze')) {
-          return Promise.resolve(jsonResponse(reportResponse));
+        if (url.endsWith('/plants/1')) {
+          return Promise.resolve(jsonResponse(plantResponse));
         }
 
         if (url.endsWith('/plants/1/reports')) {
           return Promise.resolve(jsonResponse([reportResponse.report]));
+        }
+
+        if (url.endsWith('/reports/10')) {
+          return Promise.resolve(jsonResponse(reportResponse.report));
+        }
+
+        if (url.endsWith('/reports/analyze')) {
+          return Promise.resolve(jsonResponse(reportResponse));
         }
 
         return Promise.resolve(jsonResponse({}));
@@ -107,8 +114,24 @@ describe('App', () => {
     expect(baseElement).toBeTruthy();
   });
 
-  it('submits an image and renders the returned report', async () => {
-    renderApp();
+  it('should render home page', () => {
+    renderApp('/');
+    expect(screen.getByText('New Plant Analysis')).toBeTruthy();
+  });
+
+  it('should render plant page with plant name', async () => {
+    renderApp('/plant/1');
+    await waitFor(() => {
+      expect(screen.getByText('Sunny Aloe')).toBeTruthy();
+    });
+  });
+
+  it('submits an image and navigates to report page', async () => {
+    renderApp('/plant/1');
+
+    await waitFor(() => {
+      expect(screen.getByText('Sunny Aloe')).toBeTruthy();
+    });
 
     const file = new File(['plant'], 'plant.png', { type: 'image/png' });
     const fileInput = document.querySelector('input[type="file"]');
@@ -121,8 +144,15 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Analyze plant' }));
 
     await waitFor(() => {
-      expect(screen.getAllByText('Aloe Vera').length).toBeGreaterThan(0);
+      expect(window.location.pathname).toBe('/report/10');
     });
-    expect(screen.getByText('Brown / crispy tips & edges')).toBeTruthy();
+  });
+
+  it('should highlight the active plant in the sidebar', async () => {
+    renderApp('/plant/1');
+    await waitFor(() => {
+      const activeLink = screen.getByRole('link', { name: 'Sunny Aloe' });
+      expect(activeLink.getAttribute('data-active')).toBe('true');
+    });
   });
 });

@@ -8,6 +8,7 @@ import type {
 } from '@plant-doctor/api-types';
 import {
   analyzePlantReport,
+  getPlant,
   getPlantReports,
   getPlants,
   getReport,
@@ -16,6 +17,7 @@ import {
 
 export const plantKeys = {
   all: ['plants'] as const,
+  byId: (plantId: number) => [...plantKeys.all, 'detail', plantId] as const,
 };
 
 export const stressSignKeys = {
@@ -32,6 +34,17 @@ export function usePlants() {
   return useQuery<PlantDto[]>({
     queryKey: plantKeys.all,
     queryFn: getPlants,
+  });
+}
+
+export function usePlant(plantId: number | null) {
+  return useQuery<PlantDto>({
+    queryKey: plantKeys.byId(plantId ?? 0),
+    queryFn: () => {
+      if (plantId === null) throw new Error('plantId is required');
+      return getPlant(plantId);
+    },
+    enabled: plantId !== null,
   });
 }
 

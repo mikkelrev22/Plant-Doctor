@@ -59,4 +59,19 @@
 
 .navButton {
   justify-content: flex-start;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-sm);
+  transition: background-color 100ms ease;
+}
+
+.navButton:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+
+.navButton[data-active] {
+  background-color: var(--mantine-color-teal-0);
+  /*color: var(--mantine-color-teal-9);*/
+  p {
+    font-weight: 500;
+  }
 }

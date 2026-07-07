@@ -8,7 +8,7 @@ import {
   parsePlantAnalysis,
 } from '../services/llm.service';
 import { buildPlantAnalysisPrompt } from '../services/prompts';
-import { findOrCreatePlant } from '../services/plants.service';
+import { findOrCreatePlant, updatePlantName } from '../services/plants.service';
 import {
   createLlmRequestLog,
   createReportFromAnalysis,
@@ -71,7 +71,7 @@ export default async function (fastify: FastifyInstance) {
             val === undefined ? undefined : val !== 'false' && val !== '0',
           z.boolean()
         )
-        .default(true),
+        .default(false),
       plantId: z
         .preprocess(
           (val) => (val === undefined || val === '' ? undefined : Number(val)),
@@ -84,7 +84,8 @@ export default async function (fastify: FastifyInstance) {
     const validatedFields = analyzeFieldsSchema.parse(fields);
 
     const processImage = validatedFields.process;
-    const plant = await findOrCreatePlant(fastify.db, {
+    const isNewPlant = !validatedFields.plantId;
+    let plant = await findOrCreatePlant(fastify.db, {
       plantId: validatedFields.plantId,
       plantName: validatedFields.plantName,
     });
@@ -111,6 +112,21 @@ export default async function (fastify: FastifyInstance) {
         process: processImage,
       });
       const analysis = parsePlantAnalysis(llmResponse.content);
+
+      if (isNewPlant && analysis.identifiedPlantName) {
+        try {
+          plant = await updatePlantName(
+            fastify.db,
+            plant.id,
+            analysis.identifiedPlantName,
+          );
+        } catch (error) {
+          // If renaming fails (e.g. duplicate name), we just keep the current name.
+          fastify.log.warn(
+            `Could not rename plant ${plant.id} to ${analysis.identifiedPlantName}: ${error}`,
+          );
+        }
+      }
 
       await markLlmRequestSucceeded(fastify.db, {
         llmRequestId,
