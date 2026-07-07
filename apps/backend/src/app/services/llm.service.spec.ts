@@ -40,4 +40,18 @@ describe('parsePlantAnalysis', () => {
     expect(result.summary).toBe('No summary returned.');
     expect(result.stressSigns).toEqual([]);
   });
+
+  it('handles JSON with extra text around it', () => {
+    const result = parsePlantAnalysis('Some reasoning here... { "identifiedPlantName": "Pothos" } more text here.');
+    expect(result.identifiedPlantName).toBe('Pothos');
+  });
+
+  it('fails if there are multiple objects that confuse the parser', () => {
+    // This is what I suspected might happen with "corrupted" responses
+    const content = '{ "first": 1 } some text { "identifiedPlantName": "Pothos" }';
+    // extractJsonObject will take from the FIRST { to the LAST }
+    // which results in '{ "first": 1 } some text { "identifiedPlantName": "Pothos" }'
+    // which is NOT valid JSON.
+    expect(() => parsePlantAnalysis(content)).toThrow();
+  });
 });

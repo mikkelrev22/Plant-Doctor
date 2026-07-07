@@ -23,6 +23,61 @@ interface AnalyzePlantImageParams {
 const LLM_VISION_MAX_DIMENSION = 1024;
 const LLM_VISION_JPEG_QUALITY = 85;
 
+const PLANT_ANALYSIS_SCHEMA = {
+  name: 'plant_analysis',
+  strict: true,
+  schema: {
+    type: 'object',
+    properties: {
+      identifiedPlantName: { type: 'string' },
+      scientificName: { type: ['string', 'null'] },
+      identificationConfidence: { type: ['number', 'null'] },
+      likelyStressors: {
+        type: 'array',
+        items: { type: 'string' },
+      },
+      summary: { type: 'string' },
+      recommendations: { type: 'string' },
+      stressSigns: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            stressSignId: { type: 'string' },
+            status: { type: 'string', enum: ['present', 'absent', 'unknown'] },
+            severity: {
+              type: 'string',
+              enum: ['none', 'mild', 'moderate', 'severe'],
+            },
+            confidence: { type: ['number', 'null'] },
+            notes: { type: 'string' },
+          },
+          required: [
+            'stressSignId',
+            'status',
+            'severity',
+            'confidence',
+            'notes',
+          ],
+          additionalProperties: false,
+        },
+      },
+      detectedRegions: { type: 'integer' },
+    },
+    required: [
+      'identifiedPlantName',
+      'scientificName',
+      'identificationConfidence',
+      'likelyStressors',
+      'summary',
+      'recommendations',
+      'stressSigns',
+      'detectedRegions',
+    ],
+    additionalProperties: false,
+  },
+};
+
 export async function processImageForLlm(
   buffer: Buffer,
   mimeType: string,
@@ -92,6 +147,16 @@ function extractJsonObject(content: string) {
     .replace(/^```(?:json)?/i, '')
     .replace(/```$/i, '')
     .trim();
+
+  // If it already looks like a pure JSON object, try parsing it directly
+  if (withoutFence.startsWith('{') && withoutFence.endsWith('}')) {
+    try {
+      return JSON.parse(withoutFence) as unknown;
+    } catch (e) {
+      // Fall through to more aggressive extraction
+    }
+  }
+
   const firstBrace = withoutFence.indexOf('{');
   const lastBrace = withoutFence.lastIndexOf('}');
 
@@ -99,7 +164,13 @@ function extractJsonObject(content: string) {
     throw new Error('LLM response did not contain a JSON object');
   }
 
-  return JSON.parse(withoutFence.slice(firstBrace, lastBrace + 1)) as unknown;
+  const candidate = withoutFence.slice(firstBrace, lastBrace + 1);
+  try {
+    return JSON.parse(candidate) as unknown;
+  } catch (e) {
+    console.error('Failed to parse extracted JSON object:', candidate);
+    throw new Error('LLM response contained an invalid JSON object');
+  }
 }
 
 function normalizeStressSign(value: unknown): LlmStressSignResult | null {
@@ -182,7 +253,10 @@ export async function callPlantAnalysisLlm({
     model: config.llmApiModel,
     temperature: 0.2,
     max_tokens: config.llmMaxTokens,
-    response_format: { type: 'json_object' },
+    response_format: {
+      type: 'json_schema',
+      json_schema: PLANT_ANALYSIS_SCHEMA,
+    },
     messages: [
       {
         role: 'system',
@@ -236,9 +310,15 @@ export async function callPlantAnalysisLlm({
     const firstChoice = choices[0];
     const message = isRecord(firstChoice) ? firstChoice.message : undefined;
     const content = isRecord(message) ? stringValue(message.content) : '';
+    const reasoningContent = isRecord(message) ? stringValue(message.reasoning_content) : '';
 
     if (!content) {
+      console.error('LLM response missing content. Full response:', JSON.stringify(responseJson, null, 2));
       throw new Error('LLM response did not include message content');
+    }
+
+    if (content.trim() === '{}') {
+      console.warn('LLM returned an empty JSON object. reasoning_content:', reasoningContent);
     }
 
     return {
