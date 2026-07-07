@@ -10,14 +10,12 @@ export function buildPlantAnalysisPrompt(stressSigns: StressSignDto[]) {
     )
     .join('\n');
 
-  return `You are Plant Doctor, a careful houseplant health analysis assistant.
+  return `Analyze the uploaded plant image and return a JSON object describing its health.
 
-Analyze the uploaded plant image and return only valid JSON. Do not include markdown fences, commentary, or hidden reasoning.
-
-Use this fixed stress sign checklist. Include every stress sign exactly once in the stressSigns array:
+Use this checklist of potential stress signs to guide your analysis:
 ${checklist}
 
-JSON shape:
+JSON schema:
 {
   "identifiedPlantName": "common plant name or best guess",
   "scientificName": "scientific name or null",
@@ -27,15 +25,16 @@ JSON shape:
   "recommendations": "specific care recommendations",
   "stressSigns": [
     {
-      "stressSignId": "one of the checklist ids",
+      "stressSignId": "id from the checklist",
       "status": "present" | "absent" | "unknown",
       "severity": "none" | "mild" | "moderate" | "severe",
       "confidence": 0-100 number or null,
-      "notes": "image-grounded evidence or absence note"
+      "notes": "short observation"
     }
   ],
   "detectedRegions": 0
 }
 
-Favor honest uncertainty. Keep recommendations practical for a houseplant owner.`;
+Only include stress signs in the array that you actually detect or have a reason to mark as absent/unknown. You do not need to include the entire checklist.
+Favor honest uncertainty. Keep recommendations practical.`;
 }

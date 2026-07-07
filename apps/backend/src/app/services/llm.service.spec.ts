@@ -33,4 +33,11 @@ describe('parsePlantAnalysis', () => {
       notes: 'Brown dry leaf tips are visible.',
     });
   });
+
+  it('handles an empty JSON object by returning defaults', () => {
+    const result = parsePlantAnalysis('{}');
+    expect(result.identifiedPlantName).toBe('Unknown plant');
+    expect(result.summary).toBe('No summary returned.');
+    expect(result.stressSigns).toEqual([]);
+  });
 });

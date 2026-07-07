@@ -181,57 +181,72 @@ export async function callPlantAnalysisLlm({
   const body = {
     model: config.llmApiModel,
     temperature: 0.2,
+    max_tokens: config.llmMaxTokens,
     response_format: { type: 'json_object' },
     messages: [
       {
+        role: 'system',
+        content:
+          'You are Plant Doctor, a houseplant health analysis assistant. You analyze plant images and return structured JSON. You must return your analysis as a single JSON object. Ensure the JSON is complete and follows the requested schema.',
+      },
+      {
         role: 'user',
         content: [
-          { type: 'text', text: prompt },
           {
             type: 'image_url',
             image_url: {
               url: `data:${imageForLlm.mimeType};base64,${imageForLlm.buffer.toString(
                 'base64',
               )}`,
+              detail: 'high',
             },
           },
+          { type: 'text', text: prompt },
         ],
       },
     ],
   };
 
-  const response = await fetch(chatCompletionsUrl(), {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${config.llmApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  const responseText = await response.text();
-  const latencyMs = Date.now() - startedAt;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), config.llmTimeoutMs);
 
-  if (!response.ok) {
-    throw new Error(
-      `LLM request failed with ${response.status}: ${responseText}`,
-    );
+  try {
+    const response = await fetch(chatCompletionsUrl(), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.llmApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const responseText = await response.text();
+    const latencyMs = Date.now() - startedAt;
+
+    if (!response.ok) {
+      throw new Error(
+        `LLM request failed with ${response.status}: ${responseText}`,
+      );
+    }
+
+    const responseJson = JSON.parse(responseText) as Record<string, unknown>;
+    const choices = Array.isArray(responseJson.choices)
+      ? responseJson.choices
+      : [];
+    const firstChoice = choices[0];
+    const message = isRecord(firstChoice) ? firstChoice.message : undefined;
+    const content = isRecord(message) ? stringValue(message.content) : '';
+
+    if (!content) {
+      throw new Error('LLM response did not include message content');
+    }
+
+    return {
+      content,
+      responseMetadata: responseJson,
+      latencyMs,
+    };
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const responseJson = JSON.parse(responseText) as Record<string, unknown>;
-  const choices = Array.isArray(responseJson.choices)
-    ? responseJson.choices
-    : [];
-  const firstChoice = choices[0];
-  const message = isRecord(firstChoice) ? firstChoice.message : undefined;
-  const content = isRecord(message) ? stringValue(message.content) : '';
-
-  if (!content) {
-    throw new Error('LLM response did not include message content');
-  }
-
-  return {
-    content,
-    responseMetadata: responseJson,
-    latencyMs,
-  };
 }

@@ -28,6 +28,14 @@ export function getPlant(id: number) {
   return fetchJson<PlantDto>(`/plants/${id}`);
 }
 
+export function updatePlantName(id: number, name: string) {
+  return fetchJson<PlantDto>(`/plants/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+}
+
 export function createPlant(name?: string) {
   return fetchJson<PlantDto>('/plants', {
     method: 'POST',

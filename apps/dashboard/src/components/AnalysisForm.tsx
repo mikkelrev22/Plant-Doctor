@@ -63,7 +63,7 @@ export function AnalysisForm({
         <Group
           justify="center"
           gap="xl"
-          mih={220}
+          mih={180}
           style={{ pointerEvents: 'none' }}
         >
           <Dropzone.Accept>

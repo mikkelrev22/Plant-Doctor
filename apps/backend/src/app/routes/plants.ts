@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
-import { createPlant, getPlantForUser, listPlants } from '../services/plants.service';
+import { createPlant, getPlantForUser, listPlants, updatePlantName } from '../services/plants.service';
 import { listReportsForPlant } from '../services/reports.service';
 
 export default async function (fastify: FastifyInstance) {
@@ -12,6 +12,27 @@ export default async function (fastify: FastifyInstance) {
   server.get('/plants', async function () {
     return listPlants(fastify.db);
   });
+
+  // Updates a plant's name.
+  server.patch(
+    '/plants/:plantId',
+    {
+      schema: {
+        params: z.object({
+          plantId: z.coerce.number().int(),
+        }),
+        body: z.object({
+          name: z.string().min(1),
+        }),
+      },
+    },
+    async function (request) {
+      const { plantId } = request.params;
+      const { name } = request.body;
+
+      return updatePlantName(fastify.db, plantId, name);
+    }
+  );
 
   // Creates a plant for the Research User, generating a friendly name if blank.
   server.post(

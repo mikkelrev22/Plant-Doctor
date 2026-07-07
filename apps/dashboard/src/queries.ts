@@ -13,6 +13,7 @@ import {
   getPlants,
   getReport,
   getStressSigns,
+  updatePlantName,
 } from './api/api';
 
 export const plantKeys = {
@@ -91,6 +92,18 @@ export function useAnalyzeReport() {
       queryClient.invalidateQueries({
         queryKey: reportKeys.byPlant(data.plant.id),
       });
+    },
+  });
+}
+
+export function useUpdatePlantName() {
+  const queryClient = useQueryClient();
+
+  return useMutation<PlantDto, Error, { id: number; name: string }>({
+    mutationFn: ({ id, name }) => updatePlantName(id, name),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: plantKeys.all });
+      queryClient.invalidateQueries({ queryKey: plantKeys.byId(data.id) });
     },
   });
 }

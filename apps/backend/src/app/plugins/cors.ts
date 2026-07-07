@@ -11,5 +11,6 @@ import { config } from '../../config';
 export default fp(async function (fastify: FastifyInstance) {
   await fastify.register(cors, {
     origin: [config.frontendUrl, config.dashboardUrl],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
 });

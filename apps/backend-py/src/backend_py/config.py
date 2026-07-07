@@ -11,6 +11,8 @@ load_dotenv(_workspace_root / ".env")
 
 class Config:
     llm_api_key: str = os.getenv("LLM_API_KEY")
+    llm_max_tokens: int = int(os.getenv("LLM_MAX_TOKENS", "8192"))
+    llm_timeout_ms: int = int(os.getenv("LLM_TIMEOUT_MS", "120000"))
     host: str = os.getenv("HOST", "localhost")
     port: int = int(os.getenv("BACKEND_PY_PORT", "4200"))
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:4000")

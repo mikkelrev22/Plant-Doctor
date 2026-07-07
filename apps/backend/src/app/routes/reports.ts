@@ -71,7 +71,7 @@ export default async function (fastify: FastifyInstance) {
             val === undefined ? undefined : val !== 'false' && val !== '0',
           z.boolean()
         )
-        .default(false),
+        .default(true),
       plantId: z
         .preprocess(
           (val) => (val === undefined || val === '' ? undefined : Number(val)),
