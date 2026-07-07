@@ -1,6 +1,7 @@
 import type {
   AnalyzeReportResponse,
   PlantDto,
+  PlantListItemDto,
   PlantReportDetailDto,
   PlantReportSummaryDto,
   StressSignDto,
@@ -21,7 +22,7 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function getPlants() {
-  return fetchJson<PlantDto[]>('/plants');
+  return fetchJson<PlantListItemDto[]>('/plants');
 }
 
 export function getPlant(id: number) {

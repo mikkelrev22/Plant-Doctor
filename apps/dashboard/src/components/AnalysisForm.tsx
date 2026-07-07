@@ -113,12 +113,6 @@ export function AnalysisForm({
           Selected file: {image.name}
         </Text>
       )}
-
-      <Group justify="flex-end" mt="md">
-        <Button color="teal" loading={loading} type="submit">
-          Analyze plant
-        </Button>
-      </Group>
     </Card>
   );
 }

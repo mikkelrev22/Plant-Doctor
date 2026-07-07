@@ -83,7 +83,6 @@ export default async function (fastify: FastifyInstance) {
 
     const validatedFields = analyzeFieldsSchema.parse(fields);
 
-    const processImage = validatedFields.process;
     const isNewPlant = !validatedFields.plantId;
     let plant = await findOrCreatePlant(fastify.db, {
       plantId: validatedFields.plantId,
@@ -99,6 +98,8 @@ export default async function (fastify: FastifyInstance) {
         providerBaseUrl: config.llmApiUrl,
         imageMimeType: upload.mimeType,
         storageKey: upload.storageKey,
+        displayStorageKey: upload.display.storageKey,
+        thumbnailStorageKey: upload.thumbnail.storageKey,
       },
     });
 
@@ -106,10 +107,10 @@ export default async function (fastify: FastifyInstance) {
       const llmResponse = await callPlantAnalysisLlm({
         prompt,
         image: {
-          buffer: upload.buffer,
-          mimeType: upload.mimeType,
+          buffer: upload.display.buffer,
+          mimeType: upload.display.mimeType,
         },
-        process: processImage,
+        process: false,
       });
       const analysis = parsePlantAnalysis(llmResponse.content);
 

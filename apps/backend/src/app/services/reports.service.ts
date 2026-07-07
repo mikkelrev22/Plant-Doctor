@@ -40,6 +40,9 @@ function toPhotoDto(photo: typeof plantPhotos.$inferSelect): PlantPhotoDto {
     mimeType: photo.mimeType,
     width: photo.width,
     height: photo.height,
+    thumbnailUrl: photo.thumbnailUrl,
+    thumbnailWidth: photo.thumbnailWidth,
+    thumbnailHeight: photo.thumbnailHeight,
     capturedAt: photo.capturedAt?.toISOString() ?? null,
     createdAt: photo.createdAt.toISOString(),
   };
@@ -188,6 +191,12 @@ export async function createReportFromAnalysis(
       imageUrl: params.upload.imageUrl,
       storageKey: params.upload.storageKey,
       mimeType: params.upload.mimeType,
+      width: params.upload.width,
+      height: params.upload.height,
+      thumbnailUrl: params.upload.thumbnail.imageUrl,
+      thumbnailStorageKey: params.upload.thumbnail.storageKey,
+      thumbnailWidth: params.upload.thumbnail.width,
+      thumbnailHeight: params.upload.thumbnail.height,
     });
 
     const seededSigns = await tx

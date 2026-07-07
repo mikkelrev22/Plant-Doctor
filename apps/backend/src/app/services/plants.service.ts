@@ -1,8 +1,8 @@
-import { and, asc, eq } from 'drizzle-orm';
-import type { PlantDto } from '@plant-doctor/api-types';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
+import type { PlantDto, PlantListItemDto } from '@plant-doctor/api-types';
 import { RESEARCH_USER_ID } from '@plant-doctor/api-types';
 import type { Database } from '@plant-doctor/db';
-import { plants } from '@plant-doctor/db/schema';
+import { plantPhotos, plantReports, plants } from '@plant-doctor/db/schema';
 import { generatePlantName } from './plant-names';
 
 function toPlantDto(plant: typeof plants.$inferSelect): PlantDto {
@@ -15,14 +15,40 @@ function toPlantDto(plant: typeof plants.$inferSelect): PlantDto {
   };
 }
 
-export async function listPlants(db: Database): Promise<PlantDto[]> {
-  const rows = await db
+export async function listPlants(db: Database): Promise<PlantListItemDto[]> {
+  const plantRows = await db
     .select()
     .from(plants)
     .where(eq(plants.userId, RESEARCH_USER_ID))
-    .orderBy(asc(plants.name));
+    .orderBy(desc(plants.id));
 
-  return rows.map(toPlantDto);
+  const reportCounts = await db
+    .select({ plantId: plantReports.plantId, count: count() })
+    .from(plantReports)
+    .groupBy(plantReports.plantId);
+
+  const latestPhotos = (await db.execute(sql`
+    SELECT DISTINCT ON (${plantReports.plantId})
+      ${plantReports.plantId} AS "plantId",
+      ${plantPhotos.thumbnailUrl} AS "thumbnailUrl"
+    FROM ${plantReports}
+    LEFT JOIN ${plantPhotos} ON ${plantPhotos.plantReportId} = ${plantReports.id}
+    WHERE ${plantPhotos.thumbnailUrl} IS NOT NULL
+    ORDER BY ${plantReports.plantId}, ${plantReports.reportedAt} DESC
+  `)) as Array<{ plantId: number; thumbnailUrl: string }>;
+
+  const countByPlantId = new Map(
+    reportCounts.map((row) => [row.plantId, row.count]),
+  );
+  const thumbnailByPlantId = new Map(
+    latestPhotos.map((row) => [row.plantId, row.thumbnailUrl]),
+  );
+
+  return plantRows.map((plant) => ({
+    ...toPlantDto(plant),
+    thumbnailUrl: thumbnailByPlantId.get(plant.id) ?? null,
+    reportCount: countByPlantId.get(plant.id) ?? 0,
+  }));
 }
 
 export async function createPlant(

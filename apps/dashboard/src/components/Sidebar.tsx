@@ -1,10 +1,19 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ScrollArea, Stack, Text, Title, UnstyledButton } from '@mantine/core';
-import type { PlantDto } from '@plant-doctor/api-types';
+import {
+  Avatar,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+  Title,
+  UnstyledButton,
+} from '@mantine/core';
+import { IconPlant } from '@tabler/icons-react';
+import type { PlantListItemDto } from '@plant-doctor/api-types';
 import styles from '../app.module.css';
 
 interface SidebarProps {
-  plants: PlantDto[];
+  plants: PlantListItemDto[];
 }
 
 export function Sidebar({ plants }: SidebarProps) {
@@ -30,7 +39,26 @@ export function Sidebar({ plants }: SidebarProps) {
                   className={styles.navButton}
                   data-active={isActive || undefined}
                 >
-                  <Text size="sm">{plant.name}</Text>
+                  <Group gap="sm" wrap="nowrap">
+                    {plant.thumbnailUrl ? (
+                      <Avatar
+                        src={plant.thumbnailUrl}
+                        alt={plant.name}
+                        radius="sm"
+                        size="sm"
+                      />
+                    ) : (
+                      <Avatar radius="sm" size="sm">
+                        <IconPlant size={16} />
+                      </Avatar>
+                    )}
+                    <Text size="sm" truncate="end" style={{ flex: 1 }}>
+                      {plant.name}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      ({plant.reportCount})
+                    </Text>
+                  </Group>
                 </UnstyledButton>
               );
             })

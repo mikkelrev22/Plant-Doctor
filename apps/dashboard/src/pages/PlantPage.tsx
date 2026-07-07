@@ -1,25 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ActionIcon,
   Alert,
   Card,
   Group,
+  Image,
   Loader,
   Stack,
   Text,
-  TextInput,
   Title,
 } from '@mantine/core';
-import { IconCheck, IconEdit, IconX } from '@tabler/icons-react';
 import type { PlantReportSummaryDto } from '@plant-doctor/api-types';
 import { AnalysisForm } from '../components/AnalysisForm';
+import { PlantNameEditor } from '../components/PlantNameEditor';
 import { formatDate } from '../utils/formatters';
 import {
   useAnalyzeReport,
   usePlant,
   usePlantReports,
-  useUpdatePlantName,
 } from '../queries';
 
 export function PlantPage() {
@@ -28,13 +26,11 @@ export function PlantPage() {
   const plantId = id ? Number(id) : null;
 
   const [image, setImage] = useState<File | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState('');
+  const [updateNameError, setUpdateNameError] = useState<string | null>(null);
 
   const plantQuery = usePlant(plantId);
   const reportsQuery = usePlantReports(plantId);
   const analyzeMutation = useAnalyzeReport();
-  const updateNameMutation = useUpdatePlantName();
 
   const plant = plantQuery.data;
   const reports = useMemo(() => reportsQuery.data ?? [], [reportsQuery.data]);
@@ -44,14 +40,8 @@ export function PlantPage() {
     plantQuery.error?.message ??
     reportsQuery.error?.message ??
     analyzeMutation.error?.message ??
-    updateNameMutation.error?.message ??
+    updateNameError ??
     null;
-
-  useEffect(() => {
-    if (plant) {
-      setEditedName(plant.name);
-    }
-  }, [plant]);
 
   useEffect(() => {
     if (!image) return;
@@ -74,18 +64,6 @@ export function PlantPage() {
     );
   }
 
-  function handleSaveName() {
-    if (!plantId || !editedName.trim()) return;
-    updateNameMutation.mutate(
-      { id: plantId, name: editedName.trim() },
-      {
-        onSuccess: () => {
-          setIsEditing(false);
-        },
-      },
-    );
-  }
-
   if (plantQuery.isLoading) {
     return <Loader />;
   }
@@ -102,51 +80,11 @@ export function PlantPage() {
         </Alert>
       ) : null}
 
-      {isEditing ? (
-        <Group gap="xs">
-          <TextInput
-            value={editedName}
-            onChange={(e) => setEditedName(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSaveName();
-              if (e.key === 'Escape') setIsEditing(false);
-            }}
-            autoFocus
-            style={{ flex: 1 }}
-          />
-          <ActionIcon
-            onClick={handleSaveName}
-            loading={updateNameMutation.isPending}
-            variant="light"
-            color="green"
-            size="lg"
-          >
-            <IconCheck size={20} />
-          </ActionIcon>
-          <ActionIcon
-            onClick={() => {
-              setIsEditing(false);
-              setEditedName(plant.name);
-            }}
-            variant="light"
-            color="red"
-            size="lg"
-          >
-            <IconX size={20} />
-          </ActionIcon>
-        </Group>
-      ) : (
-        <Group gap="xs" align="center">
-          <Title order={2}>{plant.name}</Title>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            onClick={() => setIsEditing(true)}
-          >
-            <IconEdit size={20} />
-          </ActionIcon>
-        </Group>
-      )}
+      <PlantNameEditor
+        plantId={plant.id}
+        initialName={plant.name}
+        onMutationError={setUpdateNameError}
+      />
 
       <AnalysisForm
         image={image}
@@ -171,12 +109,26 @@ export function PlantPage() {
                 withBorder
                 style={{ cursor: 'pointer' }}
               >
-                <Text fw={700} size="sm">
-                  {report.identifiedPlantName ?? report.plantName}
-                </Text>
-                <Text c="dimmed" size="xs">
-                  {formatDate(report.reportedAt)}
-                </Text>
+                <Group gap="sm" wrap="nowrap" align="flex-start">
+                  {report.photo?.thumbnailUrl ? (
+                    <Image
+                      src={report.photo.thumbnailUrl}
+                      alt={report.identifiedPlantName ?? report.plantName}
+                      radius="md"
+                      w={64}
+                      h={64}
+                      fit="cover"
+                    />
+                  ) : null}
+                  <Stack gap={2} style={{ flex: 1 }}>
+                    <Text fw={700} size="sm">
+                      {report.identifiedPlantName ?? report.plantName}
+                    </Text>
+                    <Text c="dimmed" size="xs">
+                      {formatDate(report.reportedAt)}
+                    </Text>
+                  </Stack>
+                </Group>
               </Card>
             ))}
           </Stack>

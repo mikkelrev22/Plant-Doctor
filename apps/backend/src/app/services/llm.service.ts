@@ -10,6 +10,10 @@ import {
 } from '@plant-doctor/api-types';
 import sharp from 'sharp';
 import { config } from '../../config';
+import {
+  DISPLAY_JPEG_QUALITY,
+  DISPLAY_MAX_DIMENSION,
+} from './image-variants';
 
 interface AnalyzePlantImageParams {
   prompt: string;
@@ -19,9 +23,6 @@ interface AnalyzePlantImageParams {
   };
   process?: boolean;
 }
-
-const LLM_VISION_MAX_DIMENSION = 1024;
-const LLM_VISION_JPEG_QUALITY = 85;
 
 const PLANT_ANALYSIS_SCHEMA = {
   name: 'plant_analysis',
@@ -89,14 +90,14 @@ export async function processImageForLlm(
 
   const resizeOptions: sharp.ResizeOptions = {
     fit: 'inside',
-    width: LLM_VISION_MAX_DIMENSION,
-    height: LLM_VISION_MAX_DIMENSION,
+    width: DISPLAY_MAX_DIMENSION,
+    height: DISPLAY_MAX_DIMENSION,
     withoutEnlargement: true,
   };
 
   // Convert to JPEG for broad LLM compatibility and controlled file size.
   const processed = image.resize(resizeOptions).jpeg({
-    quality: LLM_VISION_JPEG_QUALITY,
+    quality: DISPLAY_JPEG_QUALITY,
     progressive: true,
     force: true,
   });

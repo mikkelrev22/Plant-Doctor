@@ -19,6 +19,11 @@ export interface PlantDto {
   updatedAt: string;
 }
 
+export interface PlantListItemDto extends PlantDto {
+  thumbnailUrl: string | null;
+  reportCount: number;
+}
+
 export interface CreatePlantRequest {
   name?: string;
 }
@@ -42,6 +47,9 @@ export interface PlantPhotoDto {
   mimeType: string | null;
   width: number | null;
   height: number | null;
+  thumbnailUrl: string | null;
+  thumbnailWidth: number | null;
+  thumbnailHeight: number | null;
   capturedAt: string | null;
   createdAt: string;
 }

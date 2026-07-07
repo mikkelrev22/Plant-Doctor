@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AnalyzeReportResponse,
   PlantDto,
+  PlantListItemDto,
   PlantReportDetailDto,
   PlantReportSummaryDto,
   StressSignDto,
@@ -32,7 +33,7 @@ export const reportKeys = {
 };
 
 export function usePlants() {
-  return useQuery<PlantDto[]>({
+  return useQuery<PlantListItemDto[]>({
     queryKey: plantKeys.all,
     queryFn: getPlants,
   });
