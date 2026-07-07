@@ -19,6 +19,11 @@ export interface PlantDto {
   updatedAt: string;
 }
 
+export interface PlantListItemDto extends PlantDto {
+  thumbnailUrl: string | null;
+  reportCount: number;
+}
+
 export interface CreatePlantRequest {
   name?: string;
 }
@@ -42,6 +47,9 @@ export interface PlantPhotoDto {
   mimeType: string | null;
   width: number | null;
   height: number | null;
+  thumbnailUrl: string | null;
+  thumbnailWidth: number | null;
+  thumbnailHeight: number | null;
   capturedAt: string | null;
   createdAt: string;
 }
@@ -66,6 +74,15 @@ export interface LlmRequestSummaryDto {
   createdAt: string;
 }
 
+export interface LlmRequestDetailDto extends LlmRequestSummaryDto {
+  plantId: number | null;
+  plantReportId: number | null;
+  prompt: string;
+  response: string | null;
+  requestMetadata: Record<string, unknown> | null;
+  responseMetadata: Record<string, unknown> | null;
+}
+
 export interface PlantReportSummaryDto {
   id: number;
   plantId: number;
@@ -78,6 +95,10 @@ export interface PlantReportSummaryDto {
   summary: string;
   recommendations: string;
   photo: PlantPhotoDto | null;
+}
+
+export interface PlantReportExtendedDto extends PlantReportSummaryDto {
+  stressSigns: ReportStressSignDto[];
 }
 
 export interface PlantReportDetailDto extends PlantReportSummaryDto {

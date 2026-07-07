@@ -49,6 +49,10 @@ export const plantPhotos = pgTable('plant_photos', {
   mimeType: text('mime_type'),
   width: integer('width'),
   height: integer('height'),
+  thumbnailUrl: text('thumbnail_url'),
+  thumbnailStorageKey: text('thumbnail_storage_key'),
+  thumbnailWidth: integer('thumbnail_width'),
+  thumbnailHeight: integer('thumbnail_height'),
   capturedAt: timestamp('captured_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()

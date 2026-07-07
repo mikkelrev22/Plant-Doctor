@@ -15,7 +15,7 @@
 
 .photoFrame {
   display: flex;
-  min-height: 320px;
+  min-height: 280px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -74,4 +74,91 @@
   p {
     font-weight: 500;
   }
+}
+
+.reportsTable {
+  /*min-width: 64rem;*/
+}
+
+.signHeader {
+  white-space: normal;
+  vertical-align: bottom;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  padding: 0.5rem;
+}
+
+.signCell {
+  /*min-width: 5.75rem;*/
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Sticky first column keeps the report label visible while horizontally
+   scrolling the stress-sign columns. The header cell sits above body cells. */
+.reportLabelHeader {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--mantine-color-gray-1);
+}
+
+.reportLabelCell {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--mantine-color-body);
+  cursor: pointer;
+}
+
+.reportsTable tbody tr:hover .reportLabelCell {
+  background: var(--mantine-color-gray-0);
+}
+
+/* LLM request log table — technical key/value layout with collapsible
+   wordy fields (prompt, response, metadata JSON). */
+.logTable {
+  table-layout: fixed;
+}
+
+.logFieldHeader {
+  width: 12rem;
+  vertical-align: middle;
+}
+
+.logFieldCell {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 0.8rem;
+  color: var(--mantine-color-dimmed);
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.logPreview {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logPre,
+.logPreMono {
+  margin: 0;
+  padding: var(--mantine-spacing-xs);
+  max-height: 28rem;
+  overflow: auto;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-gray-0);
+  border: 1px solid var(--mantine-color-gray-2);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.logPreMono {
+  font-family: var(--mantine-font-family-monospace);
 }

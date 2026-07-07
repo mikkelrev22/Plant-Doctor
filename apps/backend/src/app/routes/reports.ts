@@ -40,12 +40,13 @@ export default async function (fastify: FastifyInstance) {
 
       const report = await getReportDetail(fastify.db, reportId);
 
-    if (!report) {
-      throw fastify.httpErrors.notFound('Report not found');
-    }
+      if (!report) {
+        throw fastify.httpErrors.notFound('Report not found');
+      }
 
-    return report;
-  });
+      return report;
+    },
+  );
 
   // Uploads a plant image, asks the LLM for diagnosis, logs it, and stores a report.
   server.post('/reports/analyze', async function (request) {
@@ -83,12 +84,14 @@ export default async function (fastify: FastifyInstance) {
 
     const validatedFields = analyzeFieldsSchema.parse(fields);
 
-    const processImage = validatedFields.process;
-    const isNewPlant = !validatedFields.plantId;
-    let plant = await findOrCreatePlant(fastify.db, {
-      plantId: validatedFields.plantId,
-      plantName: validatedFields.plantName,
-    });
+    const { plant: initialPlant, created } = await findOrCreatePlant(
+      fastify.db,
+      {
+        plantId: validatedFields.plantId,
+        plantName: validatedFields.plantName,
+      },
+    );
+    let plant = initialPlant;
     const stressSigns = await listStressSigns(fastify.db);
     const prompt = buildPlantAnalysisPrompt(stressSigns);
     const llmRequestId = await createLlmRequestLog(fastify.db, {
@@ -99,6 +102,8 @@ export default async function (fastify: FastifyInstance) {
         providerBaseUrl: config.llmApiUrl,
         imageMimeType: upload.mimeType,
         storageKey: upload.storageKey,
+        displayStorageKey: upload.display.storageKey,
+        thumbnailStorageKey: upload.thumbnail.storageKey,
       },
     });
 
@@ -106,14 +111,16 @@ export default async function (fastify: FastifyInstance) {
       const llmResponse = await callPlantAnalysisLlm({
         prompt,
         image: {
-          buffer: upload.buffer,
-          mimeType: upload.mimeType,
+          buffer: upload.display.buffer,
+          mimeType: upload.display.mimeType,
         },
-        process: processImage,
       });
       const analysis = parsePlantAnalysis(llmResponse.content);
 
-      if (isNewPlant && analysis.identifiedPlantName) {
+      // Only let the LLM rename plants we actually created in this request.
+      // Reused plants (matched by name, or looked up by plantId) may have
+      // prior report history and must not be silently renamed.
+      if (created && analysis.identifiedPlantName) {
         try {
           plant = await updatePlantName(
             fastify.db,
@@ -152,7 +159,10 @@ export default async function (fastify: FastifyInstance) {
         error: message,
       });
 
-      throw fastify.httpErrors.badGateway(message);
+      // Log the full error for debugging; the client gets a generic message so
+      // provider response bodies / internal details aren't leaked.
+      request.log.error({ err: error, llmRequestId, plantId: plant.id }, message);
+      throw fastify.httpErrors.badGateway('Plant analysis failed');
     }
   });
 }

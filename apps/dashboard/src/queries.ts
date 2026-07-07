@@ -1,15 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AnalyzeReportResponse,
+  LlmRequestDetailDto,
   PlantDto,
+  PlantListItemDto,
   PlantReportDetailDto,
+  PlantReportExtendedDto,
   PlantReportSummaryDto,
   StressSignDto,
 } from '@plant-doctor/api-types';
 import {
   analyzePlantReport,
+  getLlmRequest,
   getPlant,
   getPlantReports,
+  getPlantReportsExtended,
   getPlants,
   getReport,
   getStressSigns,
@@ -28,11 +33,19 @@ export const stressSignKeys = {
 export const reportKeys = {
   all: ['reports'] as const,
   byPlant: (plantId: number) => [...reportKeys.all, 'plant', plantId] as const,
+  byPlantExtended: (plantId: number) =>
+    [...reportKeys.all, 'plant-extended', plantId] as const,
   byId: (reportId: number) => [...reportKeys.all, 'detail', reportId] as const,
 };
 
+export const llmRequestKeys = {
+  all: ['llm-requests'] as const,
+  byId: (llmRequestId: number) =>
+    [...llmRequestKeys.all, 'detail', llmRequestId] as const,
+};
+
 export function usePlants() {
-  return useQuery<PlantDto[]>({
+  return useQuery<PlantListItemDto[]>({
     queryKey: plantKeys.all,
     queryFn: getPlants,
   });
@@ -67,6 +80,17 @@ export function usePlantReports(plantId: number | null) {
   });
 }
 
+export function usePlantReportsExtended(plantId: number | null) {
+  return useQuery<PlantReportExtendedDto[]>({
+    queryKey: reportKeys.byPlantExtended(plantId ?? 0),
+    queryFn: () => {
+      if (plantId === null) throw new Error('plantId is required');
+      return getPlantReportsExtended(plantId);
+    },
+    enabled: plantId !== null,
+  });
+}
+
 export function useReport(reportId: number | null) {
   return useQuery<PlantReportDetailDto>({
     queryKey: reportKeys.byId(reportId ?? 0),
@@ -75,6 +99,17 @@ export function useReport(reportId: number | null) {
       return getReport(reportId);
     },
     enabled: reportId !== null,
+  });
+}
+
+export function useLlmRequest(llmRequestId: number | null) {
+  return useQuery<LlmRequestDetailDto>({
+    queryKey: llmRequestKeys.byId(llmRequestId ?? 0),
+    queryFn: () => {
+      if (llmRequestId === null) throw new Error('llmRequestId is required');
+      return getLlmRequest(llmRequestId);
+    },
+    enabled: llmRequestId !== null,
   });
 }
 
@@ -91,6 +126,9 @@ export function useAnalyzeReport() {
       queryClient.invalidateQueries({ queryKey: plantKeys.all });
       queryClient.invalidateQueries({
         queryKey: reportKeys.byPlant(data.plant.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.byPlantExtended(data.plant.id),
       });
     },
   });
