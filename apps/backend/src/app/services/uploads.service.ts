@@ -1,9 +1,10 @@
 import type { MultipartFile } from '@fastify/multipart';
 import sharp from 'sharp';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, rm, writeFile } from 'fs/promises';
 import { dirname, extname, join, resolve } from 'path';
 import { randomUUID } from 'crypto';
 import { config } from '../../config';
+import { BadRequestError } from '../errors';
 import {
   DISPLAY_JPEG_QUALITY,
   DISPLAY_MAX_DIMENSION,
@@ -57,7 +58,7 @@ export async function storePlantPhoto(
   file: MultipartFile,
 ): Promise<StoredUpload> {
   if (!allowedMimeTypes.has(file.mimetype)) {
-    throw new Error('Unsupported image type');
+    throw new BadRequestError('Unsupported image type');
   }
 
   const originalExtension = extname(file.filename || '').toLowerCase();
@@ -68,10 +69,11 @@ export async function storePlantPhoto(
   const storageKey = `${dateSegment}/${id}${extension}`;
   const uploadRoot = resolve(process.cwd(), config.uploadDir);
   const absolutePath = join(uploadRoot, storageKey);
+  const displayStorageKey = `${dateSegment}/${id}-1024.jpg`;
+  const thumbStorageKey = `${dateSegment}/${id}-thumb.jpg`;
+  const displayAbsolutePath = join(uploadRoot, displayStorageKey);
+  const thumbAbsolutePath = join(uploadRoot, thumbStorageKey);
   const buffer = await file.toBuffer();
-
-  await mkdir(dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, buffer);
 
   // Decode the image once to capture original dimensions, then build the two
   // derived variants from independent sharp instances. Using fresh pipelines
@@ -79,11 +81,6 @@ export async function storePlantPhoto(
   // calls independent and predictable.
   const sourceImage = sharp(buffer, { failOn: 'none' });
   const originalMetadata = await sourceImage.metadata();
-
-  const displayStorageKey = `${dateSegment}/${id}-1024.jpg`;
-  const thumbStorageKey = `${dateSegment}/${id}-thumb.jpg`;
-  const displayAbsolutePath = join(uploadRoot, displayStorageKey);
-  const thumbAbsolutePath = join(uploadRoot, thumbStorageKey);
 
   const displayPipeline = sharp(buffer, { failOn: 'none' })
     .resize({
@@ -111,13 +108,32 @@ export async function storePlantPhoto(
       force: true,
     });
 
+  // Render the derived variants to memory first. A corrupt or spoofed upload
+  // fails here — before anything is persisted — so we never leave an orphaned
+  // original on disk.
   const [displayResult, thumbResult] = await Promise.all([
     displayPipeline.toBuffer({ resolveWithObject: true }),
     thumbPipeline.toBuffer({ resolveWithObject: true }),
   ]);
 
-  await writeFile(displayAbsolutePath, displayResult.data);
-  await writeFile(thumbAbsolutePath, thumbResult.data);
+  // All three buffers are ready — persist them as a set. If any write fails
+  // (e.g. disk full), roll back the ones that landed so we don't leave a
+  // partial set behind.
+  const writtenPaths: string[] = [];
+  try {
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, buffer);
+    writtenPaths.push(absolutePath);
+    await writeFile(displayAbsolutePath, displayResult.data);
+    writtenPaths.push(displayAbsolutePath);
+    await writeFile(thumbAbsolutePath, thumbResult.data);
+    writtenPaths.push(thumbAbsolutePath);
+  } catch (error) {
+    await Promise.all(
+      writtenPaths.map((path) => rm(path, { force: true })),
+    );
+    throw error;
+  }
 
   return {
     imageUrl: `${config.backendUrl}/uploads/plant-photos/${storageKey}`,
