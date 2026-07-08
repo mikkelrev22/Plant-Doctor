@@ -12,6 +12,7 @@ from backend_py.rag.store import VectorStore
 def get_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=config.llm_api_key or None,
+        base_url=config.llm_api_url or None,
         model=config.llm_model,
         temperature=0,
     )
@@ -21,6 +22,7 @@ def get_llm() -> ChatOpenAI:
 def get_embeddings() -> OpenAIEmbeddings:
     return OpenAIEmbeddings(
         api_key=config.llm_api_key or None,
+        base_url=config.llm_api_url or None,
         model=config.embedding_model,
     )
 

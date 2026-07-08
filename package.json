@@ -84,6 +84,7 @@
     "postgres": "^3.4.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^6.30.4",
     "sharp": "^0.33.5",
     "zod": "^4.4.3"
