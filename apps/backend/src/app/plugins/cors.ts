@@ -4,7 +4,8 @@ import fp from 'fastify-plugin';
 import { config } from '../../config';
 
 /**
- * Restricts CORS to the configured frontend and dashboard origins.
+ * Restricts CORS to the configured browser origins (frontend, dashboard, and
+ * the architecture diagram app).
  *
  * CORS governs browser cross-origin requests only — it is not access control.
  * Endpoints currently have no authentication, so don't expose this backend
@@ -14,7 +15,7 @@ import { config } from '../../config';
  */
 export default fp(async function (fastify: FastifyInstance) {
   await fastify.register(cors, {
-    origin: [config.frontendUrl, config.dashboardUrl],
+    origin: [config.frontendUrl, config.dashboardUrl, config.architectureUrl],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
 });

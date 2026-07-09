@@ -1,0 +1,654 @@
+{
+  "nodes": [
+    {
+      "id": "app:frontend",
+      "type": "appGroup",
+      "position": {
+        "x": -126.39502916581756,
+        "y": 235.41074182133528
+      },
+      "style": {
+        "width": 320,
+        "height": 240
+      },
+      "data": {
+        "kind": "app",
+        "label": "frontend (React + Vite)",
+        "appKind": "frontend"
+      },
+      "measured": {
+        "width": 320,
+        "height": 240
+      },
+      "selected": true,
+      "dragging": false
+    },
+    {
+      "id": "app:dashboard",
+      "type": "appGroup",
+      "position": {
+        "x": 380,
+        "y": 0
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "data": {
+        "kind": "app",
+        "label": "dashboard (React + Mantine)",
+        "appKind": "frontend"
+      },
+      "measured": {
+        "width": 320,
+        "height": 320
+      }
+    },
+    {
+      "id": "app:backend",
+      "type": "appGroup",
+      "position": {
+        "x": 760,
+        "y": 0
+      },
+      "style": {
+        "width": 380,
+        "height": 820
+      },
+      "data": {
+        "kind": "app",
+        "label": "backend (Fastify + Drizzle)",
+        "appKind": "backend"
+      },
+      "measured": {
+        "width": 380,
+        "height": 820
+      }
+    },
+    {
+      "id": "app:backend-py",
+      "type": "appGroup",
+      "position": {
+        "x": 1180,
+        "y": 0
+      },
+      "style": {
+        "width": 320,
+        "height": 320
+      },
+      "data": {
+        "kind": "app",
+        "label": "backend-py (FastAPI + LangGraph)",
+        "appKind": "backend"
+      },
+      "measured": {
+        "width": 320,
+        "height": 320
+      }
+    },
+    {
+      "id": "feat:frontend:home",
+      "type": "feature",
+      "parentId": "app:frontend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 40
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Home",
+        "route": "/"
+      },
+      "measured": {
+        "width": 160,
+        "height": 58
+      }
+    },
+    {
+      "id": "feat:frontend:diagnose",
+      "type": "feature",
+      "parentId": "app:frontend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 110
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Linear diagnosis",
+        "route": "/diagnose"
+      },
+      "measured": {
+        "width": 160,
+        "height": 58
+      }
+    },
+    {
+      "id": "feat:frontend:agent",
+      "type": "feature",
+      "parentId": "app:frontend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 180
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Agent chat",
+        "route": "/agent"
+      },
+      "measured": {
+        "width": 160,
+        "height": 58
+      }
+    },
+    {
+      "id": "feat:dashboard:home",
+      "type": "feature",
+      "parentId": "app:dashboard",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 40
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Home",
+        "route": "/"
+      },
+      "measured": {
+        "width": 160,
+        "height": 58
+      }
+    },
+    {
+      "id": "feat:dashboard:plant",
+      "type": "feature",
+      "parentId": "app:dashboard",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 120
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Plant",
+        "route": "/plant/:id"
+      },
+      "measured": {
+        "width": 160,
+        "height": 58
+      }
+    },
+    {
+      "id": "feat:dashboard:report",
+      "type": "feature",
+      "parentId": "app:dashboard",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 200
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Report",
+        "route": "/report/:id"
+      },
+      "measured": {
+        "width": 160,
+        "height": 58
+      }
+    },
+    {
+      "id": "ep:backend:root",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 40
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /",
+        "method": "GET",
+        "path": "/",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 160,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:plants-list",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 100
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /plants",
+        "method": "GET",
+        "path": "/plants",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 160,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:plants-create",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 160
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "POST /plants",
+        "method": "POST",
+        "path": "/plants",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 160,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:plant",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 220
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /plants/:plantId",
+        "method": "GET",
+        "path": "/plants/:plantId",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 184,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:plant-update",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 280
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "PATCH /plants/:plantId",
+        "method": "PATCH",
+        "path": "/plants/:plantId",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 199,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:reports",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 340
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /plants/:plantId/reports",
+        "method": "GET",
+        "path": "/plants/:plantId/reports",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 242,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:reports-extended",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 400
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET .../reports/extended",
+        "method": "GET",
+        "path": "/plants/:plantId/reports/extended",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 307,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:report",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 460
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /reports/:reportId",
+        "method": "GET",
+        "path": "/reports/:reportId",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 199,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:analyze",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 520
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "POST /reports/analyze",
+        "method": "POST",
+        "path": "/reports/analyze",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 191,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:stress",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 580
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /stress-signs",
+        "method": "GET",
+        "path": "/stress-signs",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 163,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:llm-request",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 640
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /llm-requests/:id",
+        "method": "GET",
+        "path": "/llm-requests/:llmRequestId",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 264,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:backend:uploads",
+      "type": "endpoint",
+      "parentId": "app:backend",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 700
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /uploads/plant-photos/*",
+        "method": "GET",
+        "path": "/uploads/plant-photos/*",
+        "backend": "node"
+      },
+      "measured": {
+        "width": 235,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:py:root",
+      "type": "endpoint",
+      "parentId": "app:backend-py",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 40
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "GET /",
+        "method": "GET",
+        "path": "/",
+        "backend": "py"
+      },
+      "measured": {
+        "width": 160,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:py:diagnose",
+      "type": "endpoint",
+      "parentId": "app:backend-py",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 100
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "POST /diagnose/linear",
+        "method": "POST",
+        "path": "/diagnose/linear",
+        "backend": "py"
+      },
+      "measured": {
+        "width": 191,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:py:chat-agent",
+      "type": "endpoint",
+      "parentId": "app:backend-py",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 160
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "POST /chat/agent",
+        "method": "POST",
+        "path": "/chat/agent",
+        "backend": "py"
+      },
+      "measured": {
+        "width": 160,
+        "height": 39
+      }
+    },
+    {
+      "id": "ep:py:chat-stream",
+      "type": "endpoint",
+      "parentId": "app:backend-py",
+      "extent": "parent",
+      "position": {
+        "x": 20,
+        "y": 220
+      },
+      "data": {
+        "kind": "endpoint",
+        "label": "POST /chat/agent/stream",
+        "method": "POST",
+        "path": "/chat/agent/stream",
+        "backend": "py"
+      },
+      "measured": {
+        "width": 206,
+        "height": 39
+      }
+    },
+    {
+      "id": "lib:api-types",
+      "type": "lib",
+      "position": {
+        "x": 683.9818163430375,
+        "y": 895.2548098119246
+      },
+      "data": {
+        "kind": "lib",
+        "label": "libs/api-types"
+      },
+      "measured": {
+        "width": 160,
+        "height": 40
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "lib:db",
+      "type": "lib",
+      "position": {
+        "x": 1039.236626154962,
+        "y": 923.8993427841133
+      },
+      "data": {
+        "kind": "lib",
+        "label": "libs/db (Drizzle)"
+      },
+      "measured": {
+        "width": 160,
+        "height": 40
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "e:frontend-diagnose->py-diagnose",
+      "source": "feat:frontend:diagnose",
+      "target": "ep:py:diagnose"
+    },
+    {
+      "id": "e:frontend-agent->py-chat",
+      "source": "feat:frontend:agent",
+      "target": "ep:py:chat-agent"
+    },
+    {
+      "id": "e:frontend-agent->py-stream",
+      "source": "feat:frontend:agent",
+      "target": "ep:py:chat-stream",
+      "selected": false
+    },
+    {
+      "id": "e:dashboard-home->plants-list",
+      "source": "feat:dashboard:home",
+      "target": "ep:backend:plants-list"
+    },
+    {
+      "id": "e:dashboard-home->plants-create",
+      "source": "feat:dashboard:home",
+      "target": "ep:backend:plants-create"
+    },
+    {
+      "id": "e:dashboard-home->stress",
+      "source": "feat:dashboard:home",
+      "target": "ep:backend:stress"
+    },
+    {
+      "id": "e:dashboard-home->analyze",
+      "source": "feat:dashboard:home",
+      "target": "ep:backend:analyze"
+    },
+    {
+      "id": "e:dashboard-plant->plant",
+      "source": "feat:dashboard:plant",
+      "target": "ep:backend:plant"
+    },
+    {
+      "id": "e:dashboard-plant->plant-update",
+      "source": "feat:dashboard:plant",
+      "target": "ep:backend:plant-update"
+    },
+    {
+      "id": "e:dashboard-plant->reports",
+      "source": "feat:dashboard:plant",
+      "target": "ep:backend:reports"
+    },
+    {
+      "id": "e:dashboard-plant->reports-extended",
+      "source": "feat:dashboard:plant",
+      "target": "ep:backend:reports-extended"
+    },
+    {
+      "id": "e:dashboard-report->report",
+      "source": "feat:dashboard:report",
+      "target": "ep:backend:report"
+    },
+    {
+      "id": "e:dashboard-report->llm-request",
+      "source": "feat:dashboard:report",
+      "target": "ep:backend:llm-request"
+    },
+    {
+      "id": "e:dashboard->api-types",
+      "source": "app:dashboard",
+      "target": "lib:api-types"
+    },
+    {
+      "id": "e:backend->db",
+      "source": "app:backend",
+      "target": "lib:db"
+    }
+  ]
+}

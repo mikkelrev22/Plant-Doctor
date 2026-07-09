@@ -1,0 +1,8 @@
+/* Global styles are provided by Mantine + React Flow CSS imports in main.tsx. */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}

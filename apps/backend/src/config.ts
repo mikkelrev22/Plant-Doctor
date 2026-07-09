@@ -13,6 +13,7 @@ export const config = {
   port: Number(process.env.PORT ?? 4100),
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:4000',
   dashboardUrl: process.env.DASHBOARD_URL ?? 'http://localhost:4500',
+  architectureUrl: process.env.ARCHITECTURE_URL ?? 'http://localhost:4600',
   backendUrl: process.env.BACKEND_URL ?? 'http://localhost:4100',
   uploadDir: process.env.UPLOAD_DIR ?? 'uploads/plant-photos',
   databaseUrl:
