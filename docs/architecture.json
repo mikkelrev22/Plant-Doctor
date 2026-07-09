@@ -4,8 +4,8 @@
       "id": "app:frontend",
       "type": "appGroup",
       "position": {
-        "x": 257.11618062191815,
-        "y": -883.4558544892893
+        "x": 245.6390811921837,
+        "y": -1026.5872631538136
       },
       "style": {
         "width": 320,
@@ -17,18 +17,21 @@
         "appKind": "frontend"
       },
       "measured": {
-        "width": 320,
-        "height": 240
+        "width": 342,
+        "height": 348
       },
       "selected": false,
-      "dragging": false
+      "dragging": false,
+      "width": 342,
+      "height": 348,
+      "resizing": false
     },
     {
       "id": "app:dashboard",
       "type": "appGroup",
       "position": {
-        "x": 244.55799628980793,
-        "y": -456.57062541016364
+        "x": 252.7559244539039,
+        "y": -617.2500174264449
       },
       "style": {
         "width": 320,
@@ -40,18 +43,21 @@
         "appKind": "frontend"
       },
       "measured": {
-        "width": 320,
-        "height": 320
+        "width": 318,
+        "height": 339
       },
       "selected": false,
-      "dragging": false
+      "dragging": false,
+      "width": 318,
+      "height": 339,
+      "resizing": false
     },
     {
       "id": "app:backend",
       "type": "appGroup",
       "position": {
-        "x": 1712.1825928864605,
-        "y": -805.8974542874761
+        "x": 794.8481563748469,
+        "y": -730.5876508934114
       },
       "style": {
         "width": 380,
@@ -73,8 +79,8 @@
       "id": "app:backend-py",
       "type": "appGroup",
       "position": {
-        "x": 1180,
-        "y": 0
+        "x": 819.2911607797773,
+        "y": -1130.2893456247327
       },
       "style": {
         "width": 320,
@@ -88,7 +94,9 @@
       "measured": {
         "width": 320,
         "height": 320
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "feat:frontend:home",
@@ -96,8 +104,8 @@
       "parentId": "app:frontend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 40
+        "x": 28.19792816409597,
+        "y": 83.11668506255342
       },
       "data": {
         "kind": "feature",
@@ -107,7 +115,9 @@
       "measured": {
         "width": 160,
         "height": 58
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "feat:frontend:diagnose",
@@ -115,8 +125,8 @@
       "parentId": "app:frontend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 110
+        "x": 26.558342531276764,
+        "y": 169.51254139074547
       },
       "data": {
         "kind": "feature",
@@ -126,7 +136,9 @@
       "measured": {
         "width": 160,
         "height": 58
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "feat:frontend:agent",
@@ -134,8 +146,8 @@
       "parentId": "app:frontend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 180
+        "x": 26.558342531276708,
+        "y": 257.54798335175656
       },
       "data": {
         "kind": "feature",
@@ -145,7 +157,9 @@
       "measured": {
         "width": 160,
         "height": 58
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "feat:dashboard:home",
@@ -153,8 +167,8 @@
       "parentId": "app:dashboard",
       "extent": "parent",
       "position": {
-        "x": 23.27917126563841,
-        "y": 62.954198859468704
+        "x": 24.91875689845756,
+        "y": 85.90839771893752
       },
       "data": {
         "kind": "feature",
@@ -174,12 +188,12 @@
       "parentId": "app:dashboard",
       "extent": "parent",
       "position": {
-        "x": 18.36041436718085,
-        "y": 142.95419885946882
+        "x": 23.913818633089534,
+        "y": 166.8868523772099
       },
       "data": {
         "kind": "feature",
-        "label": "Plant",
+        "label": "Plant page",
         "route": "/plant/:id"
       },
       "measured": {
@@ -195,12 +209,12 @@
       "parentId": "app:dashboard",
       "extent": "parent",
       "position": {
-        "x": 20.5449628141194,
-        "y": 226.77833293922652
+        "x": 22.18454844693855,
+        "y": 249.73253179869522
       },
       "data": {
         "kind": "feature",
-        "label": "Report",
+        "label": "Report page",
         "route": "/report/:id"
       },
       "measured": {
@@ -216,8 +230,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 15.08124310154244,
-        "y": 53.11668506255353
+        "x": 30.536972945395405,
+        "y": 81.45218977628383
       },
       "data": {
         "kind": "endpoint",
@@ -239,8 +253,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 100
+        "x": 30.30381989590194,
+        "y": 138.63932460963224
       },
       "data": {
         "kind": "endpoint",
@@ -252,7 +266,9 @@
       "measured": {
         "width": 160,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:plants-create",
@@ -260,8 +276,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 160
+        "x": 30.30381989590194,
+        "y": 198.63932460963224
       },
       "data": {
         "kind": "endpoint",
@@ -273,7 +289,9 @@
       "measured": {
         "width": 160,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:plant",
@@ -281,8 +299,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 220
+        "x": 30.30381989590194,
+        "y": 260.2789102424514
       },
       "data": {
         "kind": "endpoint",
@@ -294,7 +312,9 @@
       "measured": {
         "width": 184,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:plant-update",
@@ -302,8 +322,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 280
+        "x": 30.30381989590194,
+        "y": 318.63932460963224
       },
       "data": {
         "kind": "endpoint",
@@ -315,7 +335,9 @@
       "measured": {
         "width": 199,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:reports",
@@ -323,8 +345,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 340
+        "x": 30.30381989590194,
+        "y": 378.63932460963224
       },
       "data": {
         "kind": "endpoint",
@@ -336,7 +358,9 @@
       "measured": {
         "width": 242,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:reports-extended",
@@ -344,8 +368,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 23.454864595934623,
-        "y": 400
+        "x": 33.75868449183656,
+        "y": 438.63932460963224
       },
       "data": {
         "kind": "endpoint",
@@ -367,8 +391,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 460
+        "x": 30.30381989590194,
+        "y": 498.63932460963224
       },
       "data": {
         "kind": "endpoint",
@@ -380,7 +404,9 @@
       "measured": {
         "width": 199,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:analyze",
@@ -388,8 +414,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 520
+        "x": 30.30381989590194,
+        "y": 558.6393246096322
       },
       "data": {
         "kind": "endpoint",
@@ -401,7 +427,9 @@
       "measured": {
         "width": 191,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:stress",
@@ -409,8 +437,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 580
+        "x": 30.30381989590194,
+        "y": 618.6393246096322
       },
       "data": {
         "kind": "endpoint",
@@ -422,7 +450,9 @@
       "measured": {
         "width": 163,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:llm-request",
@@ -430,8 +460,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 640
+        "x": 30.30381989590194,
+        "y": 678.6393246096322
       },
       "data": {
         "kind": "endpoint",
@@ -443,7 +473,9 @@
       "measured": {
         "width": 264,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:uploads",
@@ -451,8 +483,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 700
+        "x": 30.30381989590194,
+        "y": 738.6393246096322
       },
       "data": {
         "kind": "endpoint",
@@ -464,7 +496,9 @@
       "measured": {
         "width": 235,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:py:root",
@@ -472,8 +506,8 @@
       "parentId": "app:backend-py",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 40
+        "x": 28.19792816409597,
+        "y": 76.07088392202218
       },
       "data": {
         "kind": "endpoint",
@@ -485,7 +519,9 @@
       "measured": {
         "width": 160,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:py:diagnose",
@@ -493,8 +529,8 @@
       "parentId": "app:backend-py",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 100
+        "x": 28.19792816409597,
+        "y": 136.0708839220223
       },
       "data": {
         "kind": "endpoint",
@@ -506,7 +542,9 @@
       "measured": {
         "width": 191,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:py:chat-agent",
@@ -514,8 +552,8 @@
       "parentId": "app:backend-py",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 160
+        "x": 28.19792816409597,
+        "y": 196.0708839220223
       },
       "data": {
         "kind": "endpoint",
@@ -527,7 +565,9 @@
       "measured": {
         "width": 160,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:py:chat-stream",
@@ -535,8 +575,8 @@
       "parentId": "app:backend-py",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 220
+        "x": 28.19792816409597,
+        "y": 256.0708839220223
       },
       "data": {
         "kind": "endpoint",
@@ -548,7 +588,201 @@
       "measured": {
         "width": 206,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "app:1783564867744",
+      "type": "appGroup",
+      "position": {
+        "x": 1439.4987644628707,
+        "y": -724.0713689165578
+      },
+      "data": {
+        "kind": "app",
+        "label": "DATABASE",
+        "appKind": "frontend"
+      },
+      "measured": {
+        "width": 314,
+        "height": 428
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 314,
+      "height": 428,
+      "resizing": false
+    },
+    {
+      "id": "app:1783564867745",
+      "type": "appGroup",
+      "position": {
+        "x": 1439.120106785024,
+        "y": -239.92803439194512
+      },
+      "data": {
+        "kind": "app",
+        "label": "FILE STORAGE",
+        "appKind": "frontend"
+      },
+      "measured": {
+        "width": 306,
+        "height": 337
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 306,
+      "height": 337,
+      "resizing": false
+    },
+    {
+      "id": "feature:1783564867746",
+      "type": "feature",
+      "position": {
+        "x": 28.522917760441942,
+        "y": 83.33070627897257
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Plants table",
+        "route": "/"
+      },
+      "parentId": "app:1783564867744",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "feature:1783566053198",
+      "type": "feature",
+      "position": {
+        "x": 47.98894497732931,
+        "y": 163.07979904985137
+      },
+      "data": {
+        "kind": "feature",
+        "label": "GET Full image",
+        "route": "/"
+      },
+      "parentId": "app:1783564867745",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "feature:1783566053199",
+      "type": "feature",
+      "position": {
+        "x": 49.47968912544866,
+        "y": 252.11815366998957
+      },
+      "data": {
+        "kind": "feature",
+        "label": "STORE Image",
+        "route": "/"
+      },
+      "parentId": "app:1783564867745",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "feature:1783566053206",
+      "type": "feature",
+      "position": {
+        "x": 46.62582565954381,
+        "y": 82.29405525128453
+      },
+      "data": {
+        "kind": "feature",
+        "label": "GET Thumbnails",
+        "route": "/"
+      },
+      "parentId": "app:1783564867745",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "app:1783566270600",
+      "type": "appGroup",
+      "position": {
+        "x": 1439.0872509586904,
+        "y": -1151.2694912326876
+      },
+      "data": {
+        "kind": "app",
+        "label": "LLM Vision + Text",
+        "appKind": "frontend"
+      },
+      "measured": {
+        "width": 310,
+        "height": 317
+      },
+      "selected": false,
+      "dragging": false,
+      "width": 310,
+      "height": 317,
+      "resizing": false
+    },
+    {
+      "id": "feature:1783566270601",
+      "type": "feature",
+      "position": {
+        "x": 43.16803555002025,
+        "y": 97.43018694896682
+      },
+      "data": {
+        "kind": "feature",
+        "label": "VISION + Text",
+        "route": "/"
+      },
+      "parentId": "app:1783566270600",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "feature:1783566270602",
+      "type": "feature",
+      "position": {
+        "x": 40,
+        "y": 206.72741342466577
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Text only",
+        "route": "/"
+      },
+      "parentId": "app:1783566270600",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
     }
   ],
   "edges": [
@@ -556,7 +790,7 @@
       "id": "e:frontend-diagnose->py-diagnose",
       "source": "feat:frontend:diagnose",
       "target": "ep:py:diagnose",
-      "selected": true
+      "selected": false
     },
     {
       "id": "e:frontend-agent->py-chat",
@@ -618,6 +852,31 @@
       "id": "e:dashboard-report->llm-request",
       "source": "feat:dashboard:report",
       "target": "ep:backend:llm-request"
+    },
+    {
+      "source": "ep:backend:plant",
+      "target": "feature:1783566053198",
+      "id": "edge:1783566053202"
+    },
+    {
+      "source": "ep:backend:analyze",
+      "target": "feature:1783566053199",
+      "id": "edge:1783566053204"
+    },
+    {
+      "source": "ep:backend:plants-list",
+      "target": "feature:1783566053206",
+      "id": "edge:1783566270594"
+    },
+    {
+      "source": "ep:backend:reports-extended",
+      "target": "feature:1783566053206",
+      "id": "edge:1783566270596"
+    },
+    {
+      "source": "ep:backend:report",
+      "target": "feature:1783566053198",
+      "id": "edge:1783566270598"
     }
   ]
 }

@@ -2,7 +2,8 @@
   position: absolute;
   z-index: 10;
   max-width: 220px;
-  background-color: rgba(0,160,0,0.1);
+  background-color: rgba(100,160,100,0.1);
+  border: 1px solid rgba(100,160,100,0.1);
   backdrop-filter: blur(10px);
   top: 20px;
   left: 20px;
