@@ -51,7 +51,3 @@ Drizzle Studio is mainly for inspecting and editing data locally:
 ```bash
 npx nx run db:studio
 ```
-
-I would not use Studio as the primary way to design schema changes. If you change the DB directly through Studio or raw SQL, the TS schema will not automatically update, and you can create drift. Best practice here is: **edit TS schema first, generate SQL migration, apply migration**.
-
-For Python later, it should connect to the same DB and rely on the committed SQL migrations. It should not own a separate migration history unless you intentionally change the architecture.
