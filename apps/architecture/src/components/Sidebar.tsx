@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Group,
@@ -10,7 +10,7 @@ import {
   Badge,
   Box,
 } from '@mantine/core';
-import { IconDeviceFloppy, IconRefresh, IconPlus } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconRefresh, IconPlus, IconPencil } from '@tabler/icons-react';
 import type { ArchEdge, ArchNode, NodeKind } from '../types';
 import classes from './Sidebar.module.css';
 
@@ -28,6 +28,8 @@ interface SidebarProps {
   onSave: () => void;
   onReset: () => void;
   onAddNode: (input: AddNodeInput) => void;
+  selectedNode: ArchNode | null;
+  onRenameNode: (id: string, label: string) => void;
 }
 
 const LEGEND: { kind: NodeKind; label: string }[] = [
@@ -59,10 +61,13 @@ export function Sidebar({
   onSave,
   onReset,
   onAddNode,
+  selectedNode,
+  onRenameNode,
 }: SidebarProps) {
   const [type, setType] = useState<NodeKind>('feature');
   const [label, setLabel] = useState('');
   const [parentId, setParentId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const appGroups = nodes.filter((n) => n.data?.kind === 'app');
   const parentOptions = appGroups.map((n) => ({
@@ -70,29 +75,27 @@ export function Sidebar({
     label: (n.data as { label: string }).label,
   }));
 
+  // Keep the rename input in sync with the currently selected node.
+  useEffect(() => {
+    setRenameValue(
+      selectedNode ? (selectedNode.data as { label: string }).label : '',
+    );
+  }, [selectedNode]);
+
   const handleAdd = () => {
     if (!label.trim()) return;
     onAddNode({ type, label: label.trim(), parentId: parentId ?? undefined });
     setLabel('');
   };
 
+  const handleRename = () => {
+    if (!selectedNode || !renameValue.trim()) return;
+    onRenameNode(selectedNode.id, renameValue);
+  };
+
   return (
     <Stack gap="md" p="md" justify="flex-start" className={classes.sidebar}>
-      <Stack gap="xs">
-        <Text size="sm" fw={600}>
-          Legend
-        </Text>
-        {LEGEND.map((item) => (
-          <Group key={item.kind} gap="xs" align="center">
-            <Badge color={LEGEND_COLOR[item.kind]} variant="filled" size="sm">
-              {item.label}
-            </Badge>
-          </Group>
-        ))}
-      </Stack>
-
-      <Divider />
-
+      
       <Stack gap="xs">
         <Group justify="space-between" align="center">
           <Text size="sm" fw={600}>
@@ -157,6 +160,44 @@ export function Sidebar({
         >
           Add
         </Button>
+      </Stack>
+
+      <Divider />
+
+      <Stack gap="xs">
+        <Text size="sm" fw={600}>
+          Rename node
+        </Text>
+        {selectedNode ? (
+          <>
+            <Text size="xs" c="dimmed">
+              {selectedNode.data?.kind} ·{' '}
+              {(selectedNode.data as { label: string }).label}
+            </Text>
+            <TextInput
+              placeholder="New name"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRename();
+              }}
+              size="xs"
+            />
+            <Button
+              leftSection={<IconPencil size={16} />}
+              onClick={handleRename}
+              disabled={!renameValue.trim()}
+              size="sm"
+              variant="light"
+            >
+              Rename
+            </Button>
+          </>
+        ) : (
+          <Text size="xs" c="dimmed">
+            Select a node to rename it.
+          </Text>
+        )}
       </Stack>
 
       <Box className={classes.spacer} />

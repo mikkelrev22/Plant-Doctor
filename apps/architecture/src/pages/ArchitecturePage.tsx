@@ -135,6 +135,17 @@ export function ArchitecturePage() {
     void refetch();
   };
 
+  const handleRenameNode = (id: string, label: string) => {
+    const trimmed = label.trim();
+    if (!trimmed) return;
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === id ? { ...n, data: { ...n.data, label: trimmed } } : n,
+      ),
+    );
+    setDirty(true);
+  };
+
   const handleAddNode = (input: AddNodeInput) => {
     const id = uniqueId(input.type);
     const parentId = input.parentId;
@@ -151,6 +162,8 @@ export function ArchitecturePage() {
 
   const minimapNodeColor = (n: ArchNode) =>
     `var(--mantine-color-${NODE_COLORS[n.data?.kind ?? 'lib']}-6)`;
+
+  const selectedNode = nodes.find((n) => n.selected) ?? null;
 
   const hasData = useMemo(() => data !== undefined, [data]);
 
@@ -183,6 +196,8 @@ export function ArchitecturePage() {
         onSave={handleSave}
         onReset={handleReset}
         onAddNode={handleAddNode}
+        selectedNode={selectedNode}
+        onRenameNode={handleRenameNode}
       />
       <div style={{ height: '100%', width: '100%', minHeight: 0, flex: 1 }}>
         <ReactFlow
