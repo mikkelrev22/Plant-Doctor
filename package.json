@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "npx nx serve frontend",
     "dashboard": "npx nx serve dashboard",
-    "architecture": "npx nx serve architecture"
+    "architecture": "npx nx serve architecture",
+    "db": "npx nx run db:studio"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
@@ -37,7 +38,7 @@
     "@vitejs/plugin-react": "^6.0.0",
     "@vitest/coverage-v8": "~4.1.0",
     "@vitest/ui": "~4.1.0",
-    "drizzle-kit": "^0.18.1",
+    "drizzle-kit": "^0.31.10",
     "drizzle-mermaid-generator": "^0.0.5",
     "esbuild": "^0.27.0",
     "eslint": "^9.8.0",

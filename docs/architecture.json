@@ -4,8 +4,8 @@
       "id": "app:frontend",
       "type": "appGroup",
       "position": {
-        "x": 245.6390811921837,
-        "y": -1026.5872631538136
+        "x": 161.49158258253897,
+        "y": -1134.3438488084412
       },
       "style": {
         "width": 320,
@@ -30,8 +30,8 @@
       "id": "app:dashboard",
       "type": "appGroup",
       "position": {
-        "x": 252.7559244539039,
-        "y": -617.2500174264449
+        "x": 166.98008759338438,
+        "y": -694.648512592657
       },
       "style": {
         "width": 320,
@@ -56,8 +56,8 @@
       "id": "app:backend",
       "type": "appGroup",
       "position": {
-        "x": 794.8481563748469,
-        "y": -730.5876508934114
+        "x": 725.945217803842,
+        "y": -725.7926299344153
       },
       "style": {
         "width": 380,
@@ -79,8 +79,8 @@
       "id": "app:backend-py",
       "type": "appGroup",
       "position": {
-        "x": 819.2911607797773,
-        "y": -1130.2893456247327
+        "x": 730.7879081131391,
+        "y": -1140.1943845578603
       },
       "style": {
         "width": 320,
@@ -92,11 +92,14 @@
         "appKind": "backend"
       },
       "measured": {
-        "width": 320,
+        "width": 361,
         "height": 320
       },
       "selected": false,
-      "dragging": false
+      "dragging": false,
+      "width": 361,
+      "height": 320,
+      "resizing": false
     },
     {
       "id": "feat:frontend:home",
@@ -253,8 +256,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 30.30381989590194,
-        "y": 138.63932460963224
+        "x": 31.747269338807428,
+        "y": 140.08277405253762
       },
       "data": {
         "kind": "endpoint",
@@ -414,7 +417,7 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 30.30381989590194,
+        "x": 34.62581864511185,
         "y": 558.6393246096322
       },
       "data": {
@@ -596,8 +599,8 @@
       "id": "app:1783564867744",
       "type": "appGroup",
       "position": {
-        "x": 1439.4987644628707,
-        "y": -724.0713689165578
+        "x": 1370.0311520945063,
+        "y": -748.7091319098108
       },
       "data": {
         "kind": "app",
@@ -618,8 +621,8 @@
       "id": "app:1783564867745",
       "type": "appGroup",
       "position": {
-        "x": 1439.120106785024,
-        "y": -239.92803439194512
+        "x": 1370.6117501173242,
+        "y": -253.74635091287908
       },
       "data": {
         "kind": "app",
@@ -640,8 +643,8 @@
       "id": "feature:1783564867746",
       "type": "feature",
       "position": {
-        "x": 28.522917760441942,
-        "y": 83.33070627897257
+        "x": 41.32247326366655,
+        "y": 92.32219633465934
       },
       "data": {
         "kind": "feature",
@@ -724,8 +727,8 @@
       "id": "app:1783566270600",
       "type": "appGroup",
       "position": {
-        "x": 1439.0872509586904,
-        "y": -1151.2694912326876
+        "x": 1369.525140668834,
+        "y": -1162.3994288790645
       },
       "data": {
         "kind": "app",
@@ -733,21 +736,21 @@
         "appKind": "frontend"
       },
       "measured": {
-        "width": 310,
-        "height": 317
+        "width": 314,
+        "height": 343
       },
       "selected": false,
       "dragging": false,
-      "width": 310,
-      "height": 317,
+      "width": 314,
+      "height": 343,
       "resizing": false
     },
     {
       "id": "feature:1783566270601",
       "type": "feature",
       "position": {
-        "x": 43.16803555002025,
-        "y": 97.43018694896682
+        "x": 45.95051996161442,
+        "y": 82.12652268519832
       },
       "data": {
         "kind": "feature",
@@ -767,12 +770,54 @@
       "id": "feature:1783566270602",
       "type": "feature",
       "position": {
-        "x": 40,
-        "y": 206.72741342466577
+        "x": 45.564968823188565,
+        "y": 164.99014725075165
       },
       "data": {
         "kind": "feature",
         "label": "Text only",
+        "route": "/"
+      },
+      "parentId": "app:1783566270600",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "feature:1783567087242",
+      "type": "feature",
+      "position": {
+        "x": 40.00000000000023,
+        "y": 320.49514918200856
+      },
+      "data": {
+        "kind": "feature",
+        "label": "llm_requests",
+        "route": "/"
+      },
+      "parentId": "app:1783564867744",
+      "extent": "parent",
+      "measured": {
+        "width": 160,
+        "height": 58
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "feature:1783567087249",
+      "type": "feature",
+      "position": {
+        "x": 44.173726617391594,
+        "y": 251.99142440000458
+      },
+      "data": {
+        "kind": "feature",
+        "label": "Embeddings",
         "route": "/"
       },
       "parentId": "app:1783566270600",
@@ -806,7 +851,8 @@
     {
       "id": "e:dashboard-home->plants-list",
       "source": "feat:dashboard:home",
-      "target": "ep:backend:plants-list"
+      "target": "ep:backend:plants-list",
+      "selected": false
     },
     {
       "id": "e:dashboard-home->plants-create",
@@ -826,7 +872,8 @@
     {
       "id": "e:dashboard-plant->plant",
       "source": "feat:dashboard:plant",
-      "target": "ep:backend:plant"
+      "target": "ep:backend:plant",
+      "selected": false
     },
     {
       "id": "e:dashboard-plant->plant-update",
@@ -877,6 +924,47 @@
       "source": "ep:backend:report",
       "target": "feature:1783566053198",
       "id": "edge:1783566270598"
+    },
+    {
+      "source": "ep:backend:analyze",
+      "target": "feature:1783566270601",
+      "id": "edge:1783567025224",
+      "selected": false
+    },
+    {
+      "source": "ep:py:chat-agent",
+      "target": "feature:1783566270602",
+      "id": "edge:1783567025226"
+    },
+    {
+      "source": "ep:py:chat-stream",
+      "target": "feature:1783566270602",
+      "id": "edge:1783567025228"
+    },
+    {
+      "source": "ep:backend:plants-list",
+      "target": "feature:1783564867746",
+      "id": "edge:1783567087236"
+    },
+    {
+      "source": "ep:backend:plants-create",
+      "target": "feature:1783564867746",
+      "id": "edge:1783567087238"
+    },
+    {
+      "source": "ep:backend:plant",
+      "target": "feature:1783564867746",
+      "id": "edge:1783567087240"
+    },
+    {
+      "source": "ep:backend:llm-request",
+      "target": "feature:1783567087242",
+      "id": "edge:1783567087245"
+    },
+    {
+      "source": "ep:backend:analyze",
+      "target": "feature:1783567087242",
+      "id": "edge:1783567087247"
     }
   ]
 }
