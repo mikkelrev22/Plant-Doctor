@@ -117,6 +117,20 @@ export function ArchitecturePage() {
     saveMutation.mutate({ nodes, edges });
   };
 
+  // Ctrl/Cmd+S saves the graph (and stops the browser's "save page" dialog).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (dirty && !saveMutation.isPending) {
+          saveMutation.mutate({ nodes, edges });
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [dirty, nodes, edges, saveMutation]);
+
   const handleReset = () => {
     void refetch();
   };
@@ -160,7 +174,7 @@ export function ArchitecturePage() {
   }
 
   return (
-    <div style={{ height: '100vh', width: '100vw', display: 'flex' }}>
+    <div style={{ height: '100vh', width: '100vw' }}>
       <Sidebar
         nodes={nodes}
         edges={edges}

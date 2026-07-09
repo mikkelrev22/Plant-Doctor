@@ -4,8 +4,8 @@
       "id": "app:frontend",
       "type": "appGroup",
       "position": {
-        "x": -126.39502916581756,
-        "y": 235.41074182133528
+        "x": 257.11618062191815,
+        "y": -883.4558544892893
       },
       "style": {
         "width": 320,
@@ -13,22 +13,22 @@
       },
       "data": {
         "kind": "app",
-        "label": "frontend (React + Vite)",
+        "label": "FRONTEND",
         "appKind": "frontend"
       },
       "measured": {
         "width": 320,
         "height": 240
       },
-      "selected": true,
+      "selected": false,
       "dragging": false
     },
     {
       "id": "app:dashboard",
       "type": "appGroup",
       "position": {
-        "x": 380,
-        "y": 0
+        "x": 244.55799628980793,
+        "y": -456.57062541016364
       },
       "style": {
         "width": 320,
@@ -36,20 +36,22 @@
       },
       "data": {
         "kind": "app",
-        "label": "dashboard (React + Mantine)",
+        "label": "DASHBOARD",
         "appKind": "frontend"
       },
       "measured": {
         "width": 320,
         "height": 320
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "app:backend",
       "type": "appGroup",
       "position": {
-        "x": 760,
-        "y": 0
+        "x": 1712.1825928864605,
+        "y": -805.8974542874761
       },
       "style": {
         "width": 380,
@@ -57,13 +59,15 @@
       },
       "data": {
         "kind": "app",
-        "label": "backend (Fastify + Drizzle)",
+        "label": "BACKEND NODE.JS",
         "appKind": "backend"
       },
       "measured": {
         "width": 380,
         "height": 820
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "app:backend-py",
@@ -78,7 +82,7 @@
       },
       "data": {
         "kind": "app",
-        "label": "backend-py (FastAPI + LangGraph)",
+        "label": "BACKEND PYTHON",
         "appKind": "backend"
       },
       "measured": {
@@ -149,8 +153,8 @@
       "parentId": "app:dashboard",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 40
+        "x": 23.27917126563841,
+        "y": 62.954198859468704
       },
       "data": {
         "kind": "feature",
@@ -160,7 +164,9 @@
       "measured": {
         "width": 160,
         "height": 58
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "feat:dashboard:plant",
@@ -168,8 +174,8 @@
       "parentId": "app:dashboard",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 120
+        "x": 18.36041436718085,
+        "y": 142.95419885946882
       },
       "data": {
         "kind": "feature",
@@ -179,7 +185,9 @@
       "measured": {
         "width": 160,
         "height": 58
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "feat:dashboard:report",
@@ -187,8 +195,8 @@
       "parentId": "app:dashboard",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 200
+        "x": 20.5449628141194,
+        "y": 226.77833293922652
       },
       "data": {
         "kind": "feature",
@@ -198,7 +206,9 @@
       "measured": {
         "width": 160,
         "height": 58
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:root",
@@ -206,8 +216,8 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
-        "y": 40
+        "x": 15.08124310154244,
+        "y": 53.11668506255353
       },
       "data": {
         "kind": "endpoint",
@@ -219,7 +229,9 @@
       "measured": {
         "width": 160,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:plants-list",
@@ -332,7 +344,7 @@
       "parentId": "app:backend",
       "extent": "parent",
       "position": {
-        "x": 20,
+        "x": 23.454864595934623,
         "y": 400
       },
       "data": {
@@ -345,7 +357,9 @@
       "measured": {
         "width": 307,
         "height": 39
-      }
+      },
+      "selected": false,
+      "dragging": false
     },
     {
       "id": "ep:backend:report",
@@ -535,49 +549,14 @@
         "width": 206,
         "height": 39
       }
-    },
-    {
-      "id": "lib:api-types",
-      "type": "lib",
-      "position": {
-        "x": 683.9818163430375,
-        "y": 895.2548098119246
-      },
-      "data": {
-        "kind": "lib",
-        "label": "libs/api-types"
-      },
-      "measured": {
-        "width": 160,
-        "height": 40
-      },
-      "selected": false,
-      "dragging": false
-    },
-    {
-      "id": "lib:db",
-      "type": "lib",
-      "position": {
-        "x": 1039.236626154962,
-        "y": 923.8993427841133
-      },
-      "data": {
-        "kind": "lib",
-        "label": "libs/db (Drizzle)"
-      },
-      "measured": {
-        "width": 160,
-        "height": 40
-      },
-      "selected": false,
-      "dragging": false
     }
   ],
   "edges": [
     {
       "id": "e:frontend-diagnose->py-diagnose",
       "source": "feat:frontend:diagnose",
-      "target": "ep:py:diagnose"
+      "target": "ep:py:diagnose",
+      "selected": true
     },
     {
       "id": "e:frontend-agent->py-chat",
@@ -639,16 +618,6 @@
       "id": "e:dashboard-report->llm-request",
       "source": "feat:dashboard:report",
       "target": "ep:backend:llm-request"
-    },
-    {
-      "id": "e:dashboard->api-types",
-      "source": "app:dashboard",
-      "target": "lib:api-types"
-    },
-    {
-      "id": "e:backend->db",
-      "source": "app:backend",
-      "target": "lib:db"
     }
   ]
 }

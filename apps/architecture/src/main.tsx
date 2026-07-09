@@ -2,7 +2,6 @@ import '@mantine/core/styles.css';
 import '@xyflow/react/dist/style.css';
 
 import { StrictMode } from 'react';
-import { BrowserRouter } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as ReactDOM from 'react-dom/client';
@@ -18,9 +17,7 @@ root.render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <MantineProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <App />
       </MantineProvider>
     </QueryClientProvider>
   </StrictMode>

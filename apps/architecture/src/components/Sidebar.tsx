@@ -6,7 +6,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Title,
   Divider,
   Badge,
   Box,
@@ -79,15 +78,6 @@ export function Sidebar({
 
   return (
     <Stack gap="md" p="md" justify="flex-start" className={classes.sidebar}>
-      <div>
-        <Title order={4}>Plant Doctor</Title>
-        <Text size="xs" c="dimmed">
-          Architecture map — drag, connect, and save.
-        </Text>
-      </div>
-
-      <Divider />
-
       <Stack gap="xs">
         <Text size="sm" fw={600}>
           Legend
@@ -124,15 +114,6 @@ export function Sidebar({
           size="sm"
         >
           Save
-        </Button>
-        <Button
-          leftSection={<IconRefresh size={16} />}
-          onClick={onReset}
-          disabled={dirty}
-          variant="light"
-          size="sm"
-        >
-          Reset
         </Button>
       </Stack>
 
@@ -176,10 +157,6 @@ export function Sidebar({
         >
           Add
         </Button>
-        <Text size="xs" c="dimmed">
-          Tip: drag from a node&rsquo;s right handle to another&rsquo;s left
-          handle to connect them.
-        </Text>
       </Stack>
 
       <Box className={classes.spacer} />

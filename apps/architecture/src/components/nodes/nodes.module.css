@@ -11,6 +11,7 @@
 .appGroupHeader {
   padding: 6px 10px;
   font-weight: 700;
+  font-size: 28px;
   color: var(--mantine-color-violet-9);
   background: color-mix(in srgb, var(--mantine-color-violet-1) 70%, transparent);
   border-bottom: 1px solid var(--mantine-color-violet-3);
