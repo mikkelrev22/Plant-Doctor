@@ -88,11 +88,11 @@ async def _load_image(image_url: str) -> Image.Image:
 
 
 @torch.inference_mode()
-def _score_is_plant(image: Image.Image) -> tuple[bool, float]:
+def plant_probability(image: Image.Image) -> float:
     """
-    Zero-shot plant vs non-plant via CLIP ViT-B/32.
+    Zero-shot plant probability via CLIP ViT-B/32.
 
-    Returns (is_plant, plant_probability).
+    Returns the softmax mass on plant prompts in ``[0, 1]``.
     """
     model, preprocess, tokenizer, device = _clip_bundle()
     image_tensor = preprocess(image).unsqueeze(0).to(device)
@@ -106,7 +106,13 @@ def _score_is_plant(image: Image.Image) -> tuple[bool, float]:
     text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
     logits = (100.0 * image_features @ text_features.T).softmax(dim=-1)[0]
-    plant_prob = float(logits[: len(_PLANT_PROMPTS)].sum().item())
+    return float(logits[: len(_PLANT_PROMPTS)].sum().item())
+
+
+@torch.inference_mode()
+def _score_is_plant(image: Image.Image) -> tuple[bool, float]:
+    """Returns (is_plant, plant_probability) using ``CLIP_PLANT_THRESHOLD``."""
+    plant_prob = plant_probability(image)
     return plant_prob >= config.clip_plant_threshold, plant_prob
 
 

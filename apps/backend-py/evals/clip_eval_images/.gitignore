@@ -1,0 +1,6 @@
+*
+!.gitignore
+!plant/
+!non_plant/
+!plant/.gitkeep
+!non_plant/.gitkeep

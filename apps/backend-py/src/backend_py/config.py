@@ -24,7 +24,7 @@ class Config:
     py_llm_model: str = os.getenv("BACKEND_PY_LLM_API_MODEL", "")
     # Local CLIP (triage is_plant)
     clip_device: str = os.getenv("CLIP_DEVICE", "cpu")
-    clip_plant_threshold: float = float(os.getenv("CLIP_PLANT_THRESHOLD", "0.71"))
+    clip_plant_threshold: float = float(os.getenv("CLIP_PLANT_THRESHOLD", "0.67"))
     vector_store_url: str = os.getenv(
         "VECTOR_STORE_URL",
         f"sqlite:///{_workspace_root / 'data' / 'vector_store.db'}",
