@@ -7,6 +7,7 @@ import App from './app';
 vi.mock('../api/backend-py', () => ({
   checkBackendPyHealth: vi.fn().mockResolvedValue('Python backend is running'),
   diagnoseLinear: vi.fn(),
+  diagnoseLinearUploadStream: vi.fn(),
   chatAgent: vi.fn(),
 }));
 

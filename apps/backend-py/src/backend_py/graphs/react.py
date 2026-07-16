@@ -17,14 +17,14 @@ TOOLS = [analyze_plant_image, lookup_plant_care, ask_user]
 
 async def call_model(state: ReactState) -> ReactState:
     """Agent node — LLM chooses tools or returns a final answer."""
-    if not config.llm_api_key:
+    if not config.py_llm_api_key:
         last_message = state["messages"][-1].content if state["messages"] else ""
         return {
             "messages": [
                 AIMessage(
                     content=(
-                        "ReAct agent placeholder. Set LLM_API_KEY to enable "
-                        f"tool use. Last user message: {last_message}"
+                        "ReAct agent placeholder. Set BACKEND_PY_LLM_API_KEY "
+                        f"(and URL/model) to enable tool use. Last user message: {last_message}"
                     )
                 )
             ]

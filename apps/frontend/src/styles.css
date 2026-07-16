@@ -136,6 +136,57 @@ textarea {
   margin: 0;
 }
 
+.file-field input[type='file'] {
+  padding: 0.5rem 0;
+  border: none;
+  background: transparent;
+}
+
+.upload-preview {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.upload-preview img {
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 10px;
+  border: 1px solid #c8d8cb;
+}
+
+.upload-preview p {
+  margin: 0;
+  color: #4d6b57;
+  font-size: 0.9rem;
+}
+
+.stream-status {
+  margin: 0 0 0.75rem;
+  color: #4d6b57;
+}
+
+.step-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.step-done {
+  color: #2f6b4f;
+  font-weight: 600;
+}
+
+.step-current {
+  color: #173024;
+  font-weight: 600;
+}
+
+.step-pending {
+  color: #8aa394;
+}
+
 .result-card ul {
   margin: 0.75rem 0 0;
   padding-left: 1.2rem;

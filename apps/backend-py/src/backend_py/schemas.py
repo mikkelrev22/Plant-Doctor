@@ -49,6 +49,8 @@ class Advice(BaseModel):
 class DiagnoseRequest(BaseModel):
     image_url: str = ""
     user_text: str = ""
+    plant_id: int | None = None
+    plant_name: str | None = None
 
 
 class DiagnoseResponse(BaseModel):

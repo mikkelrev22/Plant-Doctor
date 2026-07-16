@@ -2,9 +2,11 @@
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend_py.config import config
 from backend_py.graphs.linear import build_linear_graph
@@ -28,6 +30,11 @@ def init_tracing() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_tracing()
+    upload_root = Path(config.upload_dir)
+    if not upload_root.is_absolute():
+        upload_root = config.workspace_root / upload_root
+    upload_root.mkdir(parents=True, exist_ok=True)
+
     async with checkpointer_lifespan() as checkpointer:
         app.state.linear_graph = build_linear_graph()
         app.state.react_graph = build_react_graph(checkpointer=checkpointer)
@@ -46,6 +53,16 @@ app.add_middleware(
 
 app.include_router(diagnose_router)
 app.include_router(chat_router)
+
+upload_mount = Path(config.upload_dir)
+if not upload_mount.is_absolute():
+    upload_mount = config.workspace_root / upload_mount
+upload_mount.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/uploads/plant-photos",
+    StaticFiles(directory=str(upload_mount)),
+    name="plant-photos",
+)
 
 
 @app.get("/")

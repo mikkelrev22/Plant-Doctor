@@ -10,7 +10,7 @@ from backend_py.schemas import CareProfile
 class VectorStore:
     """Minimal vector store facade — swap for Chroma, pgvector, etc."""
 
-    def __init__(self, url: str, embeddings: Embeddings) -> None:
+    def __init__(self, url: str, embeddings: Embeddings | None = None) -> None:
         self.url = url
         self.embeddings = embeddings
         if url.startswith("sqlite:///"):

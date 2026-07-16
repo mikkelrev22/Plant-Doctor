@@ -124,29 +124,30 @@ Health check.
 
 ### POST /diagnose/linear
 Runs the deterministic pipeline: triage → vision → retrieval → diagnosis → formatting.
-- **Content-Type**: `application/json`
-- **Body**:
+- **Content-Type**: `application/json` or `multipart/form-data`
+- **JSON body**:
   ```json
   {
     "image_url": "https://example.com/plant.jpg",
-    "user_text": "Yellowing leaves near a south-facing window."
+    "user_text": "Yellowing leaves near a south-facing window.",
+    "plant_id": 1,
+    "plant_name": "Sunny Pothos"
   }
   ```
-- **Response**:
-  ```json
-  {
-    "result": {
-      "image_url": "...",
-      "user_text": "...",
-      "triage": { "is_plant": true, "structured_facts": { ... } },
-      "symptom_report": { "species": "...", "symptoms": [], "confidence": 0.0 },
-      "care_profile": { "species": "...", "ideal_conditions": {}, "common_failure_modes": [] },
-      "diagnosis": { "species": "...", "symptoms": [], "candidate_causes": [] },
-      "advice": { "summary": "...", "actions": ["..."] }
-    }
-  }
-  ```
-- **Primary output**: `result.advice` (`summary` + `actions`)
+- **Multipart fields**:
+  - `user_text` (required)
+  - `image` (file) or `image_url` (string)
+  - `plant_id`, `plant_name` (optional): when set, the `persist` step resolves the plant via the Node backend (`GET/POST /plants`). Report row save waits on a Node from-linear endpoint (see gaps below).
+- **Response**: `{ "result": { ... } }` — primary output is `result.advice`; `result.persisted` describes DB save status
+
+### POST /diagnose/linear/stream
+Same input as `/diagnose/linear`, but streams Server-Sent Events as each pipeline node completes.
+- **Events**: `status` → `step` (includes `partial` accumulated state) → `done` or `error`
+- **Steps**: triage → vision → retrieval → diagnosis → format → persist
+- **Primary output**: final `result` in the `done` event
+
+### Node backend integration (Python → Node)
+Python calls Node at `BACKEND_URL` (default `http://localhost:4100`) via `NodeBackendClient` for plant CRUD and (when available) report/photo writes. Uploaded photos are still stored under `/uploads/plant-photos/` on Python until Node has an upload-only endpoint.
 
 ---
 

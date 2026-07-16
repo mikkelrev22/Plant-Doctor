@@ -11,11 +11,15 @@ class LinearState(TypedDict, total=False):
 
     image_url: str
     user_text: str
+    plant_id: int
+    plant_name: str
+    upload: dict[str, Any]
     triage: dict[str, Any]
     symptom_report: dict[str, Any]
     care_profile: dict[str, Any]
     diagnosis: dict[str, Any]
     advice: dict[str, Any]
+    persisted: dict[str, Any]
 
 
 class ReactState(TypedDict):

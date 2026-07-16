@@ -1,6 +1,16 @@
 export interface DiagnoseRequest {
   image_url: string;
   user_text: string;
+  plant_id?: number | null;
+  plant_name?: string | null;
+}
+
+export interface DiagnoseUploadRequest {
+  image?: File | null;
+  image_url?: string | null;
+  user_text: string;
+  plant_id?: number | null;
+  plant_name?: string | null;
 }
 
 export interface Advice {
@@ -11,6 +21,8 @@ export interface Advice {
 export interface LinearDiagnosisResult {
   image_url?: string;
   user_text?: string;
+  plant_id?: number;
+  plant_name?: string;
   triage?: Record<string, unknown>;
   symptom_report?: Record<string, unknown>;
   care_profile?: Record<string, unknown>;
@@ -20,6 +32,17 @@ export interface LinearDiagnosisResult {
 
 export interface DiagnoseResponse {
   result: LinearDiagnosisResult;
+}
+
+export interface LinearStreamStepEvent {
+  step: string;
+  message: string;
+  partial: LinearDiagnosisResult;
+}
+
+export interface LinearStreamStatusEvent {
+  message: string;
+  step?: string;
 }
 
 export interface ChatRequest {
