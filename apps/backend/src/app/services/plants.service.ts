@@ -152,3 +152,19 @@ export async function updatePlantName(
 
   return toPlantDto(updated);
 }
+
+export async function deletePlant(
+  db: Database,
+  plantId: number,
+): Promise<PlantDto> {
+  const [deleted] = await db
+    .delete(plants)
+    .where(and(eq(plants.userId, RESEARCH_USER_ID), eq(plants.id, plantId)))
+    .returning();
+
+  if (!deleted) {
+    throw new NotFoundError('Plant not found');
+  }
+
+  return toPlantDto(deleted);
+}

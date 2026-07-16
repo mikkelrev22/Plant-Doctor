@@ -47,6 +47,10 @@ export function createPlant(name?: string) {
   });
 }
 
+export function deletePlant(id: number) {
+  return fetchJson<PlantDto>(`/plants/${id}`, { method: 'DELETE' });
+}
+
 export function getStressSigns() {
   return fetchJson<StressSignDto[]>('/stress-signs');
 }

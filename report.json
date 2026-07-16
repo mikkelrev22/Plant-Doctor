@@ -1,0 +1,311 @@
+{
+  "id": 23,
+  "plantId": 16,
+  "plantName": "Bigleaf Hydrangea",
+  "reportedAt": "2026-07-13T20:50:18.299Z",
+  "identifiedPlantName": "Bigleaf Hydrangea",
+  "scientificName": "Hydrangea macrophylla",
+  "identificationConfidence": 95,
+  "likelyStressors": ["water"],
+  "summary": "The plant appears very healthy with vibrant blue blooms and lush green foliage. There are minor signs of leaf edge browning on a few leaves, likely due to environmental fluctuations or minor water stress, but overall the plant is thriving.",
+  "recommendations": "Maintain consistent soil moisture, as hydrangeas prefer evenly moist soil. The blue color indicates acidic soil, which is ideal for this variety. Continue regular watering, especially during dry spells, and consider mulching to retain moisture.",
+  "photo": {
+    "id": 23,
+    "imageUrl": "http://localhost:4100/uploads/plant-photos/2026-07-13/39c85686-1d7d-43aa-8a63-9e4bc1ee9da6.jpeg",
+    "storageKey": "2026-07-13/39c85686-1d7d-43aa-8a63-9e4bc1ee9da6.jpeg",
+    "mimeType": "image/jpeg",
+    "width": 4032,
+    "height": 3024,
+    "thumbnailUrl": "http://localhost:4100/uploads/plant-photos/2026-07-13/39c85686-1d7d-43aa-8a63-9e4bc1ee9da6-thumb.jpg",
+    "thumbnailWidth": 160,
+    "thumbnailHeight": 120,
+    "capturedAt": null,
+    "createdAt": "2026-07-13T20:50:18.299Z"
+  },
+  "stressSigns": [
+    {
+      "stressSignId": "leaf_yellowing_chlorosis",
+      "name": "Leaf yellowing (chlorosis)",
+      "status": "absent",
+      "severity": "none",
+      "confidence": 90,
+      "notes": "Leaves are a vibrant, healthy green.",
+      "variables": [
+        {
+          "id": "light",
+          "name": "light"
+        },
+        {
+          "id": "nutrients",
+          "name": "nutrients"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "brown_crispy_tips_edges",
+      "name": "Brown / crispy tips & edges",
+      "status": "present",
+      "severity": "mild",
+      "confidence": 80,
+      "notes": "Some leaf margins, particularly on the lower right and left leaves, show browning or reddish discoloration.",
+      "variables": [
+        {
+          "id": "humidity",
+          "name": "humidity"
+        },
+        {
+          "id": "nutrients",
+          "name": "nutrients"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "brown_spots_lesions",
+      "name": "Brown spots / lesions",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "disease",
+          "name": "disease"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "wilting_drooping",
+      "name": "Wilting / drooping",
+      "status": "absent",
+      "severity": "none",
+      "confidence": 95,
+      "notes": "The plant is turgid and upright; flowers and leaves look firm.",
+      "variables": [
+        {
+          "id": "temperature",
+          "name": "temperature"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "leaf_drop",
+      "name": "Leaf drop",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "light",
+          "name": "light"
+        },
+        {
+          "id": "temperature",
+          "name": "temperature"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "leaf_curling",
+      "name": "Leaf curling",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "light",
+          "name": "light"
+        },
+        {
+          "id": "pests",
+          "name": "pests"
+        },
+        {
+          "id": "temperature",
+          "name": "temperature"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "pale_faded_color",
+      "name": "Pale / faded color",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "light",
+          "name": "light"
+        },
+        {
+          "id": "nutrients",
+          "name": "nutrients"
+        }
+      ]
+    },
+    {
+      "stressSignId": "leggy_etiolated_growth",
+      "name": "Leggy / etiolated growth",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "light",
+          "name": "light"
+        }
+      ]
+    },
+    {
+      "stressSignId": "soft_mushy_leaves_or_stem",
+      "name": "Soft / mushy leaves or stem",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "disease",
+          "name": "disease"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "visible_pests",
+      "name": "Visible pests",
+      "status": "absent",
+      "severity": "none",
+      "confidence": 90,
+      "notes": "No visible insects or pest damage observed.",
+      "variables": [
+        {
+          "id": "pests",
+          "name": "pests"
+        }
+      ]
+    },
+    {
+      "stressSignId": "powdery_mildew_white_residue",
+      "name": "Powdery mildew / white residue",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "disease",
+          "name": "disease"
+        },
+        {
+          "id": "humidity",
+          "name": "humidity"
+        }
+      ]
+    },
+    {
+      "stressSignId": "mold_algae_on_soil",
+      "name": "Mold / algae on soil",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "humidity",
+          "name": "humidity"
+        },
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "sunburn_scorch",
+      "name": "Sunburn / scorch",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "light",
+          "name": "light"
+        }
+      ]
+    },
+    {
+      "stressSignId": "edema_blisters_corky_spots",
+      "name": "Edema (blisters / corky spots)",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "water",
+          "name": "water"
+        }
+      ]
+    },
+    {
+      "stressSignId": "fertilizer_mineral_burn",
+      "name": "Fertilizer / mineral burn",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "nutrients",
+          "name": "nutrients"
+        }
+      ]
+    },
+    {
+      "stressSignId": "dust_buildup_on_leaves",
+      "name": "Dust buildup on leaves",
+      "status": "unknown",
+      "severity": "none",
+      "confidence": null,
+      "notes": null,
+      "variables": [
+        {
+          "id": "other",
+          "name": "other"
+        }
+      ]
+    }
+  ]
+}

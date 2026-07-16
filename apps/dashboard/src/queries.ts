@@ -11,6 +11,7 @@ import type {
 } from '@plant-doctor/api-types';
 import {
   analyzePlantReport,
+  deletePlant,
   getLlmRequest,
   getPlant,
   getPlantReports,
@@ -142,6 +143,20 @@ export function useUpdatePlantName() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: plantKeys.all });
       queryClient.invalidateQueries({ queryKey: plantKeys.byId(data.id) });
+    },
+  });
+}
+
+export function useDeletePlant() {
+  const queryClient = useQueryClient();
+
+  return useMutation<PlantDto, Error, number>({
+    mutationFn: (id) => deletePlant(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: plantKeys.all });
+      // The plant no longer exists, so remove its cached detail query rather
+      // than refetching it (which would 404).
+      queryClient.removeQueries({ queryKey: plantKeys.byId(data.id) });
     },
   });
 }

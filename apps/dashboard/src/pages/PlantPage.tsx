@@ -6,6 +6,7 @@ import { PlantNameEditor } from '../components/PlantNameEditor';
 import { ReportsTable } from '../components/ReportsTable';
 import {
   useAnalyzeReport,
+  useDeletePlant,
   usePlant,
 } from '../queries';
 
@@ -19,6 +20,7 @@ export function PlantPage() {
 
   const plantQuery = usePlant(plantId);
   const analyzeMutation = useAnalyzeReport();
+  const deleteMutation = useDeletePlant();
 
   const plant = plantQuery.data;
 
@@ -26,8 +28,18 @@ export function PlantPage() {
   const error =
     plantQuery.error?.message ??
     analyzeMutation.error?.message ??
+    deleteMutation.error?.message ??
     updateNameError ??
     null;
+
+  function handleDelete() {
+    if (!plant) return;
+    if (window.confirm(`Delete "${plant.name}"? This cannot be undone.`)) {
+      deleteMutation.mutate(plant.id, {
+        onSuccess: () => navigate('/'),
+      });
+    }
+  }
 
   useEffect(() => {
     if (!image) return;
@@ -70,6 +82,8 @@ export function PlantPage() {
         plantId={plant.id}
         initialName={plant.name}
         onMutationError={setUpdateNameError}
+        onDelete={handleDelete}
+        deleteLoading={deleteMutation.isPending}
       />
 
       <AnalysisForm

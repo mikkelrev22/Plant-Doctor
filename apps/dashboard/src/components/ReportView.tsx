@@ -110,6 +110,10 @@ export function ReportView({ report, pendingImageUrl }: ReportViewProps) {
         </Card>
       </SimpleGrid>
 
+      <pre>
+        {JSON.stringify(report, null, 2)}
+      </pre>
+
       <Card className={styles.panel} radius="lg" padding="lg">
         <Stack gap="md">
           <Group justify="space-between">

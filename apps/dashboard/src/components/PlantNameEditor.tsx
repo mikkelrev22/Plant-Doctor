@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import { ActionIcon, Group, TextInput, Title } from '@mantine/core';
-import { IconCheck, IconEdit, IconX } from '@tabler/icons-react';
+import { IconCheck, IconEdit, IconTrash, IconX } from '@tabler/icons-react';
 import { useUpdatePlantName } from '../queries';
 
 interface PlantNameEditorProps {
   plantId: number;
   initialName: string;
   onMutationError?: (error: string | null) => void;
+  onDelete?: () => void;
+  deleteLoading?: boolean;
 }
 
 export function PlantNameEditor({
   plantId,
   initialName,
   onMutationError,
+  onDelete,
+  deleteLoading,
 }: PlantNameEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(initialName);
@@ -87,9 +91,21 @@ export function PlantNameEditor({
         variant="subtle"
         color="gray"
         onClick={() => setIsEditing(true)}
+        aria-label="Edit plant name"
       >
         <IconEdit size={20} />
       </ActionIcon>
+      {onDelete ? (
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          loading={deleteLoading}
+          onClick={onDelete}
+          aria-label="Delete plant"
+        >
+          <IconTrash size={20} />
+        </ActionIcon>
+      ) : null}
     </Group>
   );
 }

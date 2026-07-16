@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
-import { createPlant, getPlantForUser, listPlants, updatePlantName } from '../services/plants.service';
+import { createPlant, deletePlant, getPlantForUser, listPlants, updatePlantName } from '../services/plants.service';
 import { listReportsForPlant, listReportsForPlantExtended } from '../services/reports.service';
 
 export default async function (fastify: FastifyInstance) {
@@ -106,6 +106,24 @@ export default async function (fastify: FastifyInstance) {
       }
 
       return plant;
+    }
+  );
+
+  // Deletes a plant for the Research User. Child rows (reports, photos) are
+  // removed automatically via ON DELETE CASCADE foreign keys.
+  server.delete(
+    '/plants/:plantId',
+    {
+      schema: {
+        params: z.object({
+          plantId: z.coerce.number().int(),
+        }),
+      },
+    },
+    async function (request) {
+      const { plantId } = request.params;
+
+      return deletePlant(fastify.db, plantId);
     }
   );
 }
