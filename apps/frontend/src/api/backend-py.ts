@@ -29,6 +29,18 @@ async function readError(response: Response): Promise<string> {
 function buildDiagnoseFormData(payload: DiagnoseUploadRequest): FormData {
   const formData = new FormData();
   formData.append('user_text', payload.user_text);
+  formData.append('light_intensity', payload.care.light_intensity);
+  formData.append('window_direction', payload.care.window_direction);
+  formData.append('distance_from_window', payload.care.distance_from_window);
+  formData.append('daily_light_hours', payload.care.daily_light_hours);
+  formData.append('water_amount', payload.care.water_amount);
+  formData.append('watering_frequency', payload.care.watering_frequency);
+  formData.append('water_type', payload.care.water_type);
+  formData.append('watering_method', payload.care.watering_method);
+  formData.append('soil_moisture', payload.care.soil_moisture);
+  formData.append('soil_drainage', payload.care.soil_drainage);
+  formData.append('humidity', payload.care.humidity);
+  formData.append('temperature', payload.care.temperature);
   if (payload.image) {
     formData.append('image', payload.image);
   }

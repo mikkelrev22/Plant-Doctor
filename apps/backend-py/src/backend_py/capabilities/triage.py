@@ -1,92 +1,113 @@
-"""Input triage and validation (local CLIP + text heuristics)."""
+"""Input triage: format care survey + plant-photo check (no species ID)."""
 
 from __future__ import annotations
 
 import logging
-import re
+from typing import Any
 
 from backend_py.capabilities.clip_plant import image_is_plant
-from backend_py.schemas import StructuredFacts, TriageResult
+from backend_py.schemas import CareContext, StructuredFacts, TriageResult
 
 logger = logging.getLogger(__name__)
 
-_PLANT_TEXT_HINTS = re.compile(
-    r"\b(plant|leaf|leaves|pothos|succulent|fern|monstera|cactus|"
-    r"orchid|soil|pot|wilting|yellowing|chlorosis|houseplant)\b",
-    re.IGNORECASE,
-)
-
-_WATERING = re.compile(
-    r"(?:water(?:ed|ing)?\s+(?:it\s+)?(?:about\s+)?"
-    r"(?:every\s+(?:\d+\s+)?(?:day|days|week|weeks)|once\s+a\s+week|weekly|daily)"
-    r"|every\s+\d+\s+days?"
-    r"|once\s+a\s+week|weekly|daily)",
-    re.IGNORECASE,
-)
-_LIGHT = re.compile(
-    r"((?:south|north|east|west)[\w\s-]{0,20}window"
-    r"|bright(?:\s+indirect)?(?:\s+light)?"
-    r"|direct\s+sun(?:light)?"
-    r"|low\s+light|shade|sunny)",
-    re.IGNORECASE,
-)
-_LOCATION = re.compile(
-    r"(near\s+(?:a\s+)?[\w\s-]{0,30}window"
-    r"|(?:in\s+the\s+)?(?:kitchen|bathroom|bedroom|living\s+room|office|balcony))",
-    re.IGNORECASE,
+_REQUIRED_CARE_FIELDS = (
+    "light_intensity",
+    "window_direction",
+    "distance_from_window",
+    "daily_light_hours",
+    "water_amount",
+    "watering_frequency",
+    "water_type",
+    "watering_method",
+    "soil_moisture",
+    "soil_drainage",
+    "humidity",
+    "temperature",
 )
 
 
-def _first_match(pattern: re.Pattern[str], text: str) -> str | None:
-    match = pattern.search(text)
-    if not match:
-        return None
-    return " ".join(match.group(0).split())
+def facts_from_care(care: CareContext | dict[str, Any], user_text: str) -> StructuredFacts:
+    """Normalize survey answers into StructuredFacts for later pipeline nodes."""
+    if isinstance(care, CareContext):
+        data = care.model_dump()
+    else:
+        data = dict(care)
 
+    def field(name: str) -> str | None:
+        value = str(data.get(name) or "").strip()
+        return value or None
 
-def extract_structured_facts(user_text: str) -> StructuredFacts:
-    """Lightweight fact extraction from free text (no LLM)."""
-    text = user_text or ""
     return StructuredFacts(
-        raw_text=text,
-        location=_first_match(_LOCATION, text),
-        watering_frequency=_first_match(_WATERING, text),
-        light_conditions=_first_match(_LIGHT, text),
+        raw_text=(user_text or "").strip(),
+        location="indoors",
+        light_intensity=field("light_intensity"),
+        window_direction=field("window_direction"),
+        distance_from_window=field("distance_from_window"),
+        daily_light_hours=field("daily_light_hours"),
+        water_amount=field("water_amount"),
+        watering_frequency=field("watering_frequency"),
+        water_type=field("water_type"),
+        watering_method=field("watering_method"),
+        soil_moisture=field("soil_moisture"),
+        soil_drainage=field("soil_drainage"),
+        humidity=field("humidity"),
+        temperature=field("temperature"),
     )
 
 
-def _is_plant_from_text(user_text: str) -> bool:
-    if not user_text.strip():
-        return True
-    return bool(_PLANT_TEXT_HINTS.search(user_text))
+def _care_complete(care: dict[str, Any] | None) -> bool:
+    if not care:
+        return False
+    return all(str(care.get(field) or "").strip() for field in _REQUIRED_CARE_FIELDS)
 
 
-async def validate_input(image_url: str, user_text: str) -> TriageResult:
+async def validate_input(
+    image_url: str,
+    user_text: str,
+    care: dict[str, Any] | None = None,
+) -> TriageResult:
     """
-    Confirm the submission is plant-related and extract structured user facts.
+    Triage only:
 
-    - ``is_plant``: local CLIP ViT-B/32 on the image when available; otherwise
-      keyword heuristics on ``user_text``.
-    - ``structured_facts``: regex heuristics on ``user_text``.
+    1. Format the care survey into ``structured_facts`` (held in graph state
+       until diagnosis, after vision has determined species).
+    2. Decide whether the photo depicts a plant (local CLIP).
+
+    Does not identify species or diagnose.
     """
-    facts = extract_structured_facts(user_text)
+    if _care_complete(care):
+        facts = facts_from_care(care or {}, user_text)
+    else:
+        # Incomplete payloads: keep comments only; route usually requires care.
+        facts = StructuredFacts(raw_text=(user_text or "").strip())
 
-    if image_url:
-        try:
-            is_plant, plant_prob = await image_is_plant(image_url)
-            logger.info(
-                "CLIP triage is_plant=%s plant_prob=%.3f url=%s",
-                is_plant,
-                plant_prob,
-                image_url[:120],
-            )
-            return TriageResult(is_plant=is_plant, structured_facts=facts)
-        except Exception:
-            logger.exception(
-                "CLIP triage failed; falling back to text heuristics for is_plant"
-            )
+    if not image_url:
+        logger.warning("Triage received empty image_url; assuming is_plant=True")
+        return TriageResult(
+            is_plant=True,
+            plant_probability=None,
+            structured_facts=facts,
+        )
 
-    return TriageResult(
-        is_plant=_is_plant_from_text(user_text),
-        structured_facts=facts,
-    )
+    try:
+        is_plant, plant_prob = await image_is_plant(image_url)
+        logger.info(
+            "CLIP triage is_plant=%s plant_prob=%.3f url=%s",
+            is_plant,
+            plant_prob,
+            image_url[:120],
+        )
+        return TriageResult(
+            is_plant=is_plant,
+            plant_probability=plant_prob,
+            structured_facts=facts,
+        )
+    except Exception:
+        logger.exception(
+            "CLIP triage failed; falling back to is_plant=True with survey facts kept"
+        )
+        return TriageResult(
+            is_plant=True,
+            plant_probability=None,
+            structured_facts=facts,
+        )

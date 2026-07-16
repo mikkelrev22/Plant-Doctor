@@ -122,13 +122,101 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid #c8d8cb;
   border-radius: 10px;
   padding: 0.75rem 0.9rem;
   font: inherit;
   background: #fff;
+}
+
+.care-fieldset {
+  margin: 0;
+  padding: 1rem 0 0;
+  border: none;
+  border-top: 1px solid #d7e3d8;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.care-fieldset:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.care-fieldset legend {
+  padding: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.care-progress {
+  margin: 0;
+}
+
+.care-draft-list {
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.care-draft-list > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.care-draft-list dt {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #4d6b57;
+}
+
+.care-draft-list dd {
+  margin: 0;
+}
+
+.field-hint {
+  display: block;
+  margin: 0;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #4d6b57;
+}
+
+.care-field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.care-field-label {
+  font-weight: 600;
+}
+
+.choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.choice-option {
+  border-radius: 10px;
+  border: 1px solid #c8d8cb;
+  background: #fff;
+  color: #173024;
+  padding: 0.55rem 0.85rem;
+  font-weight: 500;
+}
+
+.choice-option:hover {
+  border-color: #2f6b4f;
+}
+
+.choice-option.selected {
+  background: #2f6b4f;
+  border-color: #2f6b4f;
+  color: #fff;
 }
 
 .error {

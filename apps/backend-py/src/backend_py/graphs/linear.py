@@ -7,7 +7,11 @@ from backend_py.state import LinearState
 
 
 def build_linear_graph():
-    """Build triage -> vision -> retrieval -> diagnosis -> format -> persist."""
+    """Build triage -> vision -> retrieval -> diagnosis -> format -> persist.
+
+    Triage only formats the care survey and checks is_plant. Species ID is
+    deferred to vision; diagnosis then consumes ``triage.structured_facts``.
+    """
     graph = StateGraph(LinearState)
 
     graph.add_node("triage", triage.triage)

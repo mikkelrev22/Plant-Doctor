@@ -129,16 +129,31 @@ Runs the deterministic pipeline: triage → vision → retrieval → diagnosis �
   ```json
   {
     "image_url": "https://example.com/plant.jpg",
-    "user_text": "Yellowing leaves near a south-facing window.",
+    "user_text": "Leaves yellowing from the tips after I moved it.",
     "plant_id": 1,
-    "plant_name": "Sunny Pothos"
+    "plant_name": "Sunny Pothos",
+    "care": {
+      "light_intensity": "bright_indirect",
+      "window_direction": "south",
+      "distance_from_window": "within_3ft",
+      "daily_light_hours": "6_to_8h",
+      "water_amount": "moderate",
+      "watering_frequency": "weekly",
+      "water_type": "tap",
+      "watering_method": "top",
+      "soil_moisture": "slightly_moist",
+      "soil_drainage": "good",
+      "humidity": "average",
+      "temperature": "room"
+    }
   }
   ```
 - **Multipart fields**:
-  - `user_text` (required)
+  - `care` fields (required): `light_intensity`, `window_direction`, `distance_from_window`, `daily_light_hours`, `water_amount`, `watering_frequency`, `water_type`, `watering_method`, `soil_moisture`, `soil_drainage`, `humidity`, `temperature` (use `unknown` when the user is not sure). Plants are assumed indoors; location is not collected.
+  - `user_text` / `comments` (optional free-text notes)
   - `image` (file) or `image_url` (string)
   - `plant_id`, `plant_name` (optional): when set, the `persist` step resolves the plant via the Node backend (`GET/POST /plants`). Report row save waits on a Node from-linear endpoint (see gaps below).
-- **Response**: `{ "result": { ... } }` — primary output is `result.advice`; `result.persisted` describes DB save status
+- **Response**: `{ "result": { ... } }` — primary output is `result.advice`; `result.persisted` describes DB save status; `result.care` / `result.triage.structured_facts` echo the form
 
 ### POST /diagnose/linear/stream
 Same input as `/diagnose/linear`, but streams Server-Sent Events as each pipeline node completes.

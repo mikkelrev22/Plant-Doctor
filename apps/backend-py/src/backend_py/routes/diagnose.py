@@ -9,19 +9,34 @@ from fastapi.responses import StreamingResponse
 from starlette.datastructures import UploadFile
 
 from backend_py.graphs.linear import linear_graph
-from backend_py.schemas import DiagnoseRequest, DiagnoseResponse
+from backend_py.schemas import CareContext, DiagnoseRequest, DiagnoseResponse
 from backend_py.services.uploads import store_plant_photo
 
 router = APIRouter(prefix="/diagnose", tags=["diagnose"])
 
 _STEP_LABELS = {
-    "triage": "Checking input…",
-    "vision": "Analyzing photo…",
+    "triage": "Formatting care survey and checking photo…",
+    "vision": "Identifying species and symptoms…",
     "retrieval": "Looking up care profile…",
     "diagnosis": "Ranking causes…",
     "format": "Writing advice…",
     "persist": "Saving via Node backend…",
 }
+
+_CARE_FIELDS = (
+    "light_intensity",
+    "window_direction",
+    "distance_from_window",
+    "daily_light_hours",
+    "water_amount",
+    "watering_frequency",
+    "water_type",
+    "watering_method",
+    "soil_moisture",
+    "soil_drainage",
+    "humidity",
+    "temperature",
+)
 
 
 def _parse_optional_int(value: object) -> int | None:
@@ -37,17 +52,36 @@ def _format_sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
+def _parse_care_from_form(form: Any) -> CareContext:
+    values: dict[str, str] = {}
+    missing: list[str] = []
+    for field in _CARE_FIELDS:
+        raw = str(form.get(field) or "").strip()
+        if not raw:
+            missing.append(field)
+        else:
+            values[field] = raw
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required care fields: {', '.join(missing)}",
+        )
+    return CareContext.model_validate(values)
+
+
 def _build_graph_input(
     *,
     image_url: str,
     user_text: str,
     plant_id: int | None,
     plant_name: str | None,
+    care: CareContext,
     upload_meta: dict | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "image_url": image_url,
         "user_text": user_text,
+        "care": care.model_dump(),
     }
     if plant_id is not None:
         payload["plant_id"] = plant_id
@@ -64,9 +98,9 @@ async def _parse_diagnose_request(request: Request) -> dict[str, Any]:
 
     if content_type.startswith("multipart/form-data"):
         form = await request.form()
-        user_text = str(form.get("user_text") or "").strip()
-        if not user_text:
-            raise HTTPException(status_code=400, detail="user_text is required")
+        # Comments are optional; structured care fields are required.
+        user_text = str(form.get("user_text") or form.get("comments") or "").strip()
+        care = _parse_care_from_form(form)
 
         image_url = str(form.get("image_url") or "").strip()
         plant_id = _parse_optional_int(form.get("plant_id"))
@@ -101,16 +135,20 @@ async def _parse_diagnose_request(request: Request) -> dict[str, Any]:
             user_text=user_text,
             plant_id=plant_id,
             plant_name=plant_name,
+            care=care,
             upload_meta=upload_meta,
         )
 
     body = await request.json()
     payload = DiagnoseRequest.model_validate(body)
+    if payload.care is None:
+        raise HTTPException(status_code=400, detail="care object is required")
     return _build_graph_input(
         image_url=payload.image_url,
         user_text=payload.user_text,
         plant_id=payload.plant_id,
         plant_name=payload.plant_name,
+        care=payload.care,
     )
 
 

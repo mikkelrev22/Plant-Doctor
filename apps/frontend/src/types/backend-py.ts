@@ -1,8 +1,31 @@
+export interface CareContext {
+  /** Brightness / intensity of light the plant receives */
+  light_intensity: string;
+  /** Facing direction of the nearest window */
+  window_direction: string;
+  /** How far the plant sits from that window */
+  distance_from_window: string;
+  /** Rough daily light hours */
+  daily_light_hours: string;
+  water_amount: string;
+  watering_frequency: string;
+  /** Tap, filtered, distilled, etc. */
+  water_type: string;
+  /** Top-water vs bottom-water */
+  watering_method: string;
+  /** Current feel of the soil */
+  soil_moisture: string;
+  soil_drainage: string;
+  temperature: string;
+  humidity: string;
+}
+
 export interface DiagnoseRequest {
   image_url: string;
   user_text: string;
   plant_id?: number | null;
   plant_name?: string | null;
+  care: CareContext;
 }
 
 export interface DiagnoseUploadRequest {
@@ -11,6 +34,7 @@ export interface DiagnoseUploadRequest {
   user_text: string;
   plant_id?: number | null;
   plant_name?: string | null;
+  care: CareContext;
 }
 
 export interface Advice {
@@ -23,6 +47,7 @@ export interface LinearDiagnosisResult {
   user_text?: string;
   plant_id?: number;
   plant_name?: string;
+  care?: CareContext;
   triage?: Record<string, unknown>;
   symptom_report?: Record<string, unknown>;
   care_profile?: Record<string, unknown>;
