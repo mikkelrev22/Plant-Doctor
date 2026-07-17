@@ -16,6 +16,7 @@ router = APIRouter(prefix="/diagnose", tags=["diagnose"])
 
 _STEP_LABELS = {
     "triage": "Formatting care survey and checking photo…",
+    "reject_non_plant": "Photo didn’t look like a plant…",
     "vision": "Identifying species and symptoms…",
     "retrieval": "Looking up care profile…",
     "diagnosis": "Ranking causes…",

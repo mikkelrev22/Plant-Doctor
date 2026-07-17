@@ -19,6 +19,8 @@ class LinearState(TypedDict, total=False):
     # Triage output: formatted survey (structured_facts) + is_plant check.
     # Survey facts stay here until diagnosis (after vision species ID).
     triage: dict[str, Any]
+    # True when CLIP rejected the photo as non-plant (early exit).
+    rejected: bool
     symptom_report: dict[str, Any]
     care_profile: dict[str, Any]
     diagnosis: dict[str, Any]
