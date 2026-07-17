@@ -49,6 +49,7 @@ export interface LinearDiagnosisResult {
   plant_name?: string;
   care?: CareContext;
   triage?: Record<string, unknown>;
+  rejected?: boolean;
   symptom_report?: Record<string, unknown>;
   care_profile?: Record<string, unknown>;
   diagnosis?: Record<string, unknown>;

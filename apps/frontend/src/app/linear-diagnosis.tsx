@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 
-import type { CareContext } from '../types/backend-py';
+import { diagnoseLinearUploadStream } from '../api/backend-py';
+import type { CareContext, LinearDiagnosisResult } from '../types/backend-py';
 
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/heic,image/heif';
 
@@ -17,7 +18,6 @@ type CareSection = {
     key: CareField;
     label: string;
     hint?: string;
-    /** denser option lists use a select; short lists use buttons */
     control?: 'buttons' | 'select';
     options: CareOption[];
   }>;
@@ -193,6 +193,15 @@ const CARE_SECTIONS: CareSection[] = [
 
 const CARE_FIELDS = CARE_SECTIONS.flatMap((section) => section.fields);
 
+const PLANT_STEP_ORDER = [
+  'triage',
+  'vision',
+  'retrieval',
+  'diagnosis',
+  'format',
+  'persist',
+] as const;
+
 const EMPTY_CARE: CareContext = {
   light_intensity: '',
   window_direction: '',
@@ -212,22 +221,16 @@ function careComplete(care: CareContext): boolean {
   return CARE_FIELDS.every((field) => Boolean(care[field.key]));
 }
 
-function optionLabel(fieldKey: CareField, value: string): string {
-  const field = CARE_FIELDS.find((item) => item.key === fieldKey);
-  return field?.options.find((option) => option.value === value)?.label ?? value;
-}
-
 export function LinearDiagnosisPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [care, setCare] = useState<CareContext>(EMPTY_CARE);
   const [comments, setComments] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{
-    imageName: string | null;
-    care: CareContext;
-    comments: string;
-  } | null>(null);
+  const [result, setResult] = useState<LinearDiagnosisResult | null>(null);
 
   useEffect(() => {
     if (!imageFile) {
@@ -241,10 +244,9 @@ export function LinearDiagnosisPage() {
 
   function setCareField(key: CareField, value: string) {
     setCare((prev) => ({ ...prev, [key]: value }));
-    setDraft(null);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!imageFile) {
       setError('Please choose a plant photo to upload.');
@@ -255,16 +257,48 @@ export function LinearDiagnosisPage() {
       return;
     }
 
+    setLoading(true);
     setError(null);
-    setDraft({
-      imageName: imageFile.name,
-      care: { ...care },
-      comments: comments.trim(),
-    });
+    setResult(null);
+    setCompletedSteps([]);
+    setStatusMessage('Uploading and checking photo…');
+
+    try {
+      const finalResult = await diagnoseLinearUploadStream(
+        {
+          image: imageFile,
+          user_text: comments.trim(),
+          care,
+        },
+        {
+          onStatus: (event) => setStatusMessage(event.message),
+          onStep: (event) => {
+            setStatusMessage(event.message);
+            setCompletedSteps((prev) =>
+              prev.includes(event.step) ? prev : [...prev, event.step],
+            );
+            setResult(event.partial);
+          },
+        },
+      );
+      setResult(finalResult);
+      setStatusMessage(
+        finalResult.rejected ? 'Photo was not identified as a plant' : 'Done',
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Diagnosis failed');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const answeredCount = CARE_FIELDS.filter((field) => Boolean(care[field.key])).length;
-  const canSubmit = Boolean(imageFile) && careComplete(care);
+  const canSubmit = Boolean(imageFile) && careComplete(care) && !loading;
+  const rejected = Boolean(result?.rejected);
+  const advice = result?.advice;
+  const stepOrder = rejected
+    ? (['triage', 'reject_non_plant'] as const)
+    : PLANT_STEP_ORDER;
 
   return (
     <section className="page">
@@ -272,9 +306,8 @@ export function LinearDiagnosisPage() {
         <h1>Linear diagnosis</h1>
         <p>
           Upload a plant photo and answer each care question with the buttons or
-          menus below. Free-text answers are not used for care details — pick an
-          option, or choose Not sure. Nothing is sent to the server yet; submit
-          only previews what you selected.
+          menus below. If the photo doesn’t look like a plant, we’ll stop and
+          ask you to try again—otherwise we continue to species analysis.
         </p>
       </header>
 
@@ -287,7 +320,6 @@ export function LinearDiagnosisPage() {
             onChange={(event) => {
               const file = event.target.files?.[0] ?? null;
               setImageFile(file);
-              setDraft(null);
             }}
             required
           />
@@ -378,48 +410,80 @@ export function LinearDiagnosisPage() {
           </span>
           <textarea
             value={comments}
-            onChange={(event) => {
-              setComments(event.target.value);
-              setDraft(null);
-            }}
+            onChange={(event) => setComments(event.target.value)}
             placeholder="e.g. Leaves yellowing from the tips after I moved it."
             rows={4}
           />
         </label>
 
         <button type="submit" disabled={!canSubmit}>
-          Preview answers (no upload yet)
+          {loading ? 'Checking photo…' : 'Run diagnosis'}
         </button>
       </form>
 
       {error ? <p className="error">{error}</p> : null}
 
-      {draft ? (
+      {(loading || completedSteps.length > 0) && (
         <article className="card result-card">
-          <h2>Draft (local only)</h2>
-          <p className="field-hint">
-            These values would be sent with a diagnosis later. Nothing left this
-            browser.
-          </p>
-          <dl className="care-draft-list">
-            <div>
-              <dt>Photo</dt>
-              <dd>{draft.imageName ?? '—'}</dd>
-            </div>
-            {CARE_FIELDS.map((field) => (
-              <div key={field.key}>
-                <dt>{field.label}</dt>
-                <dd>{optionLabel(field.key, draft.care[field.key])}</dd>
-              </div>
-            ))}
-            {draft.comments ? (
-              <div>
-                <dt>Comments</dt>
-                <dd>{draft.comments}</dd>
-              </div>
-            ) : null}
-          </dl>
+          <h2>Progress</h2>
+          {statusMessage ? <p className="stream-status">{statusMessage}</p> : null}
+          <ol className="step-list">
+            {stepOrder.map((step) => {
+              const done = completedSteps.includes(step);
+              const current =
+                loading &&
+                !done &&
+                (completedSteps.length === 0
+                  ? step === 'triage'
+                  : stepOrder[completedSteps.length] === step);
+              return (
+                <li
+                  key={step}
+                  className={
+                    done ? 'step-done' : current ? 'step-current' : 'step-pending'
+                  }
+                >
+                  {step}
+                </li>
+              );
+            })}
+          </ol>
         </article>
+      )}
+
+      {rejected && advice ? (
+        <article className="card result-card reject-card">
+          <h2>We couldn’t spot a plant</h2>
+          <p>{advice.summary}</p>
+          {advice.actions.length > 0 ? (
+            <ul>
+              {advice.actions.map((action) => (
+                <li key={action}>{action}</li>
+              ))}
+            </ul>
+          ) : null}
+        </article>
+      ) : null}
+
+      {!rejected && advice ? (
+        <article className="card result-card">
+          <h2>Advice</h2>
+          <p>{advice.summary}</p>
+          {advice.actions.length > 0 ? (
+            <ul>
+              {advice.actions.map((action) => (
+                <li key={action}>{action}</li>
+              ))}
+            </ul>
+          ) : null}
+        </article>
+      ) : null}
+
+      {result ? (
+        <details className="card">
+          <summary>Pipeline details</summary>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </details>
       ) : null}
     </section>
   );

@@ -158,8 +158,8 @@ Runs the deterministic pipeline: triage → vision → retrieval → diagnosis �
 ### POST /diagnose/linear/stream
 Same input as `/diagnose/linear`, but streams Server-Sent Events as each pipeline node completes.
 - **Events**: `status` → `step` (includes `partial` accumulated state) → `done` or `error`
-- **Steps**: triage → vision → retrieval → diagnosis → format → persist
-- **Primary output**: final `result` in the `done` event
+- **Steps**: triage → (if plant) vision → retrieval → diagnosis → format → persist; if not a plant, `reject_non_plant` returns graceful `advice` and ends
+- **Primary output**: final `result` in the `done` event; when rejected, `result.rejected` is true and `result.advice` explains next steps
 
 ### Node backend integration (Python → Node)
 Python calls Node at `BACKEND_URL` (default `http://localhost:4100`) via `NodeBackendClient` for plant CRUD and (when available) report/photo writes. Uploaded photos are still stored under `/uploads/plant-photos/` on Python until Node has an upload-only endpoint.

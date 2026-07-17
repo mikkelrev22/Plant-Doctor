@@ -280,6 +280,11 @@ select {
   padding-left: 1.2rem;
 }
 
+.reject-card {
+  border-color: #d4b896;
+  background: #fbf7f0;
+}
+
 pre {
   margin: 1rem 0 0;
   overflow: auto;
