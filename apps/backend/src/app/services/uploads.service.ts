@@ -1,10 +1,9 @@
 import type { MultipartFile } from '@fastify/multipart';
 import sharp from 'sharp';
-import { mkdir, rm, writeFile } from 'fs/promises';
-import { dirname, extname, join, resolve } from 'path';
+import { extname } from 'path';
 import { randomUUID } from 'crypto';
-import { config } from '../../config';
 import { BadRequestError } from '../errors';
+import { storage } from './storage';
 import {
   DISPLAY_JPEG_QUALITY,
   DISPLAY_MAX_DIMENSION,
@@ -67,12 +66,8 @@ export async function storePlantPhoto(
   const dateSegment = new Date().toISOString().slice(0, 10);
   const id = randomUUID();
   const storageKey = `${dateSegment}/${id}${extension}`;
-  const uploadRoot = resolve(process.cwd(), config.uploadDir);
-  const absolutePath = join(uploadRoot, storageKey);
   const displayStorageKey = `${dateSegment}/${id}-1024.jpg`;
   const thumbStorageKey = `${dateSegment}/${id}-thumb.jpg`;
-  const displayAbsolutePath = join(uploadRoot, displayStorageKey);
-  const thumbAbsolutePath = join(uploadRoot, thumbStorageKey);
   const buffer = await file.toBuffer();
 
   // Decode the image once to capture original dimensions, then build the two
@@ -110,40 +105,37 @@ export async function storePlantPhoto(
 
   // Render the derived variants to memory first. A corrupt or spoofed upload
   // fails here — before anything is persisted — so we never leave an orphaned
-  // original on disk.
+  // original behind.
   const [displayResult, thumbResult] = await Promise.all([
     displayPipeline.toBuffer({ resolveWithObject: true }),
     thumbPipeline.toBuffer({ resolveWithObject: true }),
   ]);
 
   // All three buffers are ready — persist them as a set. If any write fails
-  // (e.g. disk full), roll back the ones that landed so we don't leave a
-  // partial set behind.
-  const writtenPaths: string[] = [];
+  // (e.g. disk full / S3 error), roll back the ones that landed so we don't
+  // leave a partial set behind.
+  const writtenKeys: string[] = [];
   try {
-    await mkdir(dirname(absolutePath), { recursive: true });
-    await writeFile(absolutePath, buffer);
-    writtenPaths.push(absolutePath);
-    await writeFile(displayAbsolutePath, displayResult.data);
-    writtenPaths.push(displayAbsolutePath);
-    await writeFile(thumbAbsolutePath, thumbResult.data);
-    writtenPaths.push(thumbAbsolutePath);
+    await storage.putObject(storageKey, buffer, file.mimetype);
+    writtenKeys.push(storageKey);
+    await storage.putObject(displayStorageKey, displayResult.data, 'image/jpeg');
+    writtenKeys.push(displayStorageKey);
+    await storage.putObject(thumbStorageKey, thumbResult.data, 'image/jpeg');
+    writtenKeys.push(thumbStorageKey);
   } catch (error) {
-    await Promise.all(
-      writtenPaths.map((path) => rm(path, { force: true })),
-    );
+    await Promise.all(writtenKeys.map((key) => storage.deleteObject(key)));
     throw error;
   }
 
   return {
-    imageUrl: `${config.backendUrl}/uploads/plant-photos/${storageKey}`,
+    imageUrl: storage.publicUrl(storageKey),
     storageKey,
     mimeType: file.mimetype,
     width: originalMetadata.width ?? null,
     height: originalMetadata.height ?? null,
     buffer,
     display: {
-      imageUrl: `${config.backendUrl}/uploads/plant-photos/${displayStorageKey}`,
+      imageUrl: storage.publicUrl(displayStorageKey),
       storageKey: displayStorageKey,
       mimeType: 'image/jpeg',
       buffer: displayResult.data,
@@ -151,7 +143,7 @@ export async function storePlantPhoto(
       height: displayResult.info.height,
     },
     thumbnail: {
-      imageUrl: `${config.backendUrl}/uploads/plant-photos/${thumbStorageKey}`,
+      imageUrl: storage.publicUrl(thumbStorageKey),
       storageKey: thumbStorageKey,
       width: thumbResult.info.width,
       height: thumbResult.info.height,
