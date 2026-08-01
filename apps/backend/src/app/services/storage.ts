@@ -39,13 +39,16 @@ function s3BaseUrl(): string {
 
 const s3Storage: Storage = {
   async putObject(key, body, contentType) {
+    // No ACL: the bucket policy grants public s3:GetObject to everyone, so
+    // objects are publicly readable without a per-object ACL. (Per-object ACLs
+    // are disabled by default on modern buckets — Bucket owner enforced — and
+    // sending one would fail with AccessControlListNotSupported.)
     await s3Client().send(
       new PutObjectCommand({
         Bucket: config.s3Bucket,
         Key: s3Key(key),
         Body: body,
         ContentType: contentType,
-        ACL: 'public-read',
       }),
     );
   },
