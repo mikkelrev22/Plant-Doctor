@@ -7,12 +7,17 @@
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 
-# Copy only what the build needs. The backend is an Nx project that shares
-# libs/ and root tsconfig/nx config; there is no per-app package.json.
-COPY package.json package-lock.json nx.json tsconfig.base.json ./
-COPY apps/ libs/ ./
-
+# Copy the lockfile first so this layer is cached unless deps change — the full
+# monorepo `npm ci` is heavy and should not re-run on every source edit.
+COPY package.json package-lock.json ./
 RUN npm ci
+
+# Now copy the rest of the repo (filtered by .dockerignore). We must bring the
+# WHOLE root context, not just apps/ + libs/: Nx's project-graph plugins read
+# root config such as eslint.config.mjs (imported by apps/backend/eslint.config.mjs),
+# and a missing root config breaks graph processing (surfaces as
+# "No inputs were found in config file 'tsconfig.json'").
+COPY . .
 
 # Builds db + api-types (dependsOn ^build) then backend -> dist/apps/backend
 RUN npx nx build backend --configuration=production
