@@ -17,6 +17,10 @@ export const config = {
   dashboardUrl: process.env.DASHBOARD_URL ?? 'http://localhost:4500',
   architectureUrl: process.env.ARCHITECTURE_URL ?? 'http://localhost:4600',
   backendUrl: process.env.BACKEND_URL ?? 'http://localhost:4100',
+  // Shared static API key checked by the api-key plugin against the
+  // `x-api-key` request header. Fail-closed: empty = reject all gated
+  // requests. The trusted frontends bundle the same value from BACKEND_API_KEY.
+  apiKey: process.env.BACKEND_API_KEY ?? '',
   uploadDir: process.env.UPLOAD_DIR ?? 'uploads/plant-photos',
   // File storage. 'local' keeps the original filesystem behaviour for dev;
   // 's3' uploads to an S3 bucket and serves public URLs (staging/prod).

@@ -4,7 +4,9 @@ import { EMPTY_GRAPH, type ArchitectureGraph } from '../types';
 const GRAPH_URL = `${config.backendUrl}/architecture/graph`;
 
 export async function getGraph(): Promise<ArchitectureGraph> {
-  const res = await fetch(GRAPH_URL);
+  const res = await fetch(GRAPH_URL, {
+    headers: { 'x-api-key': config.apiKey },
+  });
   if (!res.ok) {
     throw new Error(`Failed to load architecture graph (${res.status})`);
   }
@@ -18,7 +20,10 @@ export async function getGraph(): Promise<ArchitectureGraph> {
 export async function saveGraph(graph: ArchitectureGraph): Promise<void> {
   const res = await fetch(GRAPH_URL, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey,
+    },
     body: JSON.stringify(graph),
   });
   if (!res.ok) {

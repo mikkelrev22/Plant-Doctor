@@ -8,8 +8,8 @@ import { config } from '../../config';
  * the architecture diagram app).
  *
  * CORS governs browser cross-origin requests only — it is not access control.
- * Endpoints currently have no authentication, so don't expose this backend
- * publicly without adding auth first.
+ * A static `x-api-key` gate is applied in plugins/api-key.ts (stopgap until
+ * real auth lands); see that plugin for which routes are exempt.
  *
  * @see https://github.com/fastify/fastify-cors
  */

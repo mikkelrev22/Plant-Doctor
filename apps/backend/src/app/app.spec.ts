@@ -34,6 +34,7 @@ describe('GET /', () => {
     const response = await server.inject({
       method: 'GET',
       url: '/reports/abc',
+      headers: { 'x-api-key': 'test-api-key' },
     });
 
     expect(response.statusCode).toBe(400);
