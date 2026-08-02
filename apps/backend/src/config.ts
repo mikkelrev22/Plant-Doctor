@@ -16,6 +16,10 @@ export const config = {
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:4000',
   dashboardUrl: process.env.DASHBOARD_URL ?? 'http://localhost:4500',
   architectureUrl: process.env.ARCHITECTURE_URL ?? 'http://localhost:4600',
+  // Expo web dev server origin, so the mobile prototype (run with `expo start --web`)
+  // can call this API from the browser. Native (Expo Go) requests aren't subject
+  // to CORS — this only matters for the web target. Match the port Expo prints.
+  mobileUrl: process.env.MOBILE_URL ?? 'http://localhost:8081',
   backendUrl: process.env.BACKEND_URL ?? 'http://localhost:4100',
   // Shared static API key checked by the api-key plugin against the
   // `x-api-key` request header. Fail-closed: empty = reject all gated

@@ -8,6 +8,9 @@
       ],
       "@/assets/*": [
         "./assets/*"
+      ],
+      "@plant-doctor/api-types": [
+        "../../libs/api-types/src/index.ts"
       ]
     }
   },

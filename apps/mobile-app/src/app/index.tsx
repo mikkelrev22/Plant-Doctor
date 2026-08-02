@@ -1,98 +1,94 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useCallback } from 'react';
+import {
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+  type ListRenderItem,
+} from 'react-native';
+import type { PlantListItemDto } from '@plant-doctor/api-types';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PlantListItem } from '@/components/ui/PlantListItem';
+import { Screen } from '@/components/ui/Screen';
+import { Spinner } from '@/components/ui/Spinner';
+import { theme } from '@/constants/theme';
+import { usePlants } from '@/hooks/queries';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
-
+/** Home: list of plants with thumbnail + report count, plus "Add plant". */
 export default function HomeScreen() {
+  const user = useRequireAuth();
+  const { data: plants, isLoading, error, refetch, isRefetching } = usePlants();
+
+  const openPlant = useCallback(
+    (id: number) => router.push({ pathname: '/plant/[id]', params: { id: String(id) } }),
+    [],
+  );
+
+  const renderItem: ListRenderItem<PlantListItemDto> = useCallback(
+    ({ item }) => <PlantListItem plant={item} onPress={() => openPlant(item.id)} />,
+    [openPlant],
+  );
+
+  if (!user) return null;
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+    <Screen>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Plants</Text>
+        <Button
+          title="Add plant"
+          variant="secondary"
+          onPress={() => router.push('/add-plant')}
+        />
+      </View>
+      <FlatList
+        data={plants}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderItem}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerStyle={plants ? styles.list : styles.center}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.leaf} />}
+        ListEmptyComponent={
+          error ? (
+            <EmptyState
+              title="Couldn't load plants"
+              subtitle={error.message}
+              actionLabel="Retry"
+              onAction={() => refetch()}
+            />
+          ) : isLoading ? (
+            <Spinner label="Loading plants…" />
+          ) : (
+            <EmptyState
+              title="No plants yet"
+              subtitle="Add your first plant to get a diagnosis."
+              actionLabel="Add plant"
+              onAction={() => router.push('/add-plant')}
+            />
+          )
+        }
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  header: {
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    justifyContent: 'space-between',
+    paddingVertical: theme.spacing.lg,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  title: { ...theme.typography.title, color: theme.colors.leafDark },
+  list: { paddingBottom: theme.spacing.xl },
+  center: { flex: 1 },
+  separator: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: theme.spacing.xs,
   },
 });
