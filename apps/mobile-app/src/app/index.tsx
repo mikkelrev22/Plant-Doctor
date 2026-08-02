@@ -4,12 +4,10 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  Text,
   View,
   type ListRenderItem,
 } from 'react-native';
 import type { PlantListItemDto } from '@plant-doctor/api-types';
-import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PlantListItem } from '@/components/ui/PlantListItem';
 import { Screen } from '@/components/ui/Screen';
@@ -36,21 +34,13 @@ export default function HomeScreen() {
   if (!user) return null;
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Plants</Text>
-        <Button
-          title="Add plant"
-          variant="secondary"
-          onPress={() => router.push('/add-plant')}
-        />
-      </View>
+    <Screen bodyStyle={styles.screenBody}>
       <FlatList
         data={plants}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        contentContainerStyle={plants ? styles.list : styles.center}
+        contentContainerStyle={[plants ? styles.list : styles.center, styles.scrollPad]}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.leaf} />}
         ListEmptyComponent={
           error ? (
@@ -77,13 +67,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: theme.spacing.lg,
-  },
-  title: { ...theme.typography.title, color: theme.colors.leafDark },
+  screenBody: { paddingHorizontal: 0 },
+  scrollPad: { paddingHorizontal: theme.spacing.lg },
   list: { paddingBottom: theme.spacing.xl },
   center: { flex: 1 },
   separator: {

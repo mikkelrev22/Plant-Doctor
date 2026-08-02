@@ -53,7 +53,7 @@ export default function ReportScreen() {
   }
 
   return (
-    <Screen>
+    <Screen bodyStyle={styles.screenBody}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <HeroImage url={report.photo?.imageUrl ?? report.photo?.thumbnailUrl ?? null} />
 
@@ -138,7 +138,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: theme.spacing.xxl, gap: theme.spacing.sm },
+  screenBody: { paddingHorizontal: 0 },
+  scroll: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
+    gap: theme.spacing.sm,
+  },
   identity: { paddingTop: theme.spacing.md, gap: 2 },
   identName: { ...theme.typography.title, color: theme.colors.leafDark },
   scientific: { ...theme.typography.body, fontStyle: 'italic', color: theme.colors.textMuted },

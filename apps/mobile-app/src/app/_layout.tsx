@@ -1,6 +1,7 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { palette } from '@/constants/theme';
 import { Providers } from '@/components/Providers';
+import { HeaderButton } from '@/components/ui/HeaderButton';
 
 /**
  * Root layout: app-wide QueryClient + a light-mode Stack. The auth gate lives
@@ -18,7 +19,15 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="login" options={{ title: 'Sign in', headerShown: false }} />
-        <Stack.Screen name="index" options={{ title: 'My Plants' }} />
+        <Stack.Screen
+          name="index"
+          options={{
+            title: 'My Plants',
+            headerRight: () => (
+              <HeaderButton label="New plant" onPress={() => router.push('/add-plant')} />
+            ),
+          }}
+        />
         <Stack.Screen name="plant/[id]" options={{ title: 'Plant' }} />
         <Stack.Screen name="report/[id]" options={{ title: 'Report' }} />
         <Stack.Screen name="add-plant" options={{ title: 'Add plant', presentation: 'modal' }} />

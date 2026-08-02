@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import type { PlantReportSummaryDto } from '@plant-doctor/api-types';
 import { ApiError } from '@/api/client';
-import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { HeaderButton } from '@/components/ui/HeaderButton';
 import { HeroImage } from '@/components/ui/HeroImage';
 import { InlineTextInput } from '@/components/ui/InlineTextInput';
 import { ReportListItem } from '@/components/ui/ReportListItem';
@@ -24,6 +24,7 @@ import { useRequireAuth } from '@/hooks/use-require-auth';
 /** Plant page: latest-report hero, inline rename, report history, New report. */
 export default function PlantScreen() {
   const user = useRequireAuth();
+  const navigation = useNavigation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const plantId = Number(id);
 
@@ -33,6 +34,18 @@ export default function PlantScreen() {
 
   const [editing, setEditing] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
+
+  const goNewReport = useCallback(
+    () =>
+      router.push({ pathname: '/new-report/[plantId]', params: { plantId: String(plantId) } }),
+    [plantId],
+  );
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => <HeaderButton label="New report" onPress={goNewReport} />,
+    });
+  }, [navigation, goNewReport]);
 
   if (!user) return null;
 
@@ -64,11 +77,12 @@ export default function PlantScreen() {
   );
 
   return (
-    <Screen style={styles.screen}>
+    <Screen style={styles.screen} bodyStyle={styles.screenBody}>
       <FlatList
         data={reports}
         keyExtractor={(item) => String(item.id)}
         renderItem={renderItem}
+        contentContainerStyle={styles.scrollPad}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <View style={styles.header}>
@@ -111,22 +125,10 @@ export default function PlantScreen() {
               title="No reports yet"
               subtitle="Take a photo to diagnose this plant."
               actionLabel="New report"
-              onAction={() =>
-                router.push({ pathname: '/new-report/[plantId]', params: { plantId: String(plantId) } })
-              }
+              onAction={goNewReport}
             />
           )
         }
-        ListFooterComponent={<View style={styles.footer} />}
-      />
-      <Button
-        title="New report"
-        variant="primary"
-        fullWidth
-        onPress={() =>
-          router.push({ pathname: '/new-report/[plantId]', params: { plantId: String(plantId) } })
-        }
-        style={styles.newReportButton}
       />
     </Screen>
   );
@@ -134,6 +136,8 @@ export default function PlantScreen() {
 
 const styles = StyleSheet.create({
   screen: { paddingTop: theme.spacing.sm },
+  screenBody: { paddingHorizontal: 0 },
+  scrollPad: { paddingHorizontal: theme.spacing.lg },
   header: { gap: theme.spacing.md, paddingBottom: theme.spacing.md },
   nameRow: { paddingVertical: theme.spacing.xs },
   nameRowInner: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
@@ -142,7 +146,5 @@ const styles = StyleSheet.create({
   nameRowPlaceholder: { height: 32 },
   sectionTitle: { ...theme.typography.subtitle, color: theme.colors.text, marginTop: theme.spacing.sm },
   separator: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.xs },
-  footer: { height: theme.spacing.xl },
-  newReportButton: { marginVertical: theme.spacing.lg },
   dimmed: { opacity: 0.6 },
 });
