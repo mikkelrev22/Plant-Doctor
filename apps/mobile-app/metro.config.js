@@ -31,4 +31,20 @@ config.resolver.extraNodeModules = {
   ),
 };
 
+// Zustand's ESM build (esm/index.mjs and friends) references `import.meta.env`
+// for dev-only checks. Metro does not transform `import.meta` for the web
+// target, and with package `exports` enabled (SDK 54 default) the web build
+// resolves zustand to that ESM entry. expo-router's static web output then
+// loads the bundle as a classic (non-module) <script>, so the browser throws
+// "Cannot use 'import.meta' outside a module". Force zustand and its
+// subpaths to the CommonJS build (which uses process.env.NODE_ENV instead).
+// Native already resolves to CJS via the `react-native` export condition, so
+// this effectively only changes the web resolution.
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'zustand' || moduleName.startsWith('zustand/')) {
+    return { type: 'sourceFile', filePath: require.resolve(moduleName) };
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;
