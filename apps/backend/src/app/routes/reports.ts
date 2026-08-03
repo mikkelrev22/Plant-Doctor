@@ -88,15 +88,17 @@ export default async function (fastify: FastifyInstance) {
 
     const validatedFields = analyzeFieldsSchema.parse(fields);
 
-    const { plant: initialPlant, created } = await findOrCreatePlant(
-      fastify.db,
-      {
+    // The plant lookup and the stress-sign checklist are independent, so run
+    // them in parallel rather than back-to-back. The prompt needs both, and
+    // createLlmRequestLog below needs plant.id, so it stays after.
+    const [{ plant: initialPlant, created }, stressSigns] = await Promise.all([
+      findOrCreatePlant(fastify.db, {
         plantId: validatedFields.plantId,
         plantName: validatedFields.plantName,
-      },
-    );
+      }),
+      listStressSigns(fastify.db),
+    ]);
     let plant = initialPlant;
-    const stressSigns = await listStressSigns(fastify.db);
     const prompt = buildPlantAnalysisPrompt(stressSigns, plant.notes);
     const llmRequestId = await createLlmRequestLog(fastify.db, {
       plantId: plant.id,

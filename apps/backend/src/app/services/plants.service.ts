@@ -165,7 +165,8 @@ export const MAX_PLANT_NOTES_LENGTH = 1000;
  */
 function normalizeNotes(value: string): string | null {
   const stripped = value
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // control chars except \n \t
+    // eslint-disable-next-line no-control-regex -- control chars are the point: strip them (except \n \t) as prompt-injection defense
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .trim();
   const capped = stripped.slice(0, MAX_PLANT_NOTES_LENGTH).trim();
   return capped.length > 0 ? capped : null;

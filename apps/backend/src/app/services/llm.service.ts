@@ -137,7 +137,7 @@ function extractJsonObject(content: string) {
   if (withoutFence.startsWith('{') && withoutFence.endsWith('}')) {
     try {
       return JSON.parse(withoutFence) as unknown;
-    } catch (e) {
+    } catch {
       // Fall through to more aggressive extraction
     }
   }
@@ -152,7 +152,7 @@ function extractJsonObject(content: string) {
   const candidate = withoutFence.slice(firstBrace, lastBrace + 1);
   try {
     return JSON.parse(candidate) as unknown;
-  } catch (e) {
+  } catch {
     console.error('Failed to parse extracted JSON object:', candidate);
     throw new Error('LLM response contained an invalid JSON object');
   }
@@ -247,7 +247,7 @@ export async function callPlantAnalysisLlm({
               url: `data:${image.mimeType};base64,${image.buffer.toString(
                 'base64',
               )}`,
-              detail: 'high',
+              detail: 'auto',
             },
           },
           { type: 'text', text: prompt },

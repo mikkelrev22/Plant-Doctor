@@ -111,20 +111,28 @@ export async function storePlantPhoto(
     thumbPipeline.toBuffer({ resolveWithObject: true }),
   ]);
 
-  // All three buffers are ready — persist them as a set. If any write fails
-  // (e.g. disk full / S3 error), roll back the ones that landed so we don't
-  // leave a partial set behind.
-  const writtenKeys: string[] = [];
-  try {
-    await storage.putObject(storageKey, buffer, file.mimetype);
-    writtenKeys.push(storageKey);
-    await storage.putObject(displayStorageKey, displayResult.data, 'image/jpeg');
-    writtenKeys.push(displayStorageKey);
-    await storage.putObject(thumbStorageKey, thumbResult.data, 'image/jpeg');
-    writtenKeys.push(thumbStorageKey);
-  } catch (error) {
+  // All three buffers are ready — persist them as a set, in parallel. If any
+  // write fails (e.g. disk full / S3 error), roll back the ones that landed so
+  // we don't leave a partial set behind. Writing in parallel collapses three
+  // sequential network round-trips (notable on S3) into one without changing
+  // the rollback guarantee.
+  const writes = [
+    { key: storageKey, data: buffer, mimeType: file.mimetype },
+    { key: displayStorageKey, data: displayResult.data, mimeType: 'image/jpeg' },
+    { key: thumbStorageKey, data: thumbResult.data, mimeType: 'image/jpeg' },
+  ];
+  const results = await Promise.allSettled(
+    writes.map((write) => storage.putObject(write.key, write.data, write.mimeType)),
+  );
+  const firstFailure = results.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (firstFailure) {
+    const writtenKeys = writes
+      .filter((_, index) => results[index].status === 'fulfilled')
+      .map((write) => write.key);
     await Promise.all(writtenKeys.map((key) => storage.deleteObject(key)));
-    throw error;
+    throw firstFailure.reason;
   }
 
   return {
