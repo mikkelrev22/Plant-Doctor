@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect } from 'react';
-import { Modal, Pressable, StyleSheet, Text, useWindowDimensions } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -14,6 +14,10 @@ import { palette } from '@/constants/theme';
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
 const DOUBLE_TAP_SCALE = 2.5;
+/** Vertical drag (px) past which a swipe releases into a dismiss. */
+const DISMISS_THRESHOLD = 120;
+/** A fast fling dismisses even if the drag hasn't crossed the threshold. */
+const DISMISS_FLING_VELOCITY = 800;
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
@@ -26,7 +30,9 @@ interface LightboxProps {
 
 /**
  * Full-screen image lightbox with native pinch-to-zoom + pan (iOS) and
- * double-tap to toggle zoom. Closes via the backdrop or the ✕ button.
+ * double-tap to toggle zoom. At rest, a vertical swipe drags the image away
+ * and releases into a dismiss (past a threshold or on a fling); otherwise it
+ * springs back. Also closes via a backdrop tap or the ✕ button.
  */
 export function Lightbox({ url, visible, onClose }: LightboxProps) {
   const { width, height } = useWindowDimensions();
@@ -38,6 +44,12 @@ export function Lightbox({ url, visible, onClose }: LightboxProps) {
   const savedScale = useSharedValue(1);
   const savedX = useSharedValue(0);
   const savedY = useSharedValue(0);
+  // Scrim opacity dips as the image is swiped away, then restores on snap-back.
+  const backdropOpacity = useSharedValue(1);
+  // True while a pinch is active. The pan gesture checks this so a two-finger
+  // pinch doesn't also trigger the swipe-to-dismiss path (which could close the
+  // lightbox mid-pinch and crash).
+  const pinching = useSharedValue(false);
 
   const reset = () => {
     'worklet';
@@ -47,6 +59,7 @@ export function Lightbox({ url, visible, onClose }: LightboxProps) {
     translateY.value = withTiming(0);
     savedX.value = 0;
     savedY.value = 0;
+    backdropOpacity.value = withTiming(1);
   };
 
   // Reset transform whenever the lightbox is dismissed.
@@ -55,10 +68,14 @@ export function Lightbox({ url, visible, onClose }: LightboxProps) {
   }, [visible]);
 
   const pinch = Gesture.Pinch()
+    .onBegin(() => {
+      pinching.value = true;
+    })
     .onUpdate((e) => {
       scale.value = clamp(savedScale.value * e.scale, MIN_SCALE, MAX_SCALE);
     })
-    .onEnd(() => {
+    .onFinalize(() => {
+      pinching.value = false;
       if (scale.value < 1.05) {
         reset();
       } else {
@@ -68,16 +85,39 @@ export function Lightbox({ url, visible, onClose }: LightboxProps) {
 
   const pan = Gesture.Pan()
     .onUpdate((e) => {
-      if (scale.value <= 1) return;
-      const boundX = ((scale.value - 1) * width) / 2;
-      const boundY = ((scale.value - 1) * height) / 2;
-      translateX.value = clamp(savedX.value + e.translationX, -boundX, boundX);
-      translateY.value = clamp(savedY.value + e.translationY, -boundY, boundY);
+      // A pinch is in progress — let the pinch own the gesture; don't also
+      // drag/fade the image (would otherwise dismiss mid-pinch and crash).
+      if (pinching.value) return;
+      if (scale.value > 1) {
+        // Zoomed in: pan within the overscan bounds.
+        const boundX = ((scale.value - 1) * width) / 2;
+        const boundY = ((scale.value - 1) * height) / 2;
+        translateX.value = clamp(savedX.value + e.translationX, -boundX, boundX);
+        translateY.value = clamp(savedY.value + e.translationY, -boundY, boundY);
+      } else {
+        // At rest: the image follows the finger and the scrim fades — a
+        // swipe-away. Horizontal drift rides along but only vertical travel
+        // counts toward the dismiss threshold.
+        translateX.value = e.translationX;
+        translateY.value = e.translationY;
+        backdropOpacity.value = 1 - Math.min(Math.abs(e.translationY) / 300, 1) * 0.6;
+      }
     })
-    .onEnd(() => {
-      savedX.value = translateX.value;
-      savedY.value = translateY.value;
-      if (scale.value <= 1) reset();
+    .onEnd((e) => {
+      if (pinching.value) return;
+      if (scale.value > 1) {
+        savedX.value = translateX.value;
+        savedY.value = translateY.value;
+      } else if (
+        Math.abs(translateY.value) > DISMISS_THRESHOLD ||
+        Math.abs(e.velocityY) > DISMISS_FLING_VELOCITY
+      ) {
+        runOnJS(onClose)();
+      } else {
+        translateX.value = withTiming(0);
+        translateY.value = withTiming(0);
+        backdropOpacity.value = withTiming(1);
+      }
     });
 
   const doubleTap = Gesture.Tap()
@@ -111,9 +151,13 @@ export function Lightbox({ url, visible, onClose }: LightboxProps) {
     ],
   }));
 
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: backdropOpacity.value }));
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <View style={styles.backdrop}>
+        <Animated.View style={[styles.scrim, scrimStyle]} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <GestureDetector gesture={gestures}>
           <Animated.View style={[styles.imageWrap, { width, height }, animatedStyle]}>
             <Image
@@ -132,7 +176,7 @@ export function Lightbox({ url, visible, onClose }: LightboxProps) {
         >
           <Text style={styles.closeGlyph}>✕</Text>
         </Pressable>
-      </Pressable>
+      </View>
     </Modal>
   );
 }
@@ -142,9 +186,12 @@ const CLOSE_SIZE = 32;
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.92)',
   },
   imageWrap: {
     alignItems: 'center',

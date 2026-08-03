@@ -26,10 +26,7 @@ export default function AddPlantScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>Add a plant</Text>
-        <Text style={styles.subtitle}>
-          Take or pick a photo. We&apos;ll identify it and create the plant for you.
-        </Text>
+        <Text style={styles.title}>Show us the plant!</Text>
       </View>
       <ImageSourcePicker onImageSelected={onImageSelected} />
     </Screen>
