@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne } from 'drizzle-orm';
 import type {
   LlmPlantAnalysisResult,
   LlmRequestDetailDto,
@@ -236,31 +236,45 @@ export async function createReportFromAnalysis(
       thumbnailHeight: params.upload.thumbnail.height,
     });
 
-    const seededSigns = await tx
-      .select({ id: stressSigns.id })
-      .from(stressSigns)
-      .orderBy(asc(stressSigns.sortOrder));
-    const byStressSignId = new Map(
-      params.analysis.stressSigns.map((sign) => [sign.stressSignId, sign]),
+    // Load the seeded stress-sign ids once: they are the FK-restrict target and
+    // the dedupe set. We persist only the signs the LLM actually evaluated with
+    // a concrete verdict (present/absent) — unevaluated or unknown signs are
+    // not stored, so per-report views show only detected signs.
+    const seededIds = new Set(
+      (await tx.select({ id: stressSigns.id }).from(stressSigns)).map(
+        (sign) => sign.id,
+      ),
     );
 
-    await tx.insert(plantReportStressSigns).values(
-      seededSigns.map((sign) => {
-        const result = byStressSignId.get(sign.id);
-        const status: StressSignStatus = result?.status ?? 'unknown';
+    // Dedupe by stressSignId (the composite PK is (plantReportId, stressSignId))
+    // and drop any hallucinated id the LLM returned (FK to stress_signs is
+    // RESTRICT) and any sign whose status is 'unknown'.
+    const deduped = new Map<string, (typeof params.analysis.stressSigns)[number]>();
+    for (const sign of params.analysis.stressSigns) {
+      if (!seededIds.has(sign.stressSignId)) continue;
+      deduped.set(sign.stressSignId, sign);
+    }
+
+    const stressSignRows = [...deduped.values()]
+      .filter((result) => result.status !== 'unknown')
+      .map((result) => {
+        const status: StressSignStatus = result.status;
         const severity: StressSeverity =
-          status === 'absent' ? 'none' : (result?.severity ?? 'none');
+          status === 'absent' ? 'none' : (result.severity ?? 'none');
 
         return {
           plantReportId: report.id,
-          stressSignId: sign.id,
+          stressSignId: result.stressSignId,
           status,
           severity,
-          confidence: clampConfidence(result?.confidence ?? null),
-          notes: result?.notes ?? null,
+          confidence: clampConfidence(result.confidence ?? null),
+          notes: result.notes ?? null,
         };
-      }),
-    );
+      });
+
+    if (stressSignRows.length > 0) {
+      await tx.insert(plantReportStressSigns).values(stressSignRows);
+    }
 
     await tx
       .update(llmRequests)
@@ -498,13 +512,10 @@ export async function getReportDetail(
         variableId: stressVariables.id,
         variableName: stressVariables.name,
       })
-      .from(stressSigns)
-      .leftJoin(
-        plantReportStressSigns,
-        and(
-          eq(plantReportStressSigns.stressSignId, stressSigns.id),
-          eq(plantReportStressSigns.plantReportId, reportId),
-        ),
+      .from(plantReportStressSigns)
+      .innerJoin(
+        stressSigns,
+        eq(stressSigns.id, plantReportStressSigns.stressSignId),
       )
       .leftJoin(
         stressSignVariables,
@@ -513,6 +524,12 @@ export async function getReportDetail(
       .leftJoin(
         stressVariables,
         eq(stressVariables.id, stressSignVariables.stressVariableId),
+      )
+      .where(
+        and(
+          eq(plantReportStressSigns.plantReportId, reportId),
+          ne(plantReportStressSigns.status, 'unknown'),
+        ),
       )
       .orderBy(asc(stressSigns.sortOrder), asc(stressVariables.name)),
   ]);
