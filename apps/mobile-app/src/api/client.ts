@@ -108,6 +108,9 @@ export interface AnalyzeParams {
   imageUri: string;
   /** MIME type of the captured/picked image (e.g. `image/jpeg`). */
   mimeType: string;
+  /** ISO 8601 moment the photo was taken (EXIF `DateTimeOriginal`, or now for
+   *  camera shots). When omitted the server dates the report with the current time. */
+  capturedAt?: string;
   /** When set, attach the report to this existing plant; otherwise the server creates one. */
   plantId?: number;
   /** Optional plant name used when no plantId is provided. */
@@ -139,6 +142,7 @@ export async function analyzeReport(params: AnalyzeParams): Promise<AnalyzeRepor
 
   if (params.plantId != null) form.append('plantId', String(params.plantId));
   if (params.plantName) form.append('plantName', params.plantName);
+  if (params.capturedAt) form.append('capturedAt', params.capturedAt);
 
   const res = await fetch(withBase('/reports/analyze'), {
     method: 'POST',

@@ -1,5 +1,6 @@
 import type { MultipartFile } from '@fastify/multipart';
 import sharp from 'sharp';
+import * as exifr from 'exifr';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
 import { BadRequestError } from '../errors';
@@ -35,6 +36,11 @@ export interface StoredUpload {
   width: number | null;
   height: number | null;
   buffer: Buffer;
+  /** When the photo was taken, parsed from the uploaded bytes' EXIF
+   *  `DateTimeOriginal` (falls back to `DateTime`). `null` when the image has
+   *  no usable EXIF date — e.g. screenshots, PNGs, or HEIC the parser can't
+   *  read. Used as the fallback when the client doesn't send `capturedAt`. */
+  exifCapturedAt: Date | null;
   // 1024px JPEG used for display and the LLM call
   display: {
     imageUrl: string;
@@ -51,6 +57,45 @@ export interface StoredUpload {
     width: number;
     height: number;
   };
+}
+
+/**
+ * Parse an EXIF date string (`"YYYY:MM:DD HH:MM:SS"`, no timezone) into a
+ * `Date`, or `null` when missing/unparseable. EXIF dates carry no timezone, so
+ * the wall-clock is treated as UTC — the stored date then matches what the user
+ * sees in the file, independent of the server's local timezone. (Sanity
+ * checks — future / pre-2000 — are applied by the caller in `reports.ts`.)
+ */
+export function parseExifDateTime(raw: unknown): Date | null {
+  if (typeof raw !== 'string' || raw === '') return null;
+  const match = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(raw);
+  if (!match) return null;
+  const date = new Date(
+    Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1, // EXIF month is 1-indexed; Date expects 0-indexed.
+      Number(match[3]),
+      Number(match[4]),
+      Number(match[5]),
+      Number(match[6]),
+    ),
+  );
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Read the photo's capture date from the uploaded bytes' EXIF metadata.
+ * `reviveValues: false` keeps the raw EXIF string so we control the timezone
+ * handling ourselves (see `parseExifDateTime`). Returns `null` if the image has
+ * no EXIF or the date can't be parsed — never throws.
+ */
+async function extractExifCaptureDate(buffer: Buffer): Promise<Date | null> {
+  try {
+    const exif = await exifr.parse(buffer, { reviveValues: false });
+    return parseExifDateTime(exif?.DateTimeOriginal ?? exif?.DateTime);
+  } catch {
+    return null;
+  }
 }
 
 export async function storePlantPhoto(
@@ -105,10 +150,12 @@ export async function storePlantPhoto(
 
   // Render the derived variants to memory first. A corrupt or spoofed upload
   // fails here — before anything is persisted — so we never leave an orphaned
-  // original behind.
-  const [displayResult, thumbResult] = await Promise.all([
+  // original behind. EXIF parsing runs in the same batch — it reads only the
+  // small EXIF segment, so it's effectively free alongside the pixel work.
+  const [displayResult, thumbResult, exifCapturedAt] = await Promise.all([
     displayPipeline.toBuffer({ resolveWithObject: true }),
     thumbPipeline.toBuffer({ resolveWithObject: true }),
+    extractExifCaptureDate(buffer),
   ]);
 
   // All three buffers are ready — persist them as a set, in parallel. If any
@@ -142,6 +189,7 @@ export async function storePlantPhoto(
     width: originalMetadata.width ?? null,
     height: originalMetadata.height ?? null,
     buffer,
+    exifCapturedAt,
     display: {
       imageUrl: storage.publicUrl(displayStorageKey),
       storageKey: displayStorageKey,

@@ -204,6 +204,10 @@ export async function createReportFromAnalysis(
     upload: StoredUpload;
     analysis: LlmPlantAnalysisResult;
     llmRequestId: number;
+    /** When the photo was taken (from EXIF), if known. When null/undefined the
+     *  report falls back to `reported_at` DEFAULT now() and the photo's
+     *  `captured_at` stays NULL. `created_at` is always the real insert time. */
+    capturedAt?: Date | null;
   },
 ): Promise<PlantReportDetailDto> {
   const reportId = await db.transaction(async (tx) => {
@@ -211,6 +215,9 @@ export async function createReportFromAnalysis(
       .insert(plantReports)
       .values({
         plantId: params.plant.id,
+        // `undefined` lets the column's DEFAULT now() apply; a Date overrides it
+        // so the report's timeline reflects when the photo was taken.
+        reportedAt: params.capturedAt ?? undefined,
         stressors: params.analysis.likelyStressors.join(', '),
         summary: params.analysis.summary,
         recommendations: params.analysis.recommendations,
@@ -234,6 +241,7 @@ export async function createReportFromAnalysis(
       thumbnailStorageKey: params.upload.thumbnail.storageKey,
       thumbnailWidth: params.upload.thumbnail.width,
       thumbnailHeight: params.upload.thumbnail.height,
+      capturedAt: params.capturedAt ?? null,
     });
 
     // Load the seeded stress-sign ids once: they are the FK-restrict target and

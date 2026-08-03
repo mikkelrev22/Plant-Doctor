@@ -9,6 +9,10 @@ export const config = {
   llmApiModel: process.env.LLM_API_MODEL ?? '',
   llmMaxTokens: Number(process.env.LLM_MAX_TOKENS ?? 8192),
   llmTimeoutMs: Number(process.env.LLM_TIMEOUT_MS ?? 120000), // Default 2 minutes
+  // Fireworks reasoning effort for the analysis call. 'none' disables Qwen3's
+  // thinking block (faster, sufficient for structured JSON output); set to
+  // 'low' | 'medium' | 'high' to re-enable reasoning without a code change.
+  llmReasoningEffort: process.env.LLM_REASONING_EFFORT ?? 'none',
   // Bind to 0.0.0.0 by default so the server is reachable from sibling Docker
   // containers (e.g. the Caddy reverse proxy). Local dev overrides HOST in .env.
   host: process.env.HOST ?? '0.0.0.0',

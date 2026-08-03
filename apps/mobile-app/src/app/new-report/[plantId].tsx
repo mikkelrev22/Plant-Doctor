@@ -23,8 +23,8 @@ export default function NewReportScreen() {
 
   if (!user) return null;
 
-  const onImageSelected = ({ uri, mimeType }: SelectedImage) => {
-    setAnalyzingContext({ imageUri: uri, mimeType, plantId: id });
+  const onImageSelected = ({ uri, mimeType, capturedAt }: SelectedImage) => {
+    setAnalyzingContext({ imageUri: uri, mimeType, capturedAt, plantId: id });
     router.replace('/analyzing');
   };
 

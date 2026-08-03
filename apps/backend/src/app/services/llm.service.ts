@@ -228,6 +228,10 @@ export async function callPlantAnalysisLlm({
     model: config.llmApiModel,
     temperature: 0.2,
     max_tokens: config.llmMaxTokens,
+    // 'none' skips Qwen3's thinking block on Fireworks — the dominant cost of
+    // the analysis call. 'low'|'medium'|'high' re-enables reasoning. Mutually
+    // exclusive with the `thinking` object, which we do not send.
+    reasoning_effort: config.llmReasoningEffort,
     response_format: {
       type: 'json_schema',
       json_schema: PLANT_ANALYSIS_SCHEMA,
@@ -236,7 +240,7 @@ export async function callPlantAnalysisLlm({
       {
         role: 'system',
         content:
-          'You are Plant Doctor, a houseplant health analysis assistant. You analyze plant images and return structured JSON. You must return your analysis as a single JSON object. Ensure the JSON is complete and follows the requested schema.',
+          'You are Plant Doctor, a houseplant health analysis assistant. You analyze plant images and return structured JSON. You must return your analysis as a single JSON object. Output only the JSON object — no surrounding prose, explanation, or chain-of-thought. Ensure the JSON is complete and follows the requested schema.',
       },
       {
         role: 'user',

@@ -6,11 +6,16 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from '
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { readCaptureDate } from '@/lib/capture-date';
 import { theme } from '@/constants/theme';
 
 export interface SelectedImage {
   uri: string;
   mimeType: string;
+  /** ISO 8601 moment the photo was taken (from EXIF `DateTimeOriginal` for
+   *  gallery picks; the capture moment for camera shots). Omitted when no
+   *  reliable date is available, in which case the backend falls back to now. */
+  capturedAt?: string;
 }
 
 /**
@@ -111,13 +116,25 @@ export function ImageSourcePicker({ onImageSelected }: ImageSourcePickerProps) {
       mediaTypes: ['images'],
       quality: 0.8,
       allowsEditing: false,
+      // Surface EXIF on native so we can read the photo's capture date. The
+      // re-encode in `normalizeToJpeg` strips EXIF from the uploaded bytes, so we
+      // extract the date here and send it as a separate `capturedAt` field. On
+      // web this option is a no-op (EXIF isn't surfaced) — `readCaptureDate`
+      // fetches the original bytes and parses them with `exifr` there instead.
+      exif: true,
     });
     if (result.canceled) return;
     const asset = result.assets[0];
     setProcessing(true);
     try {
-      const normalized = await normalizeToJpeg(asset.uri, asset.width, asset.height);
-      onImageSelected(normalized);
+      // Re-encode (strips EXIF) and read the capture date from the original
+      // bytes in parallel — on web the date comes from `exifr`, on native from
+      // `asset.exif`.
+      const [normalized, capturedAt] = await Promise.all([
+        normalizeToJpeg(asset.uri, asset.width, asset.height),
+        readCaptureDate(asset),
+      ]);
+      onImageSelected({ ...normalized, capturedAt });
     } finally {
       setProcessing(false);
     }
@@ -140,7 +157,8 @@ export function ImageSourcePicker({ onImageSelected }: ImageSourcePickerProps) {
       const picture = await cameraRef.current?.takePictureAsync({ quality: 0.8 });
       if (picture) {
         const normalized = await normalizeToJpeg(picture.uri, picture.width, picture.height);
-        onImageSelected(normalized);
+        // The photo was just taken, so the capture moment is now.
+        onImageSelected({ ...normalized, capturedAt: new Date().toISOString() });
       }
     } finally {
       setCapturing(false);

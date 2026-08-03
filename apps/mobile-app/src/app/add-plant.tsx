@@ -17,9 +17,9 @@ export default function AddPlantScreen() {
   const user = useRequireAuth();
   if (!user) return null;
 
-  const onImageSelected = ({ uri, mimeType }: SelectedImage) => {
+  const onImageSelected = ({ uri, mimeType, capturedAt }: SelectedImage) => {
     // No plantId → the server creates the plant automatically.
-    setAnalyzingContext({ imageUri: uri, mimeType });
+    setAnalyzingContext({ imageUri: uri, mimeType, capturedAt });
     router.replace('/analyzing');
   };
 
