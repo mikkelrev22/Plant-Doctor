@@ -12,7 +12,7 @@ jest.mock('../../config', () => ({
   },
 }));
 
-import { storePlantPhoto } from './uploads.service';
+import { storePlantPhoto, parseExifDateTime } from './uploads.service';
 
 function makeMultipartFile(
   buffer: Buffer,
@@ -117,6 +117,28 @@ describe('storePlantPhoto', () => {
     expect(result.thumbnail.imageUrl).toBe(
       `http://test.local/uploads/plant-photos/${result.thumbnail.storageKey}`,
     );
+
+    // The synthetic JPEG has no EXIF, so no capture date can be recovered.
+    expect(result.exifCapturedAt).toBeNull();
+  });
+
+  it('recovers the EXIF DateTimeOriginal as the capture date (UTC wall-clock)', async () => {
+    // Author a JPEG with an EXIF DateTimeOriginal (sharp's IFD2 is the Exif IFD).
+    const withExif = await sharp({
+      create: { width: 400, height: 300, channels: 3, background: { r: 80, g: 160, b: 90 } },
+    })
+      .withMetadata({ exif: { IFD2: { DateTimeOriginal: '2024:03:15 10:30:00' } } })
+      .jpeg()
+      .toBuffer();
+    const file = makeMultipartFile(withExif, 'plant.jpg', 'image/jpeg');
+
+    const result = await storePlantPhoto(file);
+
+    // EXIF time has no timezone; we treat the wall-clock as UTC, so the stored
+    // instant is 2024-03-15T10:30:00Z (the exact date the user sees, independent
+    // of the server's local timezone).
+    expect(result.exifCapturedAt).toBeInstanceOf(Date);
+    expect(result.exifCapturedAt?.toISOString()).toBe('2024-03-15T10:30:00.000Z');
   });
 
   it('does not upscale images that already fit inside the display limit', async () => {
@@ -136,5 +158,29 @@ describe('storePlantPhoto', () => {
     expect(Math.max(result.thumbnail.width, result.thumbnail.height)).toBeLessThanOrEqual(160);
     // Aspect ratio is preserved (4:3 source → 4:3 thumb)
     expect(result.thumbnail.width / result.thumbnail.height).toBeCloseTo(400 / 300, 2);
+  });
+});
+
+describe('parseExifDateTime', () => {
+  it('parses a standard EXIF date into a UTC-labeled Date', () => {
+    const d = parseExifDateTime('2024:03:15 10:30:00');
+    expect(d).toBeInstanceOf(Date);
+    expect(d?.toISOString()).toBe('2024-03-15T10:30:00.000Z');
+  });
+
+  it('falls back to the trailing portion when extra bytes follow the date', () => {
+    // Some EXIF strings carry a sub-second or null terminator; the regex
+    // anchors only the leading 19 chars.
+    const d = parseExifDateTime('2024:03:15 10:30:00\x00');
+    expect(d?.toISOString()).toBe('2024-03-15T10:30:00.000Z');
+  });
+
+  it('returns null for missing/non-string/unparseable input', () => {
+    expect(parseExifDateTime(undefined)).toBeNull();
+    expect(parseExifDateTime(null)).toBeNull();
+    expect(parseExifDateTime('')).toBeNull();
+    expect(parseExifDateTime(12345)).toBeNull();
+    expect(parseExifDateTime('not a date')).toBeNull();
+    expect(parseExifDateTime('2024-03-15 10:30:00')).toBeNull(); // dashes, not colons
   });
 });

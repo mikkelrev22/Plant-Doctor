@@ -24,7 +24,11 @@ const PLANT_ANALYSIS_SCHEMA = {
   schema: {
     type: 'object',
     properties: {
-      identifiedPlantName: { type: 'string' },
+      identifiedPlantName: {
+        type: 'string',
+        description:
+          "A single concise common species name, e.g. 'Aloe vera', 'Pothos', 'Snake Plant'. No parentheses, qualifiers, or hedging like 'likely'.",
+      },
       scientificName: { type: ['string', 'null'] },
       identificationConfidence: { type: ['number', 'null'] },
       likelyStressors: {
@@ -94,6 +98,19 @@ function stringValue(value: unknown, fallback = '') {
   return typeof value === 'string' ? value : fallback;
 }
 
+/**
+ * Normalizes the LLM's plant-name output into a single concise species name:
+ * strips parenthetical qualifiers (e.g. "Columnar Cactus (likely Echinopsis or
+ * Cereus species)" → "Columnar Cactus") and collapses whitespace. This is a
+ * guard on top of the prompt, which already asks for a concise name.
+ */
+function normalizePlantName(value: string): string {
+  return value
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function numberOrNull(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
@@ -120,7 +137,7 @@ function extractJsonObject(content: string) {
   if (withoutFence.startsWith('{') && withoutFence.endsWith('}')) {
     try {
       return JSON.parse(withoutFence) as unknown;
-    } catch (e) {
+    } catch {
       // Fall through to more aggressive extraction
     }
   }
@@ -135,7 +152,7 @@ function extractJsonObject(content: string) {
   const candidate = withoutFence.slice(firstBrace, lastBrace + 1);
   try {
     return JSON.parse(candidate) as unknown;
-  } catch (e) {
+  } catch {
     console.error('Failed to parse extracted JSON object:', candidate);
     throw new Error('LLM response contained an invalid JSON object');
   }
@@ -175,10 +192,10 @@ export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
     : [];
 
   return {
-    identifiedPlantName: stringValue(
-      parsed.identifiedPlantName,
-      'Unknown plant',
-    ),
+    identifiedPlantName:
+      normalizePlantName(
+        stringValue(parsed.identifiedPlantName, 'Unknown plant'),
+      ) || 'Unknown plant',
     scientificName:
       typeof parsed.scientificName === 'string' ? parsed.scientificName : null,
     identificationConfidence: numberOrNull(parsed.identificationConfidence),
@@ -211,6 +228,10 @@ export async function callPlantAnalysisLlm({
     model: config.llmApiModel,
     temperature: 0.2,
     max_tokens: config.llmMaxTokens,
+    // 'none' skips Qwen3's thinking block on Fireworks — the dominant cost of
+    // the analysis call. 'low'|'medium'|'high' re-enables reasoning. Mutually
+    // exclusive with the `thinking` object, which we do not send.
+    reasoning_effort: config.llmReasoningEffort,
     response_format: {
       type: 'json_schema',
       json_schema: PLANT_ANALYSIS_SCHEMA,
@@ -219,7 +240,7 @@ export async function callPlantAnalysisLlm({
       {
         role: 'system',
         content:
-          'You are Plant Doctor, a houseplant health analysis assistant. You analyze plant images and return structured JSON. You must return your analysis as a single JSON object. Ensure the JSON is complete and follows the requested schema.',
+          'You are Plant Doctor, a houseplant health analysis assistant. You analyze plant images and return structured JSON. You must return your analysis as a single JSON object. Output only the JSON object — no surrounding prose, explanation, or chain-of-thought. Ensure the JSON is complete and follows the requested schema.',
       },
       {
         role: 'user',
@@ -230,7 +251,7 @@ export async function callPlantAnalysisLlm({
               url: `data:${image.mimeType};base64,${image.buffer.toString(
                 'base64',
               )}`,
-              detail: 'high',
+              detail: 'auto',
             },
           },
           { type: 'text', text: prompt },

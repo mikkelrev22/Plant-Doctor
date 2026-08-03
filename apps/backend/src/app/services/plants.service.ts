@@ -10,6 +10,7 @@ function toPlantDto(plant: typeof plants.$inferSelect): PlantDto {
   return {
     id: plant.id,
     name: plant.name,
+    species: plant.species,
     notes: plant.notes,
     createdAt: plant.createdAt.toISOString(),
     updatedAt: plant.updatedAt.toISOString(),
@@ -143,6 +144,82 @@ export async function updatePlantName(
   const [updated] = await db
     .update(plants)
     .set({ name, updatedAt: new Date() })
+    .where(and(eq(plants.userId, RESEARCH_USER_ID), eq(plants.id, plantId)))
+    .returning();
+
+  if (!updated) {
+    throw new NotFoundError('Plant not found');
+  }
+
+  return toPlantDto(updated);
+}
+
+/** Max length of stored plant notes, in characters. Bounds the surface that
+ * notes contribute to the analysis prompt (prompt-injection defense-in-depth). */
+export const MAX_PLANT_NOTES_LENGTH = 1000;
+
+/**
+ * Normalizes user-supplied notes for storage: trims, strips control characters
+ * (keeps newlines/tabs), caps length, and returns `null` when blank. Stripping
+ * control chars drops zero-width / null-byte injection tricks at the source.
+ */
+function normalizeNotes(value: string): string | null {
+  const stripped = value
+    // eslint-disable-next-line no-control-regex -- control chars are the point: strip them (except \n \t) as prompt-injection defense
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim();
+  const capped = stripped.slice(0, MAX_PLANT_NOTES_LENGTH).trim();
+  return capped.length > 0 ? capped : null;
+}
+
+/**
+ * Updates the user-editable plant fields (`name` and/or `notes`). Only the
+ * provided keys are written. Notes are sanitized (control chars stripped,
+ * length capped, blank → null) so the column stays a clean `string | null` and
+ * the analyze-prompt guard is a simple truthy check. `name` must already be
+ * non-empty (validated by the route).
+ */
+export async function updatePlant(
+  db: Database,
+  plantId: number,
+  fields: { name?: string; notes?: string | null },
+): Promise<PlantDto> {
+  const set: Partial<typeof plants.$inferInsert> = { updatedAt: new Date() };
+  if (fields.name !== undefined) {
+    set.name = fields.name;
+  }
+  if (fields.notes !== undefined) {
+    set.notes = normalizeNotes(fields.notes ?? '');
+  }
+
+  const [updated] = await db
+    .update(plants)
+    .set(set)
+    .where(and(eq(plants.userId, RESEARCH_USER_ID), eq(plants.id, plantId)))
+    .returning();
+
+  if (!updated) {
+    throw new NotFoundError('Plant not found');
+  }
+
+  return toPlantDto(updated);
+}
+
+/**
+ * Sets the plant's read-only `species`. Unlike `name`, `species` is server-owned
+ * (derived from the LLM identification) and not user-editable, so there is no
+ * route that accepts it. Callers are expected to only set it when the column is
+ * currently null — the species is stable context that sticks after the first
+ * successful identification.
+ */
+export async function updatePlantSpecies(
+  db: Database,
+  plantId: number,
+  species: string,
+): Promise<PlantDto> {
+  const [updated] = await db
+    .update(plants)
+    .set({ species, updatedAt: new Date() })
     .where(and(eq(plants.userId, RESEARCH_USER_ID), eq(plants.id, plantId)))
     .returning();
 

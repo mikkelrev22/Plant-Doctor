@@ -8,7 +8,11 @@ import {
   parsePlantAnalysis,
 } from '../services/llm.service';
 import { buildPlantAnalysisPrompt } from '../services/prompts';
-import { findOrCreatePlant, updatePlantName } from '../services/plants.service';
+import {
+  findOrCreatePlant,
+  updatePlantName,
+  updatePlantSpecies,
+} from '../services/plants.service';
 import {
   createLlmRequestLog,
   createReportFromAnalysis,
@@ -21,6 +25,39 @@ import {
   storePlantPhoto,
   type StoredUpload,
 } from '../services/uploads.service';
+
+/** Earliest plausible capture date — digital photos predate this only with
+ *  garbage EXIF, so anything older is treated as "no date". */
+const MIN_CAPTURE_DATE_MS = new Date('2000-01-01T00:00:00Z').getTime();
+
+/**
+ * Sanity-check a parsed capture date: drop `NaN`, future dates (clock skew or a
+ * spoofed EXIF tag — a report must not pre-date "now"), and implausibly old
+ * dates (before 2000). Returns the same `Date` when valid, otherwise `null`.
+ */
+export function sanitizeCaptureDate(
+  date: Date | null | undefined,
+): Date | null {
+  if (!date) return null;
+  const ms = date.getTime();
+  if (Number.isNaN(ms)) return null;
+  if (ms > Date.now()) return null;
+  if (ms < MIN_CAPTURE_DATE_MS) return null;
+  return date;
+}
+
+/**
+ * Turn the client-sent `capturedAt` (an ISO string from the mobile app, which
+ * read EXIF `DateTimeOriginal` in the picker) into a sanitized `Date`, or
+ * `null` when it should be ignored. The mobile app re-encodes its upload and
+ * strips EXIF from the bytes, so it sends the date as this separate field.
+ */
+export function resolveCapturedAt(
+  raw: string | undefined | null,
+): Date | null {
+  if (raw === undefined || raw === null || raw === '') return null;
+  return sanitizeCaptureDate(new Date(raw));
+}
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
@@ -80,20 +117,32 @@ export default async function (fastify: FastifyInstance) {
         )
         .optional(),
       plantName: z.string().optional(),
+      // ISO 8601 capture time from the photo's EXIF (sent by the mobile client).
+      // Validated/sanitized to a Date (or null) below via `resolveCapturedAt`.
+      capturedAt: z.string().optional(),
     });
 
     const validatedFields = analyzeFieldsSchema.parse(fields);
+    // Prefer the client-sent `capturedAt` (mobile app). Fall back to the EXIF
+    // date parsed from the uploaded bytes (dashboard / raw uploads, which don't
+    // send the field but preserve EXIF in the image). When neither is available
+    // the report is dated `now()` by the column default.
+    const capturedAt =
+      resolveCapturedAt(validatedFields.capturedAt) ??
+      sanitizeCaptureDate(upload.exifCapturedAt);
 
-    const { plant: initialPlant, created } = await findOrCreatePlant(
-      fastify.db,
-      {
+    // The plant lookup and the stress-sign checklist are independent, so run
+    // them in parallel rather than back-to-back. The prompt needs both, and
+    // createLlmRequestLog below needs plant.id, so it stays after.
+    const [{ plant: initialPlant, created }, stressSigns] = await Promise.all([
+      findOrCreatePlant(fastify.db, {
         plantId: validatedFields.plantId,
         plantName: validatedFields.plantName,
-      },
-    );
+      }),
+      listStressSigns(fastify.db),
+    ]);
     let plant = initialPlant;
-    const stressSigns = await listStressSigns(fastify.db);
-    const prompt = buildPlantAnalysisPrompt(stressSigns);
+    const prompt = buildPlantAnalysisPrompt(stressSigns, plant.notes);
     const llmRequestId = await createLlmRequestLog(fastify.db, {
       plantId: plant.id,
       prompt,
@@ -135,6 +184,24 @@ export default async function (fastify: FastifyInstance) {
         }
       }
 
+      // The species is read-only, stable context — set it once, from the
+      // first analysis that identifies the plant, and never overwrite it. This
+      // applies to both newly created plants and existing ones whose species
+      // is still null (e.g. plants created before this column existed).
+      if (analysis.identifiedPlantName && plant.species === null) {
+        try {
+          plant = await updatePlantSpecies(
+            fastify.db,
+            plant.id,
+            analysis.identifiedPlantName,
+          );
+        } catch (error) {
+          fastify.log.warn(
+            `Could not set species for plant ${plant.id}: ${error}`,
+          );
+        }
+      }
+
       await markLlmRequestSucceeded(fastify.db, {
         llmRequestId,
         response: llmResponse.content,
@@ -147,6 +214,7 @@ export default async function (fastify: FastifyInstance) {
         upload,
         analysis,
         llmRequestId,
+        capturedAt,
       });
 
       return { plant, report };

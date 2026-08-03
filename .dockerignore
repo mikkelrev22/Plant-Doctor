@@ -1,0 +1,28 @@
+# Version control
+.git
+.gitignore
+
+# Build output & deps (regenerated inside the image)
+node_modules
+dist
+**/dist
+
+# Other apps — not needed to build the backend
+apps/frontend
+apps/dashboard
+apps/architecture
+apps/backend-py
+apps/mobile-app
+
+# Local uploads & data (never ship these)
+uploads
+data
+
+# Misc
+docs
+coverage
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

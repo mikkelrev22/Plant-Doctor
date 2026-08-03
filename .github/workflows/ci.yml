@@ -1,0 +1,76 @@
+# CI: run affected tests + builds on every PR and on push to main.
+#
+# Phase 1: this workflow only GATES — it never builds the deploy image. The
+# deploy image is still built ON the EC2 host (see deploy.yml) so that sharp's
+# native prebuilt binary matches the runtime arch. Phase 2 will move the image
+# build into CI and push to a registry; that is out of scope here.
+#
+# Why no `lint`: apps/backend/project.json defines no `lint` target, so the
+# gate is `test` + `build` only. Why no `services: postgres`: the backend specs
+# mock `@plant-doctor/db` and use a bare Fastify / temp files, so they are
+# self-contained — no live database needed in CI.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel any superseded run on the same ref (saves minutes on rapid pushes).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Nx affected (test + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # 1. Full history so Nx `affected` can diff the project graph against the
+      #    base commit. fetch-depth: 0 is mandatory for affected to work.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Node 20 matches the Dockerfile builder/runtime base image.
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm # caches ~/.npm keyed on the lockfile automatically
+
+      # 3. Exact deps from the lockfile — no lockfile drift in CI.
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Nx needs "what changed since the last successful CI run". This action
+      #    picks the correct base SHA (handles the first run, force-pushes, and
+      #    shallow-checkout edge cases) and exports NX_BASE / NX_HEAD, which
+      #    `nx affected` reads automatically.
+      - name: Set Nx base/head SHAs
+        uses: nrwl/nx-set-shas@v4
+
+      # 5. Local Nx cache (Nx Cloud is disabled in nx.json). Key on OS + lockfile
+      #    so a dependency bump busts the cache; the sha suffix gives a
+      #    write-unique key while restore-keys fall back to partial hits.
+      - name: Cache Nx
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            nx-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            nx-${{ runner.os }}-
+
+      # 6. The gate. `affected` runs only the test+build targets for projects
+      #    whose inputs changed since NX_BASE. To gate ALL projects instead of
+      #    only changed ones, replace with: npx nx run-many -t test build --all
+      - name: Run affected tests and builds
+        run: npx nx affected -t test build

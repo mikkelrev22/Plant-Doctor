@@ -16,6 +16,7 @@ export const plants = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    species: text('species'),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()

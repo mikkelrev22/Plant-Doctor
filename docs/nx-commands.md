@@ -86,7 +86,6 @@ npx nx show projects
 | `backend`      | `apps/backend`        | Fastify API (esbuild + Node)   |
 | `backend-py`   | `apps/backend-py`     | FastAPI (uv + Python 3.12)     |
 | `db`           | `libs/db`             | Drizzle schema and migrations  |
-| `frontend-e2e` | `apps/frontend-e2e`   | Playwright end-to-end tests    |
 
 To see all tasks available for a project:
 
@@ -113,7 +112,6 @@ npx nx test backend            # Jest unit tests
 npx nx test backend-py         # pytest unit tests
 npx nx lint frontend           # ESLint
 npx nx lint backend-py         # ruff
-npx nx e2e frontend-e2e        # Playwright e2e tests
 ```
 
 Run the same task across multiple projects:
@@ -208,7 +206,7 @@ npm run dev
 npx nx serve backend-py          →  uvicorn (port 4101, separate from npm run dev)
 ```
 
-- **Project** = `frontend`, `backend`, `backend-py`, `frontend-e2e`
+- **Project** = `frontend`, `backend`, `backend-py`
 - **Target / task** = `serve`, `build`, `test`, `lint`, `e2e`, …
 - **Invocation** = `npx nx <target> <project>`
 

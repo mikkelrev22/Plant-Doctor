@@ -11,7 +11,13 @@ import type {
 import { config } from '../config';
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${config.backendUrl}${path}`, init);
+  const response = await fetch(`${config.backendUrl}${path}`, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      'x-api-key': config.apiKey,
+    },
+  });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
@@ -36,6 +42,14 @@ export function updatePlantName(id: number, name: string) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
+  });
+}
+
+export function updatePlantNotes(id: number, notes: string | null) {
+  return fetchJson<PlantDto>(`/plants/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
   });
 }
 

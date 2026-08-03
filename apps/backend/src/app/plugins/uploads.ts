@@ -14,6 +14,12 @@ export default fp(async function (fastify: FastifyInstance) {
     },
   });
 
+  // When using S3, uploads are served directly from the bucket via public URLs
+  // (see services/storage.ts), so there's nothing to serve from local disk.
+  if (config.storageDriver !== 'local') {
+    return;
+  }
+
   const uploadRoot = resolve(process.cwd(), config.uploadDir);
 
   await mkdir(uploadRoot, { recursive: true });

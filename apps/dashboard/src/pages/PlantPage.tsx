@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Loader, Stack, Text } from '@mantine/core';
 import { AnalysisForm } from '../components/AnalysisForm';
 import { PlantNameEditor } from '../components/PlantNameEditor';
+import { PlantNotesEditor } from '../components/PlantNotesEditor';
 import { ReportsTable } from '../components/ReportsTable';
 import {
   useAnalyzeReport,
@@ -16,6 +17,7 @@ export function PlantPage() {
 
   const [image, setImage] = useState<File | null>(null);
   const [updateNameError, setUpdateNameError] = useState<string | null>(null);
+  const [updateNotesError, setUpdateNotesError] = useState<string | null>(null);
 
   const plantQuery = usePlant(plantId);
   const analyzeMutation = useAnalyzeReport();
@@ -27,6 +29,7 @@ export function PlantPage() {
     plantQuery.error?.message ??
     analyzeMutation.error?.message ??
     updateNameError ??
+    updateNotesError ??
     null;
 
   useEffect(() => {
@@ -69,7 +72,14 @@ export function PlantPage() {
       <PlantNameEditor
         plantId={plant.id}
         initialName={plant.name}
+        species={plant.species}
         onMutationError={setUpdateNameError}
+      />
+
+      <PlantNotesEditor
+        plantId={plant.id}
+        initialNotes={plant.notes}
+        onMutationError={setUpdateNotesError}
       />
 
       <AnalysisForm
