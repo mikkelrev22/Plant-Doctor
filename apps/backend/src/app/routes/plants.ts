@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
-import { createPlant, getPlantForUser, listPlants, updatePlantName } from '../services/plants.service';
+import { createPlant, getPlantForUser, listPlants, updatePlant } from '../services/plants.service';
 import { listReportsForPlant, listReportsForPlantExtended } from '../services/reports.service';
 
 export default async function (fastify: FastifyInstance) {
@@ -13,7 +13,9 @@ export default async function (fastify: FastifyInstance) {
     return listPlants(fastify.db);
   });
 
-  // Updates a plant's name.
+  // Updates a plant's editable fields (name and/or notes). At least one must be
+  // provided; `name` must be non-empty when present, `notes` may be null/blank
+  // to clear.
   server.patch(
     '/plants/:plantId',
     {
@@ -21,16 +23,21 @@ export default async function (fastify: FastifyInstance) {
         params: z.object({
           plantId: z.coerce.number().int(),
         }),
-        body: z.object({
-          name: z.string().min(1),
-        }),
+        body: z
+          .object({
+            name: z.string().min(1).optional(),
+            notes: z.string().nullable().optional(),
+          })
+          .refine((body) => body.name !== undefined || body.notes !== undefined, {
+            message: 'Provide at least one of name or notes',
+          }),
       },
     },
     async function (request) {
       const { plantId } = request.params;
-      const { name } = request.body;
+      const { name, notes } = request.body;
 
-      return updatePlantName(fastify.db, plantId, name);
+      return updatePlant(fastify.db, plantId, { name, notes });
     }
   );
 

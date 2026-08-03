@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type {
   LlmPlantAnalysisResult,
   LlmRequestDetailDto,
@@ -531,7 +531,13 @@ export async function getReportDetail(
           ne(plantReportStressSigns.status, 'unknown'),
         ),
       )
-      .orderBy(asc(stressSigns.sortOrder), asc(stressVariables.name)),
+      .orderBy(
+        // Present signs first, absent last; then by definition sort order,
+        // then by variable name for deterministic within-sign ordering.
+        sql`CASE ${plantReportStressSigns.status} WHEN 'present' THEN 0 ELSE 1 END`,
+        asc(stressSigns.sortOrder),
+        asc(stressVariables.name),
+      ),
   ]);
 
   const row = reportRows[0];

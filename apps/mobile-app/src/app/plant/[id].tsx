@@ -18,7 +18,7 @@ import { ReportListItem } from '@/components/ui/ReportListItem';
 import { Screen } from '@/components/ui/Screen';
 import { Spinner } from '@/components/ui/Spinner';
 import { theme } from '@/constants/theme';
-import { usePlant, useReports, useUpdatePlantName } from '@/hooks/queries';
+import { usePlant, useReports, useUpdatePlantName, useUpdatePlantNotes } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 
 /** Plant page: latest-report hero, inline rename, report history, New report. */
@@ -31,9 +31,12 @@ export default function PlantScreen() {
   const { data: plant } = usePlant(plantId);
   const { data: reports, isLoading: reportsLoading } = useReports(plantId);
   const rename = useUpdatePlantName();
+  const updateNotes = useUpdatePlantNotes();
 
   const [editing, setEditing] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesError, setNotesError] = useState<string | null>(null);
 
   const goNewReport = useCallback(
     () =>
@@ -69,6 +72,18 @@ export default function PlantScreen() {
     }
   };
 
+  const handleSaveNotes = async (value: string) => {
+    setNotesError(null);
+    try {
+      await updateNotes.mutateAsync({ id: plantId, notes: value || null });
+      setEditingNotes(false);
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'Could not save notes.';
+      setNotesError(message);
+    }
+  };
+
   const renderItem: ListRenderItem<PlantReportSummaryDto> = ({ item }) => (
     <ReportListItem
       report={item}
@@ -88,34 +103,66 @@ export default function PlantScreen() {
           <View style={styles.header}>
             <HeroImage url={heroUrl} />
             {plant ? (
-              <View style={styles.nameRow}>
-                {editing ? (
+              <>
+                <View style={styles.nameRow}>
+                  {editing ? (
+                    <InlineTextInput
+                      value={plant.name}
+                      onSubmit={handleRename}
+                      onCancel={() => {
+                        setEditing(false);
+                        setRenameError(null);
+                      }}
+                      error={renameError}
+                    />
+                  ) : (
+                    <Pressable
+                      onPress={() => setEditing(true)}
+                      style={({ pressed }) => pressed && styles.dimmed}
+                    >
+                      <View style={styles.nameRowInner}>
+                        <Text style={styles.name}>{plant.name}</Text>
+                        <Text style={styles.editHint}>✎ rename</Text>
+                      </View>
+                    </Pressable>
+                  )}
+                  {plant.species ? (
+                    <Text style={styles.species} numberOfLines={1}>
+                      {plant.species}
+                    </Text>
+                  ) : null}
+                </View>
+                {editingNotes ? (
                   <InlineTextInput
-                    value={plant.name}
-                    onSubmit={handleRename}
+                    value={plant.notes ?? ''}
+                    multiline
+                    allowClear
+                    onSubmit={handleSaveNotes}
                     onCancel={() => {
-                      setEditing(false);
-                      setRenameError(null);
+                      setEditingNotes(false);
+                      setNotesError(null);
                     }}
-                    error={renameError}
+                    error={notesError}
+                    placeholder="Notes about this plant…"
                   />
                 ) : (
                   <Pressable
-                    onPress={() => setEditing(true)}
+                    onPress={() => setEditingNotes(true)}
                     style={({ pressed }) => pressed && styles.dimmed}
                   >
-                    <View style={styles.nameRowInner}>
-                      <Text style={styles.name}>{plant.name}</Text>
-                      <Text style={styles.editHint}>✎ rename</Text>
+                    <View style={styles.notesRow}>
+                      {plant.notes ? (
+                        <Text style={styles.notes}>{plant.notes}</Text>
+                      ) : (
+                        <Text style={styles.notesHint}>✎ Add notes</Text>
+                      )}
+                      {plant.notes ? (
+                        <Text style={styles.editHint}>✎ edit</Text>
+                      ) : null}
                     </View>
                   </Pressable>
                 )}
-                {plant.species ? (
-                  <Text style={styles.species} numberOfLines={1}>
-                    {plant.species}
-                  </Text>
-                ) : null}
-              </View>
+              </>
             ) : (
               <View style={styles.nameRowPlaceholder} />
             )}
@@ -149,6 +196,9 @@ const styles = StyleSheet.create({
   name: { ...theme.typography.title, color: theme.colors.leafDark, flex: 1 },
   editHint: { ...theme.typography.caption, color: theme.colors.textMuted },
   species: { ...theme.typography.caption, fontStyle: 'italic', color: theme.colors.textMuted },
+  notesRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingVertical: theme.spacing.xs },
+  notes: { ...theme.typography.body, color: theme.colors.text, flex: 1 },
+  notesHint: { ...theme.typography.body, color: theme.colors.textMuted },
   nameRowPlaceholder: { height: 32 },
   sectionTitle: { ...theme.typography.subtitle, color: theme.colors.text, marginTop: theme.spacing.sm },
   separator: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.xs },

@@ -12,6 +12,7 @@ import {
   listPlants,
   listReports,
   updatePlantName,
+  updatePlantNotes,
 } from '@/api/client';
 import { qk } from '@/api/query-keys';
 
@@ -53,6 +54,20 @@ export function useUpdatePlantName() {
   return useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) =>
       updatePlantName(id, name),
+    onSuccess: (plant, { id }) => {
+      qc.setQueryData(qk.plant(id), plant);
+      qc.invalidateQueries({ queryKey: qk.plants });
+    },
+  });
+}
+
+/** PATCH /plants/:id — update notes. Pass null to clear. Replaces the plant
+ * cache and invalidates the plants list (mirrors useUpdatePlantName). */
+export function useUpdatePlantNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, notes }: { id: number; notes: string | null }) =>
+      updatePlantNotes(id, notes),
     onSuccess: (plant, { id }) => {
       qc.setQueryData(qk.plant(id), plant);
       qc.invalidateQueries({ queryKey: qk.plants });

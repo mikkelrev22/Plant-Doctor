@@ -97,7 +97,7 @@ export default async function (fastify: FastifyInstance) {
     );
     let plant = initialPlant;
     const stressSigns = await listStressSigns(fastify.db);
-    const prompt = buildPlantAnalysisPrompt(stressSigns);
+    const prompt = buildPlantAnalysisPrompt(stressSigns, plant.notes);
     const llmRequestId = await createLlmRequestLog(fastify.db, {
       plantId: plant.id,
       prompt,

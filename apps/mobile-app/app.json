@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "mobile-plant-doctor",
-    "slug": "mobile-plant-doctor",
+    "slug": "plant-doctor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -37,6 +37,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2221d8e1-1802-4c78-a7f4-f10babf717f7"
+      }
+    },
+    "owner": "plantd-team"
   }
 }

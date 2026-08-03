@@ -19,6 +19,7 @@ import {
   getReport,
   getStressSigns,
   updatePlantName,
+  updatePlantNotes,
 } from './api/api';
 
 export const plantKeys = {
@@ -139,6 +140,18 @@ export function useUpdatePlantName() {
 
   return useMutation<PlantDto, Error, { id: number; name: string }>({
     mutationFn: ({ id, name }) => updatePlantName(id, name),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: plantKeys.all });
+      queryClient.invalidateQueries({ queryKey: plantKeys.byId(data.id) });
+    },
+  });
+}
+
+export function useUpdatePlantNotes() {
+  const queryClient = useQueryClient();
+
+  return useMutation<PlantDto, Error, { id: number; notes: string | null }>({
+    mutationFn: ({ id, notes }) => updatePlantNotes(id, notes),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: plantKeys.all });
       queryClient.invalidateQueries({ queryKey: plantKeys.byId(data.id) });

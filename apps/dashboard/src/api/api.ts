@@ -45,6 +45,14 @@ export function updatePlantName(id: number, name: string) {
   });
 }
 
+export function updatePlantNotes(id: number, notes: string | null) {
+  return fetchJson<PlantDto>(`/plants/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+  });
+}
+
 export function createPlant(name?: string) {
   return fetchJson<PlantDto>('/plants', {
     method: 'POST',

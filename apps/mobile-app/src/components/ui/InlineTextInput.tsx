@@ -18,6 +18,10 @@ interface InlineTextInputProps {
   /** Optional inline error message shown beneath the field. */
   error?: string | null;
   placeholder?: string;
+  /** Multi-line input (e.g. notes). Enter inserts a newline; commit via Save. */
+  multiline?: boolean;
+  /** Allow committing an empty draft (e.g. to clear notes back to null). */
+  allowClear?: boolean;
 }
 
 /**
@@ -31,6 +35,8 @@ export function InlineTextInput({
   onCancel,
   error,
   placeholder,
+  multiline,
+  allowClear,
 }: InlineTextInputProps) {
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<TextInput>(null);
@@ -41,7 +47,11 @@ export function InlineTextInput({
 
   const submit = () => {
     const trimmed = draft.trim();
-    if (trimmed.length === 0 || trimmed === value) {
+    if (trimmed === value) {
+      onCancel();
+      return;
+    }
+    if (!allowClear && trimmed.length === 0) {
       onCancel();
       return;
     }
@@ -55,11 +65,13 @@ export function InlineTextInput({
           ref={inputRef}
           value={draft}
           onChangeText={setDraft}
-          onSubmitEditing={submit}
+          onSubmitEditing={multiline ? undefined : submit}
           placeholder={placeholder}
-          style={[styles.input, error && styles.inputError]}
+          style={[styles.input, multiline && styles.inputMultiline, error && styles.inputError]}
           underlineColorAndroid="transparent"
-          returnKeyType="done"
+          returnKeyType={multiline ? 'default' : 'done'}
+          multiline={multiline}
+          numberOfLines={multiline ? 3 : undefined}
           selectTextOnFocus
         />
         <Pressable onPress={submit} style={({ pressed }) => pressed && styles.dimmed}>
@@ -87,6 +99,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     minHeight: 44,
+  },
+  inputMultiline: {
+    ...theme.typography.body,
+    minHeight: 88,
+    textAlignVertical: 'top',
   },
   inputError: { borderColor: theme.colors.danger },
   action: { ...theme.typography.body, color: theme.colors.leaf, fontWeight: '600' },

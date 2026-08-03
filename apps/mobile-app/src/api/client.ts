@@ -83,6 +83,17 @@ export function updatePlantName(id: number, name: string): Promise<PlantDto> {
   });
 }
 
+/** PATCH /plants/:id — update a plant's free-text notes. Pass null to clear. */
+export function updatePlantNotes(
+  id: number,
+  notes: string | null,
+): Promise<PlantDto> {
+  return request<PlantDto>(`/plants/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ notes }),
+  });
+}
+
 /** GET /plants/:id/reports — report history, ordered reportedAt DESC (latest first). */
 export function listReports(plantId: number): Promise<PlantReportSummaryDto[]> {
   return request<PlantReportSummaryDto[]>(`/plants/${plantId}/reports`);
