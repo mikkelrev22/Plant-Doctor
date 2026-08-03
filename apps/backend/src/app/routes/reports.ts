@@ -8,7 +8,11 @@ import {
   parsePlantAnalysis,
 } from '../services/llm.service';
 import { buildPlantAnalysisPrompt } from '../services/prompts';
-import { findOrCreatePlant, updatePlantName } from '../services/plants.service';
+import {
+  findOrCreatePlant,
+  updatePlantName,
+  updatePlantSpecies,
+} from '../services/plants.service';
 import {
   createLlmRequestLog,
   createReportFromAnalysis,
@@ -131,6 +135,24 @@ export default async function (fastify: FastifyInstance) {
           // If renaming fails (e.g. duplicate name), we just keep the current name.
           fastify.log.warn(
             `Could not rename plant ${plant.id} to ${analysis.identifiedPlantName}: ${error}`,
+          );
+        }
+      }
+
+      // The species is read-only, stable context — set it once, from the
+      // first analysis that identifies the plant, and never overwrite it. This
+      // applies to both newly created plants and existing ones whose species
+      // is still null (e.g. plants created before this column existed).
+      if (analysis.identifiedPlantName && plant.species === null) {
+        try {
+          plant = await updatePlantSpecies(
+            fastify.db,
+            plant.id,
+            analysis.identifiedPlantName,
+          );
+        } catch (error) {
+          fastify.log.warn(
+            `Could not set species for plant ${plant.id}: ${error}`,
           );
         }
       }

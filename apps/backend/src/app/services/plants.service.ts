@@ -10,6 +10,7 @@ function toPlantDto(plant: typeof plants.$inferSelect): PlantDto {
   return {
     id: plant.id,
     name: plant.name,
+    species: plant.species,
     notes: plant.notes,
     createdAt: plant.createdAt.toISOString(),
     updatedAt: plant.updatedAt.toISOString(),
@@ -143,6 +144,31 @@ export async function updatePlantName(
   const [updated] = await db
     .update(plants)
     .set({ name, updatedAt: new Date() })
+    .where(and(eq(plants.userId, RESEARCH_USER_ID), eq(plants.id, plantId)))
+    .returning();
+
+  if (!updated) {
+    throw new NotFoundError('Plant not found');
+  }
+
+  return toPlantDto(updated);
+}
+
+/**
+ * Sets the plant's read-only `species`. Unlike `name`, `species` is server-owned
+ * (derived from the LLM identification) and not user-editable, so there is no
+ * route that accepts it. Callers are expected to only set it when the column is
+ * currently null — the species is stable context that sticks after the first
+ * successful identification.
+ */
+export async function updatePlantSpecies(
+  db: Database,
+  plantId: number,
+  species: string,
+): Promise<PlantDto> {
+  const [updated] = await db
+    .update(plants)
+    .set({ species, updatedAt: new Date() })
     .where(and(eq(plants.userId, RESEARCH_USER_ID), eq(plants.id, plantId)))
     .returning();
 

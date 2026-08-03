@@ -24,7 +24,11 @@ const PLANT_ANALYSIS_SCHEMA = {
   schema: {
     type: 'object',
     properties: {
-      identifiedPlantName: { type: 'string' },
+      identifiedPlantName: {
+        type: 'string',
+        description:
+          "A single concise common species name, e.g. 'Aloe vera', 'Pothos', 'Snake Plant'. No parentheses, qualifiers, or hedging like 'likely'.",
+      },
       scientificName: { type: ['string', 'null'] },
       identificationConfidence: { type: ['number', 'null'] },
       likelyStressors: {
@@ -92,6 +96,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function stringValue(value: unknown, fallback = '') {
   return typeof value === 'string' ? value : fallback;
+}
+
+/**
+ * Normalizes the LLM's plant-name output into a single concise species name:
+ * strips parenthetical qualifiers (e.g. "Columnar Cactus (likely Echinopsis or
+ * Cereus species)" → "Columnar Cactus") and collapses whitespace. This is a
+ * guard on top of the prompt, which already asks for a concise name.
+ */
+function normalizePlantName(value: string): string {
+  return value
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function numberOrNull(value: unknown) {
@@ -175,10 +192,10 @@ export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
     : [];
 
   return {
-    identifiedPlantName: stringValue(
-      parsed.identifiedPlantName,
-      'Unknown plant',
-    ),
+    identifiedPlantName:
+      normalizePlantName(
+        stringValue(parsed.identifiedPlantName, 'Unknown plant'),
+      ) || 'Unknown plant',
     scientificName:
       typeof parsed.scientificName === 'string' ? parsed.scientificName : null,
     identificationConfidence: numberOrNull(parsed.identificationConfidence),

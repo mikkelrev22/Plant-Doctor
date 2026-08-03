@@ -17,7 +17,7 @@ ${checklist}
 
 JSON schema:
 {
-  "identifiedPlantName": "common plant name or best guess",
+  "identifiedPlantName": "single concise common species name, e.g. 'Aloe vera', 'Pothos', 'Snake Plant'",
   "scientificName": "scientific name or null",
   "identificationConfidence": 0-100 number or null,
   "likelyStressors": ["water", "humidity"],
@@ -35,6 +35,7 @@ JSON schema:
   "detectedRegions": 0
 }
 
+For identifiedPlantName, return a single concise common species name (e.g. 'Aloe vera', 'Pothos', 'Snake Plant'). Do NOT include parentheses, qualifiers, or hedging language such as 'likely', 'probably', or 'possibly' — if you are unsure of the exact species, give your best single common-name guess.
 Only include stress signs in the array that you actually detect or have a reason to mark as absent/unknown. You do not need to include the entire checklist.
 Favor honest uncertainty. Keep recommendations practical.`;
 }

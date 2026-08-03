@@ -69,6 +69,7 @@ export function PlantPage() {
       <PlantNameEditor
         plantId={plant.id}
         initialName={plant.name}
+        species={plant.species}
         onMutationError={setUpdateNameError}
       />
 

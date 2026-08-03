@@ -27,6 +27,11 @@ export function PlantListItem({ plant, onPress }: PlantListItemProps) {
           <Text style={styles.name} numberOfLines={1}>
             {plant.name}
           </Text>
+          {plant.species ? (
+            <Text style={styles.species} numberOfLines={1}>
+              {plant.species}
+            </Text>
+          ) : null}
           <Text style={styles.caption}>
             {plant.reportCount === 1 ? '1 report' : `${plant.reportCount} reports`}
           </Text>
@@ -55,6 +60,7 @@ const styles = StyleSheet.create({
   thumbPlaceholder: { backgroundColor: theme.colors.leafSoft, opacity: 0.5 },
   meta: { flex: 1, gap: 2 },
   name: { ...theme.typography.subtitle, color: theme.colors.text },
+  species: { ...theme.typography.caption, fontStyle: 'italic', color: theme.colors.textMuted },
   caption: { ...theme.typography.caption, color: theme.colors.textMuted },
   chevron: { fontSize: 26, color: theme.colors.textMuted, lineHeight: 28 },
   pressed: { opacity: 0.6 },

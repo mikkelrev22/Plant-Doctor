@@ -110,6 +110,11 @@ export default function PlantScreen() {
                     </View>
                   </Pressable>
                 )}
+                {plant.species ? (
+                  <Text style={styles.species} numberOfLines={1}>
+                    {plant.species}
+                  </Text>
+                ) : null}
               </View>
             ) : (
               <View style={styles.nameRowPlaceholder} />
@@ -143,6 +148,7 @@ const styles = StyleSheet.create({
   nameRowInner: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   name: { ...theme.typography.title, color: theme.colors.leafDark, flex: 1 },
   editHint: { ...theme.typography.caption, color: theme.colors.textMuted },
+  species: { ...theme.typography.caption, fontStyle: 'italic', color: theme.colors.textMuted },
   nameRowPlaceholder: { height: 32 },
   sectionTitle: { ...theme.typography.subtitle, color: theme.colors.text, marginTop: theme.spacing.sm },
   separator: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.xs },

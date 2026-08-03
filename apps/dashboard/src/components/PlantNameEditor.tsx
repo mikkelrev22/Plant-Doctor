@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
-import { ActionIcon, Group, TextInput, Title } from '@mantine/core';
+import { ActionIcon, Group, Stack, Text, TextInput, Title } from '@mantine/core';
 import { IconCheck, IconEdit, IconX } from '@tabler/icons-react';
 import { useUpdatePlantName } from '../queries';
 
 interface PlantNameEditorProps {
   plantId: number;
   initialName: string;
+  species?: string | null;
   onMutationError?: (error: string | null) => void;
 }
 
 export function PlantNameEditor({
   plantId,
   initialName,
+  species,
   onMutationError,
 }: PlantNameEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -81,15 +83,22 @@ export function PlantNameEditor({
   }
 
   return (
-    <Group gap="xs" align="center">
-      <Title order={2}>{initialName}</Title>
-      <ActionIcon
-        variant="subtle"
-        color="gray"
-        onClick={() => setIsEditing(true)}
-      >
-        <IconEdit size={20} />
-      </ActionIcon>
-    </Group>
+    <Stack gap={2}>
+      <Group gap="xs" align="center">
+        <Title order={2}>{initialName}</Title>
+        <ActionIcon
+          variant="subtle"
+          color="gray"
+          onClick={() => setIsEditing(true)}
+        >
+          <IconEdit size={20} />
+        </ActionIcon>
+      </Group>
+      {species ? (
+        <Text c="dimmed" fs="italic" size="sm">
+          {species}
+        </Text>
+      ) : null}
+    </Stack>
   );
 }

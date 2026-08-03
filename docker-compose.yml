@@ -51,6 +51,16 @@ services:
     # ports:
     #   - "4100:4100"
     restart: unless-stopped
+    healthcheck:
+      # node:20-bookworm-slim has no curl/wget, but node is always present.
+      # GET / is API-key-exempt (see plugins/api-key.ts) — a clean liveness
+      # probe. `docker compose up --wait` only blocks on services that declare
+      # a healthcheck, so without this it returns before Node is listening.
+      test: ["CMD-SHELL", "node -e \"const r=require('http').get('http://127.0.0.1:4100/',x=>process.exit(x.statusCode===200?0:1));r.on('error',()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
 
   caddy:
     image: caddy:2

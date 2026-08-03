@@ -14,6 +14,7 @@ export type StressSeverity = (typeof stressSeverityLevels)[number];
 export interface PlantDto {
   id: number;
   name: string;
+  species: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
