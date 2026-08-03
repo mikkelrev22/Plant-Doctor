@@ -21,6 +21,17 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
+// Namespace the Metro transform cache by NODE_ENV so development and production
+// never share cached transforms. `EXPO_PUBLIC_*` vars (e.g. EXPO_PUBLIC_API_URL)
+// are inlined into the bundle at transform time, but the cache key does NOT
+// include their resolved values — so a `client.ts` transform cached during
+// `expo start` (NODE_ENV=development, LAN URL) could otherwise be reused by
+// `eas update` / `expo export` (NODE_ENV=production), leaking the local URL
+// into a published Expo Go update. Expo sets NODE_ENV before loading this
+// config (development for `expo start`, production for export), so this gives
+// each mode its own cache and removes the need to remember `--clear-cache`.
+config.cacheVersion = `${config.cacheVersion}-${process.env.NODE_ENV || 'development'}`;
+
 config.watchFolders = [path.resolve(monorepoRoot, 'libs')];
 
 config.resolver.extraNodeModules = {
