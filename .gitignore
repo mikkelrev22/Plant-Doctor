@@ -15,6 +15,7 @@ tmp/
 dist/
 uploads/
 temp/
+.claude/worktrees/
 
 # Python
 .venv/

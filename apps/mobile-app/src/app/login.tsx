@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getHealth } from '@/api/client';
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
 import { Screen } from '@/components/ui/Screen';
 import { theme } from '@/constants/theme';
 import { useSessionStore } from '@/state/session-store';
@@ -31,9 +32,7 @@ export default function LoginScreen() {
   return (
     <Screen>
       <View style={styles.body}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeGlyph}>🌿</Text>
-        </View>
+        <Logo width={120} height={120} />
         <Text style={styles.title}>Plant Doctor</Text>
         <Text style={styles.subtitle}>
           Snap a photo of your houseplant and get an instant AI diagnosis.
@@ -54,15 +53,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.lg },
-  badge: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: theme.colors.leafSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeGlyph: { fontSize: 48 },
   title: { ...theme.typography.title, color: theme.colors.leafDark },
   subtitle: {
     ...theme.typography.body,

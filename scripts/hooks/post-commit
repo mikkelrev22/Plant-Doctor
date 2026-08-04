@@ -15,7 +15,7 @@ case "$changed" in
     echo "post-commit: shipping OTA update with eas-cli (non-blocking)…"
     (
       cd "$top_level/apps/mobile-app" || exit 0
-      npx eas-cli update --non-interactive
+      npx eas-cli update --branch preview --non-interactive
     ) || echo "post-commit: WARNING — 'eas-cli update' failed; the commit is fine, but no OTA update was shipped."
     ;;
 esac
