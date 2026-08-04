@@ -3,6 +3,7 @@ import type {
   LlmRequestDetailDto,
   PlantDto,
   PlantListItemDto,
+  PlantListItemEvalDto,
   PlantReportDetailDto,
   PlantReportEvalDto,
   PlantReportExtendedDto,
@@ -32,6 +33,10 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function getPlants() {
   return fetchJson<PlantListItemDto[]>('/plants');
+}
+
+export function getPlantsForEval() {
+  return fetchJson<PlantListItemEvalDto[]>('/plants/evals');
 }
 
 export function getPlant(id: number) {

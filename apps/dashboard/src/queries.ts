@@ -4,6 +4,7 @@ import type {
   LlmRequestDetailDto,
   PlantDto,
   PlantListItemDto,
+  PlantListItemEvalDto,
   PlantReportDetailDto,
   PlantReportEvalDto,
   PlantReportExtendedDto,
@@ -18,6 +19,7 @@ import {
   getPlantReportsEval,
   getPlantReportsExtended,
   getPlants,
+  getPlantsForEval,
   getReport,
   getStressSigns,
   updatePlantName,
@@ -26,6 +28,7 @@ import {
 
 export const plantKeys = {
   all: ['plants'] as const,
+  forEval: ['plants', 'eval'] as const,
   byId: (plantId: number) => [...plantKeys.all, 'detail', plantId] as const,
 };
 
@@ -53,6 +56,15 @@ export function usePlants() {
   return useQuery<PlantListItemDto[]>({
     queryKey: plantKeys.all,
     queryFn: getPlants,
+  });
+}
+
+// Eval-only plant list (GET /plants/evals) carrying the LLM model names used per
+// plant. Separate from usePlants so the endpoint can be disabled in production.
+export function usePlantsForEval() {
+  return useQuery<PlantListItemEvalDto[]>({
+    queryKey: plantKeys.forEval,
+    queryFn: getPlantsForEval,
   });
 }
 
@@ -140,6 +152,7 @@ export function useAnalyzeReport() {
     mutationFn: analyzePlantReport,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: plantKeys.all });
+      queryClient.invalidateQueries({ queryKey: plantKeys.forEval });
       queryClient.invalidateQueries({
         queryKey: reportKeys.byPlant(data.plant.id),
       });

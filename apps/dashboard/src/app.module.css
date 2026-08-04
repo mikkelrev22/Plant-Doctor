@@ -9,7 +9,7 @@
 }
 
 .panel {
-  border: 1px solid var(--mantine-color-gray-2);
+  /*border: 1px solid var(--mantine-color-gray-2);*/
   box-shadow: 0 14px 35px rgba(15, 23, 42, 0.06);
 }
 

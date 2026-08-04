@@ -25,6 +25,15 @@ export interface PlantListItemDto extends PlantDto {
   reportCount: number;
 }
 
+// Extended plant list item for the eval tool: adds the distinct LLM model names
+// used across the plant's reports (latest first), so runs against different
+// models can be told apart in the "Past eval tables" list. Served by a separate
+// GET /plants/evals endpoint that can be disabled in production independently of
+// the general GET /plants list.
+export interface PlantListItemEvalDto extends PlantListItemDto {
+  models: string[];
+}
+
 export interface CreatePlantRequest {
   name?: string;
 }

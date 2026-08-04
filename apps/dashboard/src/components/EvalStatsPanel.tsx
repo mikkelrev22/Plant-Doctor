@@ -130,20 +130,38 @@ export function EvalStatsPanel({ reports }: EvalStatsPanelProps) {
   const costRuns = reports.filter((r) => computeRunCost(r.llmRequest) !== null).length;
   const avgCost = totalCost !== null && costRuns > 0 ? totalCost / costRuns : null;
 
+  // Distinct LLM models used across the runs (latest first — reports come back
+  // newest-first from the eval endpoint). Shown in the title so runs against
+  // different models can be told apart.
+  const models = Array.from(
+    new Set(reports.map((r) => r.llmRequest?.model).filter(Boolean) as string[]),
+  );
+  const modelLabel =
+    models.length === 0
+      ? null
+      : models.length === 1
+        ? models[0]
+        : `${models[0]} +${models.length - 1}`;
+
   return (
     <Card withBorder radius="md" padding="md">
       <Stack gap="md">
         <Title order={4}>
           Stats · {reports.length} run{reports.length === 1 ? '' : 's'}
+          {modelLabel && (
+            <Text component="span" size="sm" c="dimmed" fw={400} ml="xs">
+              · {modelLabel}
+            </Text>
+          )}
         </Title>
-        <SimpleGrid cols={{ base: 2, sm: 3, md: 6 }} spacing="md">
+        <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="md">
           <StatTile
             label="Latency, seconds"
             value={`${formatLatency(avgLat)}`}
             sub={`(${formatLatency(minLat)} ~ ${formatLatency(maxLat)})`}
           />
           <StatTile
-            label="Completion tokens"
+            label="Tokens"
             value={stat(totalTokens.length ? sum(totalTokens) : null)}
             sub={`in ${stat(promptTokens.length ? sum(promptTokens) : null)} / out ${stat(completionTokens.length ? sum(completionTokens) : null)}`}
           />

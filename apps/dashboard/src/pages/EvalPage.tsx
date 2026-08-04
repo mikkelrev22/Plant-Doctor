@@ -1,27 +1,27 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Card, Stack, Title, Text, Button } from '@mantine/core';
-import type { PlantListItemDto } from '@plant-doctor/api-types';
+import { Alert, Card, Group, Image, Stack, Table, Text, Title, Tooltip } from '@mantine/core';
+import { IconPlant } from '@tabler/icons-react';
+import type { PlantListItemEvalDto } from '@plant-doctor/api-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { analyzePlantReport } from '../api/api';
-import { EvalControls, type EvalScenario } from '../components/EvalControls';
+import { EvalControls } from '../components/EvalControls';
 import { plantKeys } from '../queries';
-import { usePlants } from '../queries';
+import { usePlantsForEval } from '../queries';
+import { formatDate } from '../utils/formatters';
 import styles from '../app.module.css';
 
 export function EvalPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [scenario, setScenario] = useState<EvalScenario>('single');
   const [images, setImages] = useState<File[]>([]);
-  const [runs, setRuns] = useState(3);
-  const [plantName, setPlantName] = useState('');
+  const [runs, setRuns] = useState(5);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
 
-  const plantsQuery = usePlants();
+  const plantsQuery = usePlantsForEval();
   const plants = plantsQuery.data ?? [];
 
   async function runEval() {
@@ -44,8 +44,6 @@ export function EvalPage() {
           const res = await analyzePlantReport({
             image: requestImages[i],
             plantId,
-            // plantName only on the first call, which creates the plant.
-            plantName: i === 0 ? plantName || undefined : undefined,
           });
           if (i === 0) {
             plantId = res.plant.id;
@@ -60,6 +58,7 @@ export function EvalPage() {
 
       // Refresh the plant list once so the new plant shows up in selectors.
       await queryClient.invalidateQueries({ queryKey: plantKeys.all });
+      await queryClient.invalidateQueries({ queryKey: plantKeys.forEval });
 
       if (plantId !== undefined) {
         navigate(`/eval/${plantId}`);
@@ -72,31 +71,13 @@ export function EvalPage() {
   return (
     <Stack gap="md">
       <Title order={2}>Evaluation</Title>
-      <Text c="dimmed">
-        Run <code>POST /reports/analyze</code> many times against one plant and
-        compare consistency of the stress signs and per-run metrics. The first
-        call creates the plant; the rest add reports to it. Results persist and
-        can be reopened any time.
-      </Text>
 
       <Card className={styles.panel} radius="lg" padding="lg">
         <EvalControls
-          scenario={scenario}
-          setScenario={(value) => {
-            setScenario(value);
-            // Switching to single after picking many keeps only the first.
-            if (value === 'single') {
-              setImages((prev) => prev.slice(0, 1));
-            }
-          }}
           images={images}
-          setImages={(files) => {
-            setImages(scenario === 'single' ? files.slice(0, 1) : files);
-          }}
+          setImages={setImages}
           runs={runs}
           setRuns={setRuns}
-          plantName={plantName}
-          setPlantName={setPlantName}
           running={running}
           progress={progress}
           onRun={runEval}
@@ -117,14 +98,14 @@ function PlantEvalHistory({
   plants,
   onOpen,
 }: {
-  plants: PlantListItemDto[];
+  plants: PlantListItemEvalDto[];
   onOpen: (plantId: number) => void;
 }) {
-  // Eval tables live on plants that have reports. Show those first so they're
-  // easy to reopen — the full-screen eval layout has no sidebar to browse from.
+  // Eval tables live on plants that have reports. Newest first so the most
+  // recent eval run is at the top — the full-screen eval layout has no sidebar.
   const withReports = plants
     .filter((p) => p.reportCount > 0)
-    .sort((a, b) => b.reportCount - a.reportCount);
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   if (withReports.length === 0) {
     return (
@@ -136,21 +117,91 @@ function PlantEvalHistory({
 
   return (
     <Card className={styles.panel} radius="lg" padding="lg">
-      <Stack gap="xs">
-        <Title order={4}>Past eval tables</Title>
-        {withReports.map((p) => (
-          <Button
-            key={p.id}
-            variant="subtle"
-            justify="space-between"
-            onClick={() => onOpen(p.id)}
-          >
-            <span>{p.name}</span>
-            <Text size="xs" c="dimmed">
-              {p.reportCount} report{p.reportCount === 1 ? '' : 's'}
-            </Text>
-          </Button>
-        ))}
+      <Stack gap="sm">
+        <Table
+          horizontalSpacing="sm"
+          verticalSpacing="sm"
+          highlightOnHover
+          withTableBorder
+          withColumnBorders
+        >
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Plant evaluation case</Table.Th>
+              <Table.Th style={{ width: '11rem' }}>Model</Table.Th>
+              <Table.Th style={{ width: '5rem' }}>Reports</Table.Th>
+              <Table.Th style={{ width: '9rem' }}>Created</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {withReports.map((p) => (
+              <Table.Tr
+                key={p.id}
+                onClick={() => onOpen(p.id)}
+                style={{ cursor: 'pointer' }}
+              >
+                <Table.Td>
+                  <Group gap="sm" align="center">
+                      {p.thumbnailUrl ? (
+                        <Image
+                          src={p.thumbnailUrl}
+                          alt={p.name}
+                          radius="sm"
+                          w={36}
+                          h={36}
+                          fit="cover"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 'var(--mantine-radius-sm)',
+                            background: 'var(--mantine-color-gray-1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <IconPlant size={18} color="var(--mantine-color-gray-5)" />
+                        </div>
+                      )}
+                      <Stack gap={0}>
+                        <Text size="sm" fw={600}>{p.name}</Text>
+                        {p.species && (
+                          <Text size="xs" c="dimmed">{p.species}</Text>
+                        )}
+                      </Stack>
+                    </Group>
+                </Table.Td>
+                <Table.Td>
+                  {p.models.length > 0 ? (
+                    <Tooltip
+                      label={p.models.join(', ')}
+                      disabled={p.models.length <= 1}
+                      position="top"
+                      withArrow
+                    >
+                      <Text size="xs" truncate style={{ maxWidth: '10rem' }}>
+                        {p.models.join(', ')
+                          .replace('accounts/fireworks/models/', 'fireworks/')}
+                      </Text>
+                    </Tooltip>
+                  ) : (
+                    <Text size="xs" c="dimmed">—</Text>
+                  )}
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm">{p.reportCount}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="xs" c="dimmed">{formatDate(p.createdAt)}</Text>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
       </Stack>
     </Card>
   );

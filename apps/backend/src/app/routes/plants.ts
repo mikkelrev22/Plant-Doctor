@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
-import { createPlant, getPlantForUser, listPlants, updatePlant } from '../services/plants.service';
+import { createPlant, getPlantForUser, listPlants, listPlantsForEval, updatePlant } from '../services/plants.service';
 import {
   listReportsForPlant,
   listReportsForPlantEval,
@@ -15,6 +15,14 @@ export default async function (fastify: FastifyInstance) {
   // Lists preview plants for the Research User dropdown.
   server.get('/plants', async function () {
     return listPlants(fastify.db);
+  });
+
+  // Extended plant list for the eval tool: same fields as GET /plants plus the
+  // distinct LLM model names used across each plant's reports. Registered before
+  // the parametric /plants/:plantId routes so the static path isn't shadowed.
+  // Separate route so it can be disabled in production independently.
+  server.get('/plants/evals', async function () {
+    return listPlantsForEval(fastify.db);
   });
 
   // Updates a plant's editable fields (name and/or notes). At least one must be

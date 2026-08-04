@@ -1,4 +1,4 @@
-import { Badge, Tooltip } from '@mantine/core';
+import { Badge, Tooltip, Text } from '@mantine/core';
 import type {
   ReportStressSignDto,
   StressSeverity,
@@ -41,7 +41,7 @@ export function StressSignBadge({ sign }: { sign: ReportStressSignDto }) {
         {presentBadgeLabel(sign.severity)}
       </Badge>
     ) : (
-      <span>-</span>
+      <Text size="xs" c="dimmed">{sign.status}</Text>
     );
 
   return (
