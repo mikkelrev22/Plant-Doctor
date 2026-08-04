@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Card, Group, Image, Stack, Table, Text, Title, Tooltip } from '@mantine/core';
 import { IconPlant } from '@tabler/icons-react';
-import type { PlantListItemEvalDto } from '@plant-doctor/api-types';
+import type { PlantListItemEvalDto, ReasoningEffort } from '@plant-doctor/api-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { analyzePlantReport } from '../api/api';
 import { EvalControls } from '../components/EvalControls';
@@ -17,6 +17,8 @@ export function EvalPage() {
 
   const [images, setImages] = useState<File[]>([]);
   const [runs, setRuns] = useState(5);
+  const [temperature, setTemperature] = useState(0.2);
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('none');
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,8 @@ export function EvalPage() {
           const res = await analyzePlantReport({
             image: requestImages[i],
             plantId,
+            temperature,
+            reasoningEffort,
           });
           if (i === 0) {
             plantId = res.plant.id;
@@ -78,6 +82,10 @@ export function EvalPage() {
           setImages={setImages}
           runs={runs}
           setRuns={setRuns}
+          temperature={temperature}
+          setTemperature={setTemperature}
+          reasoningEffort={reasoningEffort}
+          setReasoningEffort={setReasoningEffort}
           running={running}
           progress={progress}
           onRun={runEval}

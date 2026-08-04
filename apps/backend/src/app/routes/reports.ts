@@ -120,6 +120,17 @@ export default async function (fastify: FastifyInstance) {
       // ISO 8601 capture time from the photo's EXIF (sent by the mobile client).
       // Validated/sanitized to a Date (or null) below via `resolveCapturedAt`.
       capturedAt: z.string().optional(),
+      // Eval-only overrides for the LLM sampling knobs. Omitted by the normal
+      // analyze flow; the LLM service falls back to 0.2 / 'none' when absent.
+      temperature: z
+        .preprocess(
+          (val) => (val === undefined || val === '' ? undefined : Number(val)),
+          z.number().min(0).max(2)
+        )
+        .optional(),
+      reasoningEffort: z
+        .enum(['none', 'low', 'medium', 'high'])
+        .optional(),
     });
 
     const validatedFields = analyzeFieldsSchema.parse(fields);
@@ -153,6 +164,8 @@ export default async function (fastify: FastifyInstance) {
         storageKey: upload.storageKey,
         displayStorageKey: upload.display.storageKey,
         thumbnailStorageKey: upload.thumbnail.storageKey,
+        temperature: validatedFields.temperature ?? 0.2,
+        reasoningEffort: validatedFields.reasoningEffort ?? 'none',
       },
     });
 
@@ -163,6 +176,8 @@ export default async function (fastify: FastifyInstance) {
           buffer: upload.display.buffer,
           mimeType: upload.display.mimeType,
         },
+        temperature: validatedFields.temperature,
+        reasoningEffort: validatedFields.reasoningEffort,
       });
       const analysis = parsePlantAnalysis(llmResponse.content);
 

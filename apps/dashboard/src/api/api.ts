@@ -8,6 +8,7 @@ import type {
   PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
+  ReasoningEffort,
   StressSignDto,
 } from '@plant-doctor/api-types';
 import { config } from '../config';
@@ -98,6 +99,8 @@ export function analyzePlantReport(params: {
   plantId?: number;
   plantName?: string;
   process?: boolean;
+  temperature?: number;
+  reasoningEffort?: ReasoningEffort;
 }) {
   const formData = new FormData();
 
@@ -111,6 +114,14 @@ export function analyzePlantReport(params: {
 
   if (params.process !== undefined) {
     formData.append('process', String(params.process));
+  }
+
+  if (params.temperature !== undefined) {
+    formData.append('temperature', String(params.temperature));
+  }
+
+  if (params.reasoningEffort !== undefined) {
+    formData.append('reasoningEffort', params.reasoningEffort);
   }
 
   formData.append('image', params.image);

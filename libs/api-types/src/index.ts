@@ -11,6 +11,12 @@ export const stressSeverityLevels = [
 ] as const;
 export type StressSeverity = (typeof stressSeverityLevels)[number];
 
+// Fireworks/Qwen3 reasoning effort for the analysis call. 'none' skips the
+// thinking block (faster, fine for structured JSON); 'low' | 'medium' | 'high'
+// re-enable reasoning. Sent per-request from the eval UI; defaults to 'none'.
+export const reasoningEffortLevels = ['none', 'low', 'medium', 'high'] as const;
+export type ReasoningEffort = (typeof reasoningEffortLevels)[number];
+
 export interface PlantDto {
   id: number;
   name: string;

@@ -9,6 +9,7 @@ import type {
   PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
+  ReasoningEffort,
   StressSignDto,
 } from '@plant-doctor/api-types';
 import {
@@ -148,6 +149,8 @@ export function useAnalyzeReport() {
     image: File;
     plantId?: number;
     plantName?: string;
+    temperature?: number;
+    reasoningEffort?: ReasoningEffort;
   }>({
     mutationFn: analyzePlantReport,
     onSuccess: (data) => {

@@ -1,6 +1,7 @@
 import type {
   LlmPlantAnalysisResult,
   LlmStressSignResult,
+  ReasoningEffort,
   StressSeverity,
   StressSignStatus,
 } from '@plant-doctor/api-types';
@@ -16,6 +17,10 @@ interface AnalyzePlantImageParams {
     buffer: Buffer;
     mimeType: string;
   };
+  /** Sampling temperature. Defaults to 0.2 when omitted. */
+  temperature?: number;
+  /** Fireworks/Qwen3 reasoning effort. Defaults to 'none' when omitted. */
+  reasoningEffort?: ReasoningEffort;
 }
 
 const PLANT_ANALYSIS_SCHEMA = {
@@ -218,6 +223,8 @@ export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
 export async function callPlantAnalysisLlm({
   prompt,
   image,
+  temperature,
+  reasoningEffort,
 }: AnalyzePlantImageParams): Promise<LlmCallResult> {
   if (!config.llmApiKey) {
     throw new Error('LLM_API_KEY is not configured');
@@ -226,12 +233,13 @@ export async function callPlantAnalysisLlm({
   const startedAt = Date.now();
   const body = {
     model: config.llmApiModel,
-    temperature: 0.2,
+    temperature: temperature ?? 0.2,
     max_tokens: config.llmMaxTokens,
     // 'none' skips Qwen3's thinking block on Fireworks — the dominant cost of
     // the analysis call. 'low'|'medium'|'high' re-enables reasoning. Mutually
-    // exclusive with the `thinking` object, which we do not send.
-    reasoning_effort: config.llmReasoningEffort,
+    // exclusive with the `thinking` object, which we do not send. Defaults to
+    // 'none' when the caller (e.g. the non-eval analyze flow) omits it.
+    reasoning_effort: reasoningEffort ?? 'none',
     response_format: {
       type: 'json_schema',
       json_schema: PLANT_ANALYSIS_SCHEMA,

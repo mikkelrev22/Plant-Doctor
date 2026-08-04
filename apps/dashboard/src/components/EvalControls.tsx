@@ -2,14 +2,16 @@ import {
   Button,
   Group,
   Progress,
+  Select,
   SimpleGrid,
   Slider,
   Stack,
   Text,
-  rem,
+  rem, Flex
 } from '@mantine/core';
 import { Dropzone, IMAGE_MIME_TYPE } from '@mantine/dropzone';
 import { IconUpload, IconPhoto, IconX } from '@tabler/icons-react';
+import type { ReasoningEffort } from '@plant-doctor/api-types';
 
 export const ACCEPTED_IMAGE_TYPES = [
   ...IMAGE_MIME_TYPE,
@@ -22,6 +24,10 @@ interface EvalControlsProps {
   setImages: (files: File[]) => void;
   runs: number;
   setRuns: (value: number) => void;
+  temperature: number;
+  setTemperature: (value: number) => void;
+  reasoningEffort: ReasoningEffort;
+  setReasoningEffort: (value: ReasoningEffort) => void;
   running: boolean;
   progress: { done: number; total: number };
   onRun: () => void;
@@ -36,11 +42,30 @@ const RUN_MARKS = [
   { value: 25, label: '25' }
 ];
 
+const TEMPERATURE_MARKS = [
+  { value: 0, label: '0' },
+  { value: 0.25, label: '0.25' },
+  { value: 0.5, label: '0.5' },
+  { value: 0.75, label: '0.75' },
+  { value: 1, label: '1' },
+];
+
+const REASONING_EFFORT_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+];
+
 export function EvalControls({
   images,
   setImages,
   runs,
   setRuns,
+  temperature,
+  setTemperature,
+  reasoningEffort,
+  setReasoningEffort,
   running,
   progress,
   onRun,
@@ -132,7 +157,7 @@ export function EvalControls({
       </Stack>
 
       {/* Right column: runs slider + Run button + progress. */}
-      <Stack gap="md" justify="space-between">
+      <Stack gap="lg" justify="space-between">
         <Stack gap="xs">
           <Group justify="space-between">
             <Text size="sm" fw={500}>
@@ -148,6 +173,35 @@ export function EvalControls({
             marks={RUN_MARKS}
           />
         </Stack>
+
+        <Flex gap={"lg"} justify="space-between">
+          <Stack gap="xs" style={{flex: 1}}>
+            <Text size="sm" fw={500}>
+              Temperature: {temperature.toFixed(2)}
+            </Text>
+            <Slider
+              min={0}
+              max={1}
+              step={0.05}
+              value={temperature}
+              onChange={setTemperature}
+              disabled={running}
+              marks={TEMPERATURE_MARKS}
+            />
+          </Stack>
+
+          <div style={{flex: 1}}>
+            <Select
+              label="Reasoning effort"
+              data={REASONING_EFFORT_OPTIONS}
+              value={reasoningEffort}
+              onChange={(value) =>
+                setReasoningEffort((value ?? 'none') as ReasoningEffort)
+              }
+              disabled={running}
+            />
+          </div>
+        </Flex>
 
         <Button onClick={onRun} disabled={!canRun} loading={running}>
           {running ? `Running ${progress.done}/${progress.total}…` : 'Run evaluation'}
