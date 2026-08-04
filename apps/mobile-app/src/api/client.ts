@@ -4,6 +4,7 @@ import type {
   PlantDto,
   PlantListItemDto,
   PlantReportDetailDto,
+  PlantReportExtendedDto,
   PlantReportSummaryDto,
   RootResponse,
 } from '@plant-doctor/api-types';
@@ -103,6 +104,17 @@ export function updatePlantNotes(
 /** GET /plants/:id/reports — report history, ordered reportedAt DESC (latest first). */
 export function listReports(plantId: number): Promise<PlantReportSummaryDto[]> {
   return request<PlantReportSummaryDto[]>(`/plants/${plantId}/reports`);
+}
+
+/** GET /plants/:id/reports/extended — report history with per-report stress
+ *  signs (all 16 signs, unknown/none defaults for unevaluated ones). Used by
+ *  the reports list to render the stress-sign dots before a report is opened. */
+export function listReportsExtended(
+  plantId: number,
+): Promise<PlantReportExtendedDto[]> {
+  return request<PlantReportExtendedDto[]>(
+    `/plants/${plantId}/reports/extended`,
+  );
 }
 
 /** GET /reports/:id — full report with photo, stress signs, and LLM log summary. */

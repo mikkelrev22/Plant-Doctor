@@ -6,4 +6,4 @@
  * `apps/backend/`. Kept as a plain constant rather than read from a package.json
  * so it stays decoupled from the Nx build machinery as the architecture changes.
  */
-export const BACKEND_VERSION = '0.1.1';
+export const BACKEND_VERSION = '0.1.2';

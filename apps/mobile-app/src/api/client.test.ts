@@ -7,7 +7,7 @@ vi.mock('react-native', () => ({
   Platform: { get OS() { return platform.os; } },
 }));
 
-import { analyzeReport, ApiError, listPlants, updatePlantName } from './client';
+import { analyzeReport, ApiError, listPlants, listReportsExtended, updatePlantName } from './client';
 
 function jsonResponse(body: unknown, init?: { status?: number; ok?: boolean }): Response {
   const status = init?.status ?? 200;
@@ -29,11 +29,22 @@ describe('api client', () => {
   });
 
   it('sends the x-api-key header and parses JSON', async () => {
-    fetchMock.mockResolvedValue(jsonResponse([{ id: 1, name: 'Aloe' }]));
+    fetchMock.mockResolvedValue(
+      jsonResponse([{ id: 1, name: 'Aloe', latestReportStressSigns: [] }]),
+    );
     const plants = await listPlants();
-    expect(plants).toEqual([{ id: 1, name: 'Aloe' }]);
+    expect(plants).toEqual([{ id: 1, name: 'Aloe', latestReportStressSigns: [] }]);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://localhost:4100/plants');
+    expect((init as RequestInit).method).toBeUndefined();
+    expect((init as RequestInit).headers).toMatchObject({ 'x-api-key': 'test-key' });
+  });
+
+  it('listReportsExtended hits the extended reports endpoint', async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+    await listReportsExtended(5);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://localhost:4100/plants/5/reports/extended');
     expect((init as RequestInit).method).toBeUndefined();
     expect((init as RequestInit).headers).toMatchObject({ 'x-api-key': 'test-key' });
   });

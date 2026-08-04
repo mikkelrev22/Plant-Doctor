@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
-import type { PlantReportSummaryDto } from '@plant-doctor/api-types';
+import type { PlantReportExtendedDto } from '@plant-doctor/api-types';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StressDots } from '@/components/ui/StressDots';
 import { theme } from '@/constants/theme';
 
 interface ReportListItemProps {
-  report: PlantReportSummaryDto;
+  report: PlantReportExtendedDto;
   onPress: () => void;
 }
 
@@ -14,7 +15,7 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-/** A report row: thumbnail, identified name, date, confidence pill. */
+/** A report row: thumbnail, identified name, stress-sign dots, date, confidence pill. */
 export function ReportListItem({ report, onPress }: ReportListItemProps) {
   const confidence =
     report.identificationConfidence != null
@@ -37,6 +38,7 @@ export function ReportListItem({ report, onPress }: ReportListItemProps) {
           <Text style={styles.name} numberOfLines={1}>
             {report.identifiedPlantName ?? 'Unidentified'}
           </Text>
+          <StressDots signs={report.stressSigns} />
           <Text style={styles.caption}>{formatDate(report.reportedAt)}</Text>
         </View>
         {confidence != null ? (

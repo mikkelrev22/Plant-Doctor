@@ -8,7 +8,7 @@ import { ReportListItem } from '@/components/ui/ReportListItem';
 import { Screen } from '@/components/ui/Screen';
 import { Spinner } from '@/components/ui/Spinner';
 import { theme } from '@/constants/theme';
-import { useReport, useReports } from '@/hooks/queries';
+import { useReport, useReportsExtended } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 
 function formatDate(iso: string): string {
@@ -28,7 +28,7 @@ export default function ReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const reportId = Number(id);
   const { data: report, isLoading, error } = useReport(reportId);
-  const { data: plantReports } = useReports(report?.plantId ?? -1);
+  const { data: plantReports } = useReportsExtended(report?.plantId ?? -1);
 
   // Sibling reports, excluding the current one.
   const otherReports = useMemo(

@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import type { PlantListItemDto } from '@plant-doctor/api-types';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StressDots } from '@/components/ui/StressDots';
 import { theme } from '@/constants/theme';
 
 interface PlantListItemProps {
@@ -8,7 +9,8 @@ interface PlantListItemProps {
   onPress: () => void;
 }
 
-/** A plant row: latest-report thumbnail, name, report count, chevron. */
+/** A plant row: latest-report thumbnail, name, stress-sign dots (latest
+ *  report's present signs — the plant's current state), report count, chevron. */
 export function PlantListItem({ plant, onPress }: PlantListItemProps) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
@@ -32,6 +34,7 @@ export function PlantListItem({ plant, onPress }: PlantListItemProps) {
               {plant.species}
             </Text>
           ) : null}
+          <StressDots signs={plant.latestReportStressSigns} />
           <Text style={styles.caption}>
             {plant.reportCount === 1 ? '1 report' : `${plant.reportCount} reports`}
           </Text>

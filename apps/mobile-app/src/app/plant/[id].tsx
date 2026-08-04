@@ -8,7 +8,7 @@ import {
   View,
   type ListRenderItem,
 } from 'react-native';
-import type { PlantReportSummaryDto } from '@plant-doctor/api-types';
+import type { PlantReportExtendedDto } from '@plant-doctor/api-types';
 import { ApiError } from '@/api/client';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HeaderButton } from '@/components/ui/HeaderButton';
@@ -18,7 +18,7 @@ import { ReportListItem } from '@/components/ui/ReportListItem';
 import { Screen } from '@/components/ui/Screen';
 import { Spinner } from '@/components/ui/Spinner';
 import { theme } from '@/constants/theme';
-import { usePlant, useReports, useUpdatePlantName, useUpdatePlantNotes } from '@/hooks/queries';
+import { usePlant, useReportsExtended, useUpdatePlantName, useUpdatePlantNotes } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 
 /** Plant page: latest-report hero, inline rename, report history, New report. */
@@ -29,7 +29,7 @@ export default function PlantScreen() {
   const plantId = Number(id);
 
   const { data: plant } = usePlant(plantId);
-  const { data: reports, isLoading: reportsLoading } = useReports(plantId);
+  const { data: reports, isLoading: reportsLoading } = useReportsExtended(plantId);
   const rename = useUpdatePlantName();
   const updateNotes = useUpdatePlantNotes();
 
@@ -84,7 +84,7 @@ export default function PlantScreen() {
     }
   };
 
-  const renderItem: ListRenderItem<PlantReportSummaryDto> = ({ item }) => (
+  const renderItem: ListRenderItem<PlantReportExtendedDto> = ({ item }) => (
     <ReportListItem
       report={item}
       onPress={() => router.push({ pathname: '/report/[id]', params: { id: String(item.id) } })}

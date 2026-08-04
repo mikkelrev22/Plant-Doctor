@@ -1,8 +1,20 @@
-import { and, count, desc, eq, sql } from 'drizzle-orm';
-import type { PlantDto, PlantListItemDto } from '@plant-doctor/api-types';
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import type {
+  PlantDto,
+  PlantListItemDto,
+  PlantListItemStressSignDto,
+  StressSeverity,
+  StressSignStatus,
+} from '@plant-doctor/api-types';
 import { RESEARCH_USER_ID } from '@plant-doctor/api-types';
 import type { Database } from '@plant-doctor/db';
-import { plantPhotos, plantReports, plants } from '@plant-doctor/db/schema';
+import {
+  plantPhotos,
+  plantReportStressSigns,
+  plantReports,
+  plants,
+  stressSigns,
+} from '@plant-doctor/db/schema';
 import { NotFoundError } from '../errors';
 import { generatePlantName } from './plant-names';
 
@@ -39,6 +51,44 @@ export async function listPlants(db: Database): Promise<PlantListItemDto[]> {
     ORDER BY ${plantReports.plantId}, ${plantReports.reportedAt} DESC
   `)) as Array<{ plantId: number; thumbnailUrl: string }>;
 
+  // Latest report id per plant — mirrors the thumbnail query's `DISTINCT ON`
+  // shape, reusing the `plant_reports_plant_reported_at_idx` index. Only plants
+  // with at least one report produce a row here.
+  const latestReports = (await db.execute(sql`
+    SELECT DISTINCT ON (${plantReports.plantId})
+      ${plantReports.plantId} AS "plantId",
+      ${plantReports.id} AS "reportId"
+    FROM ${plantReports}
+    ORDER BY ${plantReports.plantId}, ${plantReports.reportedAt} DESC
+  `)) as Array<{ plantId: number; reportId: number }>;
+
+  // Present stress signs for those latest reports — a single batched query
+  // (no N+1), filtered to status='present' so the list payload stays small and
+  // ordered by the sign's definition sort order for stable dot rendering.
+  const latestReportIds = latestReports.map((r) => r.reportId);
+  const presentSignRows = latestReportIds.length
+    ? await db
+        .select({
+          reportId: plantReportStressSigns.plantReportId,
+          stressSignId: stressSigns.id,
+          name: stressSigns.name,
+          status: plantReportStressSigns.status,
+          severity: plantReportStressSigns.severity,
+        })
+        .from(plantReportStressSigns)
+        .innerJoin(
+          stressSigns,
+          eq(stressSigns.id, plantReportStressSigns.stressSignId),
+        )
+        .where(
+          and(
+            inArray(plantReportStressSigns.plantReportId, latestReportIds),
+            eq(plantReportStressSigns.status, 'present'),
+          ),
+        )
+        .orderBy(asc(stressSigns.sortOrder))
+    : [];
+
   const countByPlantId = new Map(
     reportCounts.map((row) => [row.plantId, row.count]),
   );
@@ -46,10 +96,32 @@ export async function listPlants(db: Database): Promise<PlantListItemDto[]> {
     latestPhotos.map((row) => [row.plantId, row.thumbnailUrl]),
   );
 
+  // Group present signs by report id, then resolve to plant id via the
+  // latestReports map (plantId -> reportId).
+  const signsByReportId = new Map<number, PlantListItemStressSignDto[]>();
+  for (const row of presentSignRows) {
+    const list = signsByReportId.get(row.reportId) ?? [];
+    list.push({
+      stressSignId: row.stressSignId,
+      name: row.name,
+      status: row.status as StressSignStatus,
+      severity: row.severity as StressSeverity,
+    });
+    signsByReportId.set(row.reportId, list);
+  }
+  const reportIdByPlantId = new Map(
+    latestReports.map((r) => [r.plantId, r.reportId]),
+  );
+  const signsByPlantId = new Map<number, PlantListItemStressSignDto[]>();
+  for (const [plantId, reportId] of reportIdByPlantId) {
+    signsByPlantId.set(plantId, signsByReportId.get(reportId) ?? []);
+  }
+
   return plantRows.map((plant) => ({
     ...toPlantDto(plant),
     thumbnailUrl: thumbnailByPlantId.get(plant.id) ?? null,
     reportCount: countByPlantId.get(plant.id) ?? 0,
+    latestReportStressSigns: signsByPlantId.get(plant.id) ?? [],
   }));
 }
 
