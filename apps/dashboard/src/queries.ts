@@ -5,6 +5,7 @@ import type {
   PlantDto,
   PlantListItemDto,
   PlantReportDetailDto,
+  PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
   StressSignDto,
@@ -14,6 +15,7 @@ import {
   getLlmRequest,
   getPlant,
   getPlantReports,
+  getPlantReportsEval,
   getPlantReportsExtended,
   getPlants,
   getReport,
@@ -36,6 +38,8 @@ export const reportKeys = {
   byPlant: (plantId: number) => [...reportKeys.all, 'plant', plantId] as const,
   byPlantExtended: (plantId: number) =>
     [...reportKeys.all, 'plant-extended', plantId] as const,
+  byPlantEval: (plantId: number) =>
+    [...reportKeys.all, 'plant-eval', plantId] as const,
   byId: (reportId: number) => [...reportKeys.all, 'detail', reportId] as const,
 };
 
@@ -92,6 +96,17 @@ export function usePlantReportsExtended(plantId: number | null) {
   });
 }
 
+export function usePlantReportsEval(plantId: number | null) {
+  return useQuery<PlantReportEvalDto[]>({
+    queryKey: reportKeys.byPlantEval(plantId ?? 0),
+    queryFn: () => {
+      if (plantId === null) throw new Error('plantId is required');
+      return getPlantReportsEval(plantId);
+    },
+    enabled: plantId !== null,
+  });
+}
+
 export function useReport(reportId: number | null) {
   return useQuery<PlantReportDetailDto>({
     queryKey: reportKeys.byId(reportId ?? 0),
@@ -130,6 +145,9 @@ export function useAnalyzeReport() {
       });
       queryClient.invalidateQueries({
         queryKey: reportKeys.byPlantExtended(data.plant.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.byPlantEval(data.plant.id),
       });
     },
   });

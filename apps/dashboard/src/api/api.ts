@@ -4,6 +4,7 @@ import type {
   PlantDto,
   PlantListItemDto,
   PlantReportDetailDto,
+  PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
   StressSignDto,
@@ -73,6 +74,10 @@ export function getPlantReportsExtended(plantId: number) {
   return fetchJson<PlantReportExtendedDto[]>(
     `/plants/${plantId}/reports/extended`,
   );
+}
+
+export function getPlantReportsEval(plantId: number) {
+  return fetchJson<PlantReportEvalDto[]>(`/plants/${plantId}/reports/eval`);
 }
 
 export function getReport(reportId: number) {

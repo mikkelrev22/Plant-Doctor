@@ -102,6 +102,29 @@ export interface PlantReportExtendedDto extends PlantReportSummaryDto {
   stressSigns: ReportStressSignDto[];
 }
 
+// LLM metrics for a report, extracted from the `llm_requests` row. Token counts
+// are parsed from the provider `usage` object stored in `response_metadata`
+// (latency/model/error are direct columns). Used by the eval tool to compare
+// consistency and cost across consecutive /reports/analyze runs.
+export interface LlmRequestMetricsDto {
+  id: number;
+  provider: string | null;
+  model: string | null;
+  latencyMs: number | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+  error: string | null;
+  createdAt: string;
+}
+
+// One row in an eval results table: an extended report plus the LLM metrics for
+// the run that produced it. Served by GET /plants/:plantId/reports/eval so an
+// eval table can be reopened any time, like the regular plant reports view.
+export interface PlantReportEvalDto extends PlantReportExtendedDto {
+  llmRequest: LlmRequestMetricsDto | null;
+}
+
 export interface PlantReportDetailDto extends PlantReportSummaryDto {
   stressSigns: ReportStressSignDto[];
   llmRequest: LlmRequestSummaryDto | null;

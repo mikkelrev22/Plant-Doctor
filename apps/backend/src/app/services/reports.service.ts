@@ -2,10 +2,12 @@ import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type {
   LlmPlantAnalysisResult,
   LlmRequestDetailDto,
+  LlmRequestMetricsDto,
   LlmRequestSummaryDto,
   PlantDto,
   PlantPhotoDto,
   PlantReportDetailDto,
+  PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
   ReportStressSignDto,
@@ -32,6 +34,24 @@ function clampConfidence(value: number | null) {
   }
 
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Extracts token counts from the OpenAI-compatible `usage` object that lives
+// inside `llm_requests.response_metadata`. Returns nulls when the provider did
+// not return usage (e.g. failed requests or a provider without usage).
+function parseUsage(meta: Record<string, unknown> | null | undefined) {
+  const usage = isRecord(meta) && isRecord(meta.usage) ? meta.usage : undefined;
+  const num = (value: unknown) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : null;
+  return {
+    promptTokens: num(usage?.prompt_tokens),
+    completionTokens: num(usage?.completion_tokens),
+    totalTokens: num(usage?.total_tokens),
+  };
 }
 
 function toPhotoDto(photo: typeof plantPhotos.$inferSelect): PlantPhotoDto {
@@ -474,6 +494,170 @@ export async function listReportsForPlantExtended(
         photo: photoByReportId.get(row.report.id) ?? null,
       }),
       stressSigns: signsForReport ? [...signsForReport.values()] : [],
+    };
+  });
+}
+
+function toLlmRequestMetrics(
+  request: typeof llmRequests.$inferSelect,
+): LlmRequestMetricsDto {
+  return {
+    id: request.id,
+    provider: request.provider,
+    model: request.model,
+    latencyMs: request.latencyMs,
+    ...parseUsage(request.responseMetadata),
+    error: request.error,
+    createdAt: request.createdAt.toISOString(),
+  };
+}
+
+// Like listReportsForPlantExtended, but also batch-fetches the latest
+// llm_requests row per report and exposes its metrics (latency, token usage
+// parsed from response_metadata, model, error). Powers the eval results table
+// at GET /plants/:plantId/reports/eval, which is reopenable any time.
+export async function listReportsForPlantEval(
+  db: Database,
+  plantId: number,
+): Promise<PlantReportEvalDto[]> {
+  const rows = await db
+    .select({
+      report: plantReports,
+      plant: plants,
+    })
+    .from(plantReports)
+    .innerJoin(plants, eq(plants.id, plantReports.plantId))
+    .where(
+      and(
+        eq(plants.userId, RESEARCH_USER_ID),
+        eq(plantReports.plantId, plantId),
+      ),
+    )
+    .orderBy(desc(plantReports.reportedAt));
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const reportIds = rows.map((row) => row.report.id);
+
+  // Photos, stress signs, and the latest LLM request log per report — three
+  // batched queries instead of one per report. For llm_requests we order by
+  // plantReportId ASC then createdAt DESC and keep the first per report.
+  const [photoRows, stressRows, llmRequestRows] = await Promise.all([
+    db
+      .select()
+      .from(plantPhotos)
+      .where(inArray(plantPhotos.plantReportId, reportIds))
+      .orderBy(asc(plantPhotos.plantReportId), asc(plantPhotos.createdAt)),
+    db
+      .select({
+        reportId: plantReportStressSigns.plantReportId,
+        id: stressSigns.id,
+        name: stressSigns.name,
+        status: plantReportStressSigns.status,
+        severity: plantReportStressSigns.severity,
+        confidence: plantReportStressSigns.confidence,
+        notes: plantReportStressSigns.notes,
+        variableId: stressVariables.id,
+        variableName: stressVariables.name,
+      })
+      .from(stressSigns)
+      .leftJoin(
+        plantReportStressSigns,
+        and(
+          eq(plantReportStressSigns.stressSignId, stressSigns.id),
+          inArray(plantReportStressSigns.plantReportId, reportIds),
+        ),
+      )
+      .leftJoin(
+        stressSignVariables,
+        eq(stressSignVariables.stressSignId, stressSigns.id),
+      )
+      .leftJoin(
+        stressVariables,
+        eq(stressVariables.id, stressSignVariables.stressVariableId),
+      )
+      .orderBy(
+        asc(plantReportStressSigns.plantReportId),
+        asc(stressSigns.sortOrder),
+        asc(stressVariables.name),
+      ),
+    db
+      .select()
+      .from(llmRequests)
+      .where(inArray(llmRequests.plantReportId, reportIds))
+      .orderBy(asc(llmRequests.plantReportId), desc(llmRequests.createdAt)),
+  ]);
+
+  const photoByReportId = new Map<number, typeof plantPhotos.$inferSelect>();
+  for (const photo of photoRows) {
+    const reportId = photo.plantReportId;
+    if (reportId !== null && !photoByReportId.has(reportId)) {
+      photoByReportId.set(reportId, photo);
+    }
+  }
+
+  const llmRequestByReportId = new Map<
+    number,
+    typeof llmRequests.$inferSelect
+  >();
+  for (const request of llmRequestRows) {
+    const reportId = request.plantReportId;
+    if (reportId !== null && !llmRequestByReportId.has(reportId)) {
+      llmRequestByReportId.set(reportId, request);
+    }
+  }
+
+  // Group stress-sign rows by report, then by sign, accumulating variables per
+  // sign — the same shape used by listReportsForPlantExtended.
+  const stressByReportId = new Map<
+    number,
+    Map<string, ReportStressSignDto>
+  >();
+
+  for (const stressRow of stressRows) {
+    const reportId = stressRow.reportId;
+    if (reportId === null) {
+      continue;
+    }
+
+    const signsForReport =
+      stressByReportId.get(reportId) ?? new Map<string, ReportStressSignDto>();
+    const stressSign =
+      signsForReport.get(stressRow.id) ??
+      ({
+        stressSignId: stressRow.id,
+        name: stressRow.name,
+        status: (stressRow.status ?? 'unknown') as StressSignStatus,
+        severity: (stressRow.severity ?? 'none') as StressSeverity,
+        confidence: stressRow.confidence,
+        notes: stressRow.notes,
+        variables: [],
+      } satisfies ReportStressSignDto);
+
+    if (stressRow.variableId && stressRow.variableName) {
+      stressSign.variables.push({
+        id: stressRow.variableId,
+        name: stressRow.variableName,
+      });
+    }
+
+    signsForReport.set(stressRow.id, stressSign);
+    stressByReportId.set(reportId, signsForReport);
+  }
+
+  return rows.map((row) => {
+    const signsForReport = stressByReportId.get(row.report.id);
+    const llmRequest = llmRequestByReportId.get(row.report.id);
+    return {
+      ...summaryFromRow({
+        report: row.report,
+        plant: row.plant,
+        photo: photoByReportId.get(row.report.id) ?? null,
+      }),
+      stressSigns: signsForReport ? [...signsForReport.values()] : [],
+      llmRequest: llmRequest ? toLlmRequestMetrics(llmRequest) : null,
     };
   });
 }
