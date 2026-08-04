@@ -34,7 +34,12 @@ export function PlantListItem({ plant, onPress }: PlantListItemProps) {
               {plant.species}
             </Text>
           ) : null}
-          <StressDots signs={plant.latestReportStressSigns} />
+          <StressDots
+            signs={plant.latestReportStressSigns}
+            // A plant with no reports isn't "healthy" — just not yet diagnosed,
+            // so suppress the green dot until there's at least one report.
+            showHealthyDot={plant.reportCount > 0}
+          />
           <Text style={styles.caption}>
             {plant.reportCount === 1 ? '1 report' : `${plant.reportCount} reports`}
           </Text>
