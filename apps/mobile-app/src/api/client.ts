@@ -5,6 +5,7 @@ import type {
   PlantListItemDto,
   PlantReportDetailDto,
   PlantReportSummaryDto,
+  RootResponse,
 } from '@plant-doctor/api-types';
 import { Platform } from 'react-native';
 
@@ -63,6 +64,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(withBase(path), { ...init, headers });
   if (!res.ok) throw await toApiError(res);
   return (await res.json()) as T;
+}
+
+/** GET / — backend health/version probe (API-key exempt, safe to call pre-login). */
+export function getHealth(): Promise<RootResponse> {
+  return request<RootResponse>('/');
 }
 
 /** GET /plants — list of plants with derived thumbnail + report count. */

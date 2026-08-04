@@ -117,6 +117,12 @@ export interface ApiErrorResponse {
   message: string;
 }
 
+/** GET / — backend health/version probe (API-key exempt, safe to call pre-login). */
+export interface RootResponse {
+  message: string;
+  version: string;
+}
+
 export interface LlmStressSignResult {
   stressSignId: string;
   status: StressSignStatus;

@@ -1,0 +1,21 @@
+#!/bin/sh
+# Post-commit: if the just-made commit changed the mobile app, ship an OTA
+# update with `eas-cli`. Non-blocking — a deploy failure only warns and never
+# aborts the (already-completed) commit.
+set -u
+
+top_level=$(git rev-parse --show-toplevel)
+changed=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+case "$changed" in
+  *apps/mobile-app/*)
+    # Skip the OTA push for WIP commits the author opted out of.
+    [ "${SKIP_VERSION_BUMP:-0}" = "1" ] && exit 0
+
+    echo "post-commit: shipping OTA update with eas-cli (non-blocking)…"
+    (
+      cd "$top_level/apps/mobile-app" || exit 0
+      npx eas-cli update --non-interactive
+    ) || echo "post-commit: WARNING — 'eas-cli update' failed; the commit is fine, but no OTA update was shipped."
+    ;;
+esac
