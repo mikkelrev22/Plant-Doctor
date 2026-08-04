@@ -32,7 +32,7 @@ export default function LoginScreen() {
   return (
     <Screen>
       <View style={styles.body}>
-        <Logo width={120} height={120} />
+        <Logo width={200} height={200} />
         <Text style={styles.title}>Plant Doctor</Text>
         <Text style={styles.subtitle}>
           Snap a photo of your houseplant and get an instant AI diagnosis.

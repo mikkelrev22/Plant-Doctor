@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# post-commit OTA push log (scripts/hooks/post-commit)
+.eas-ota.log
