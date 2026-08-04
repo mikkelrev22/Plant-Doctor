@@ -114,6 +114,10 @@ export interface LlmRequestMetricsDto {
   promptTokens: number | null;
   completionTokens: number | null;
   totalTokens: number | null;
+  // Prompt tokens served from the provider's cache (OpenAI
+  // `usage.prompt_tokens_details.cached_tokens`). Null when the provider
+  // doesn't report cache details; cost calc then prices all input as uncached.
+  cachedTokens: number | null;
   error: string | null;
   createdAt: string;
 }

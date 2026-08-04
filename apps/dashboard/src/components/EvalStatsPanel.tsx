@@ -1,6 +1,7 @@
 import {
   Badge,
   Card,
+  Flex,
   Group,
   SimpleGrid,
   Stack,
@@ -9,6 +10,8 @@ import {
   Tooltip,
 } from '@mantine/core';
 import type { PlantReportEvalDto, ReportStressSignDto } from '@plant-doctor/api-types';
+import { computeRunCost, computeTotalCost, formatCost } from '../utils/llm-pricing';
+import { formatLatency } from '../utils/formatters';
 
 interface EvalStatsPanelProps {
   reports: PlantReportEvalDto[];
@@ -78,15 +81,18 @@ function deriveColumns(reports: PlantReportEvalDto[]): ReportStressSignDto[] {
   });
 }
 
-function StatTile({ label, value }: { label: string; value: string }) {
+function StatTile({ label, value, sub }: { label: string; value: string, sub: string }) {
   return (
     <Stack gap={2}>
       <Text size="xs" c="dimmed">
         {label}
       </Text>
-      <Text size="lg" fw={700}>
-        {value}
-      </Text>
+      <Flex gap={5} align="flex-end">
+        <Text size="lg" fw={700}>
+          {value}
+        </Text>
+        <Text size="md">{sub}</Text>
+      </Flex>
     </Stack>
   );
 }
@@ -120,21 +126,38 @@ export function EvalStatsPanel({ reports }: EvalStatsPanelProps) {
   const idPct =
     reports.length > 0 ? Math.round((idMatchCount / reports.length) * 100) : null;
 
+  const totalCost = computeTotalCost(reports);
+  const costRuns = reports.filter((r) => computeRunCost(r.llmRequest) !== null).length;
+  const avgCost = totalCost !== null && costRuns > 0 ? totalCost / costRuns : null;
+
   return (
     <Card withBorder radius="md" padding="md">
       <Stack gap="md">
-        <Title order={4}>Stats · {reports.length} run{reports.length === 1 ? '' : 's'}</Title>
+        <Title order={4}>
+          Stats · {reports.length} run{reports.length === 1 ? '' : 's'}
+        </Title>
         <SimpleGrid cols={{ base: 2, sm: 3, md: 6 }} spacing="md">
-          <StatTile label="Latency min" value={stat(minLat)} />
-          <StatTile label="Latency avg" value={stat(avgLat)} />
-          <StatTile label="Latency max" value={stat(maxLat)} />
-          <StatTile label="Prompt tokens" value={stat(promptTokens.length ? sum(promptTokens) : null)} />
-          <StatTile label="Completion tokens" value={stat(completionTokens.length ? sum(completionTokens) : null)} />
-          <StatTile label="Total tokens" value={stat(totalTokens.length ? sum(totalTokens) : null)} />
+          <StatTile
+            label="Latency, seconds"
+            value={`${formatLatency(avgLat)}`}
+            sub={`(${formatLatency(minLat)} ~ ${formatLatency(maxLat)})`}
+          />
+          <StatTile
+            label="Completion tokens"
+            value={stat(totalTokens.length ? sum(totalTokens) : null)}
+            sub={`in ${stat(promptTokens.length ? sum(promptTokens) : null)} / out ${stat(completionTokens.length ? sum(completionTokens) : null)}`}
+          />
+          <StatTile
+            label="Total cost"
+            value={`${formatCost(totalCost)}`}
+            sub={`(${formatCost(avgCost)}/run)`}
+          />
         </SimpleGrid>
 
         <Group gap="xs" align="center">
-          <Text size="sm" c="dimmed">Identification consistency:</Text>
+          <Text size="sm" c="dimmed">
+            Identification consistency:
+          </Text>
           {idPct !== null ? (
             <Badge color={idPct === 100 ? 'teal' : idPct >= 80 ? 'yellow' : 'red'}>
               {idPct}% same name

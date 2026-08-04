@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ScrollArea, Table, Text, Title, Stack } from '@mantine/core';
 import type { PlantReportEvalDto, ReportStressSignDto } from '@plant-doctor/api-types';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatLatency } from '../utils/formatters';
 import { StressSignBadge } from './StressSignBadge';
 import styles from '../app.module.css';
 
@@ -28,8 +28,7 @@ function tokensLabel(report: PlantReportEvalDto) {
 }
 
 function latencyLabel(report: PlantReportEvalDto) {
-  const ms = report.llmRequest?.latencyMs ?? null;
-  return ms === null ? '—' : `${ms}ms`;
+  return formatLatency(report.llmRequest?.latencyMs ?? null);
 }
 
 export function EvalResultsTable({ reports }: EvalResultsTableProps) {

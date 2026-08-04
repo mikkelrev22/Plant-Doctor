@@ -32,3 +32,9 @@ export function formatDate(value: string) {
     minute: '2-digit',
   }).format(new Date(value));
 }
+
+// Latency in seconds with one decimal, e.g. 3540ms → "3.5s". Returns '—' for null.
+export function formatLatency(ms: number | null) {
+  if (ms === null) return '—';
+  return `${(ms / 1000).toFixed(1)}`;
+}

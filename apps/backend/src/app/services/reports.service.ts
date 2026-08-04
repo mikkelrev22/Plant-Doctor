@@ -42,15 +42,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 // Extracts token counts from the OpenAI-compatible `usage` object that lives
 // inside `llm_requests.response_metadata`. Returns nulls when the provider did
-// not return usage (e.g. failed requests or a provider without usage).
+// not return usage (e.g. failed requests or a provider without usage). Cache-hit
+// prompt tokens come from `usage.prompt_tokens_details.cached_tokens` (OpenAI
+// shape); null when the provider doesn't report cache details — callers then
+// treat all prompt tokens as uncached.
 function parseUsage(meta: Record<string, unknown> | null | undefined) {
   const usage = isRecord(meta) && isRecord(meta.usage) ? meta.usage : undefined;
+  const details =
+    usage && isRecord(usage.prompt_tokens_details)
+      ? usage.prompt_tokens_details
+      : undefined;
   const num = (value: unknown) =>
     typeof value === 'number' && Number.isFinite(value) ? value : null;
   return {
     promptTokens: num(usage?.prompt_tokens),
     completionTokens: num(usage?.completion_tokens),
     totalTokens: num(usage?.total_tokens),
+    cachedTokens: num(details?.cached_tokens),
   };
 }
 
