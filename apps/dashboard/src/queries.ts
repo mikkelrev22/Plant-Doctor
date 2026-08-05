@@ -14,6 +14,7 @@ import type {
 } from '@plant-doctor/api-types';
 import {
   analyzePlantReport,
+  getLlmConfig,
   getLlmRequest,
   getPlant,
   getPlantReports,
@@ -128,6 +129,17 @@ export function useReport(reportId: number | null) {
       return getReport(reportId);
     },
     enabled: reportId !== null,
+  });
+}
+
+// Live backend LLM config (model name) for display on the Eval page. The value
+// is fixed at backend startup from env, so it won't change mid-session — cache
+// it for the session rather than refetching on every mount.
+export function useLlmConfig() {
+  return useQuery<{ model: string }>({
+    queryKey: ['llm-config'],
+    queryFn: getLlmConfig,
+    staleTime: Infinity,
   });
 }
 

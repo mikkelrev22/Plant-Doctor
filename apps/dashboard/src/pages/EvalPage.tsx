@@ -7,8 +7,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { analyzePlantReport } from '../api/api';
 import { EvalControls } from '../components/EvalControls';
 import { plantKeys } from '../queries';
+import { useLlmConfig } from '../queries';
 import { usePlantsForEval } from '../queries';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatModelName } from '../utils/formatters';
 import styles from '../app.module.css';
 
 export function EvalPage() {
@@ -25,6 +26,7 @@ export function EvalPage() {
 
   const plantsQuery = usePlantsForEval();
   const plants = plantsQuery.data ?? [];
+  const llmConfig = useLlmConfig().data;
 
   async function runEval() {
     if (images.length === 0 || runs < 1) return;
@@ -74,7 +76,12 @@ export function EvalPage() {
 
   return (
     <Stack gap="md">
-      <Title order={2}>Evaluation</Title>
+      <Group gap="sm" align="baseline" wrap="nowrap">
+        <Title order={2}>Evaluation</Title>
+        {llmConfig?.model ? (
+          <Text size="sm" c="dimmed">{formatModelName(llmConfig.model)}</Text>
+        ) : null}
+      </Group>
 
       <Card className={styles.panel} radius="lg" padding="lg">
         <EvalControls
@@ -192,8 +199,7 @@ function PlantEvalHistory({
                       withArrow
                     >
                       <Text size="xs" truncate style={{ maxWidth: '10rem' }}>
-                        {p.models.join(', ')
-                          .replace('accounts/fireworks/models/', 'fireworks/')}
+                        {formatModelName(p.models.join(', '))}
                       </Text>
                     </Tooltip>
                   ) : (

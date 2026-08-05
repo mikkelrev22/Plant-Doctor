@@ -38,3 +38,10 @@ export function formatLatency(ms: number | null) {
   if (ms === null) return '—';
   return `${(ms / 1000).toFixed(1)}s`;
 }
+
+// Shorten a Fireworks model id for display, e.g.
+// "accounts/fireworks/models/qwen-vl-plus" → "fireworks/qwen-vl-plus".
+// Unknown prefixes are left untouched. Used by the Eval title and history table.
+export function formatModelName(model: string) {
+  return model.replace('accounts/fireworks/models/', 'fireworks/');
+}

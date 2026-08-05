@@ -94,6 +94,11 @@ export function getLlmRequest(llmRequestId: number) {
   return fetchJson<LlmRequestDetailDto>(`/llm-requests/${llmRequestId}`);
 }
 
+// Live backend LLM config (currently just the model name) for display. Read-only.
+export function getLlmConfig() {
+  return fetchJson<{ model: string }>('/config/llm');
+}
+
 export function analyzePlantReport(params: {
   image: File;
   plantId?: number;
