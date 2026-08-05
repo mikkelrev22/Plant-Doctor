@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Alert,
   Image,
@@ -21,7 +21,6 @@ interface ReportsTableProps {
 }
 
 export function ReportsTable({ plantId }: ReportsTableProps) {
-  const navigate = useNavigate();
   const reportsQuery = usePlantReportsExtended(plantId);
 
   const reports = useMemo(
@@ -89,25 +88,24 @@ export function ReportsTable({ plantId }: ReportsTableProps) {
                 );
                 return (
                   <Table.Tr key={report.id}>
-                    <Table.Td
-                      className={styles.reportLabelCell}
-                      onClick={() => navigate(`/report/${report.id}`)}
-                    >
-                      <Stack gap={4}>
-                        <Text size="xs" fw={700}>
-                          {formatDate(report.reportedAt)}
-                        </Text>
-                        {report.photo?.thumbnailUrl ? (
-                          <Image
-                            src={report.photo.thumbnailUrl}
-                            alt={report.identifiedPlantName ?? report.plantName}
-                            radius="sm"
-                            w={48}
-                            h={48}
-                            fit="cover"
-                          />
-                        ) : null}
-                      </Stack>
+                    <Table.Td className={styles.reportLabelCell}>
+                      <Link to={`/report/${report.id}`}>
+                        <Stack gap={4}>
+                          <Text size="xs" fw={700} c="blue">
+                            {formatDate(report.reportedAt)}
+                          </Text>
+                          {report.photo?.thumbnailUrl ? (
+                            <Image
+                              src={report.photo.thumbnailUrl}
+                              alt={report.identifiedPlantName ?? report.plantName}
+                              radius="sm"
+                              w={48}
+                              h={48}
+                              fit="cover"
+                            />
+                          ) : null}
+                        </Stack>
+                      </Link>
                     </Table.Td>
                     {columns.map((column) => {
                       const sign = signById.get(column.stressSignId);

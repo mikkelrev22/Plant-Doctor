@@ -110,7 +110,20 @@
   left: 0;
   z-index: 2;
   background: var(--mantine-color-body);
-  cursor: pointer;
+}
+
+/* Clickable table rows: the row is the containing block so a link's ::after
+   can stretch across the whole row — the entire row becomes one link target
+   (middle-click/⌘-click opens a new tab, keyboard Tab reaches it). The link
+   itself keeps real visible text, so no aria-label is needed. */
+.linkRow {
+  position: relative;
+}
+
+.rowLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 
 .reportsTable tbody tr:hover .reportLabelCell {

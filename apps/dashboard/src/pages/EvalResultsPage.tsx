@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Group, Loader, Select, Stack, Title, Text } from '@mantine/core';
 import { usePlantReportsEval, usePlants } from '../queries';
 import { EvalResultsTable } from '../components/EvalResultsTable';
@@ -56,7 +56,7 @@ export function EvalResultsPage() {
             w={220}
             searchable
           />
-          <Button variant="light" onClick={() => navigate('/eval')}>
+          <Button variant="light" component={Link} to="/eval">
             New evaluation
           </Button>
         </Group>
