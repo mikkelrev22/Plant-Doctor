@@ -55,8 +55,8 @@ function EvalLayout() {
     <AppShell header={{ height: 60 }} padding="lg" withBorder>
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
-          <Title order={3} c="dimmed">
-            Eval
+          <Title order={3} c="dimmed" renderRoot={(props) => <Link to="/eval" {...props} />}>
+            Evaluation
           </Title>
           <TopTabs />
         </Group>

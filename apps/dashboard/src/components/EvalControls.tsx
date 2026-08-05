@@ -35,6 +35,7 @@ interface EvalControlsProps {
 }
 
 const RUN_MARKS = [
+  { value: 1, label: '1' },
   { value: 5, label: '5' },
   { value: 10, label: '10' },
   { value: 15, label: '15' },
@@ -79,7 +80,7 @@ export function EvalControls({
     setImages(files);
   };
 
-  const canRun = !running && !disabled && images.length > 0 && runs >= 5;
+  const canRun = !running && !disabled && images.length > 0 && runs >= 1;
   const pct =
     progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
@@ -165,7 +166,7 @@ export function EvalControls({
             </Text>
           </Group>
           <Slider
-            min={5}
+            min={1}
             max={25}
             value={runs}
             onChange={setRuns}

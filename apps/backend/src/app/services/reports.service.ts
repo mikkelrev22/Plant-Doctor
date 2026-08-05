@@ -10,6 +10,7 @@ import type {
   PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
+  ReasoningEffort,
   ReportStressSignDto,
   StressSeverity,
   StressSignStatus,
@@ -512,12 +513,23 @@ export async function listReportsForPlantExtended(
 function toLlmRequestMetrics(
   request: typeof llmRequests.$inferSelect,
 ): LlmRequestMetricsDto {
+  // temperature and reasoningEffort live in the request_metadata JSONB blob
+  // (written per-request from the eval UI), not as direct columns.
+  const meta = request.requestMetadata;
+  const temperature =
+    meta && typeof meta.temperature === 'number' ? meta.temperature : null;
+  const reasoningEffort =
+    meta && typeof meta.reasoningEffort === 'string'
+      ? (meta.reasoningEffort as ReasoningEffort)
+      : null;
   return {
     id: request.id,
     provider: request.provider,
     model: request.model,
     latencyMs: request.latencyMs,
     ...parseUsage(request.responseMetadata),
+    temperature,
+    reasoningEffort,
     error: request.error,
     createdAt: request.createdAt.toISOString(),
   };

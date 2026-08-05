@@ -41,7 +41,7 @@ export function StressSignBadge({ sign }: { sign: ReportStressSignDto }) {
         {presentBadgeLabel(sign.severity)}
       </Badge>
     ) : (
-      <Text size="xs" c="dimmed">{sign.status}</Text>
+      <Text size="xs" c={sign.status === 'unknown' ? 'dimmed' : 'green'}>{sign.status}</Text>
     );
 
   return (

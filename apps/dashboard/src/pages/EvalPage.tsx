@@ -77,7 +77,7 @@ export function EvalPage() {
   return (
     <Stack gap="md">
       <Group gap="sm" align="baseline" wrap="nowrap">
-        <Title order={2}>Evaluation</Title>
+        <Title order={2}>Run new evaluation</Title>
         {llmConfig?.model ? (
           <Text size="sm" c="dimmed">{formatModelName(llmConfig.model)}</Text>
         ) : null}

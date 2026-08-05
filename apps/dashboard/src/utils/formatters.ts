@@ -45,3 +45,17 @@ export function formatLatency(ms: number | null) {
 export function formatModelName(model: string) {
   return model.replace('accounts/fireworks/models/', 'fireworks/');
 }
+
+// Temperature with up to 2 decimals, trimmed (0.20 → "0.2", 0.05 → "0.05").
+// Returns '—' for null.
+export function formatTemperature(value: number | null): string {
+  if (value === null) return '—';
+  return String(Math.round(value * 100) / 100);
+}
+
+// Reasoning effort capitalized for display ("none" → "None"). Returns '—' for
+// null.
+export function formatReasoningEffort(value: string | null): string {
+  if (value === null || value === '') return '—';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}

@@ -133,6 +133,10 @@ export interface LlmRequestMetricsDto {
   // `usage.prompt_tokens_details.cached_tokens`). Null when the provider
   // doesn't report cache details; cost calc then prices all input as uncached.
   cachedTokens: number | null;
+  // Sampling params captured per-request in `request_metadata` (not direct
+  // columns). Null for legacy rows that predate persisting them.
+  temperature: number | null;
+  reasoningEffort: ReasoningEffort | null;
   error: string | null;
   createdAt: string;
 }

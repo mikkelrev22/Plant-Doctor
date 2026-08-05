@@ -23,12 +23,6 @@
   background: var(--mantine-color-gray-0);
 }
 
-.photo {
-  width: 100%;
-  max-height: 420px;
-  object-fit: contain;
-}
-
 .emptyPhoto {
   padding: 48px;
   text-align: center;
