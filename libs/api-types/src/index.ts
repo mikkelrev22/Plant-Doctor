@@ -167,13 +167,21 @@ export interface LlmStressSignResult {
   notes: string;
 }
 
+// A region of the image showing stress, for later highlight overlays. `bbox` is
+// in normalized fractions 0.0–1.0 of the image dimensions (x, y = top-left
+// corner), so it maps to any rendered size regardless of the variant the LLM
+// saw. `stressSignId` ties the box to a checklist sign.
+export interface LlmDetectedRegion {
+  stressSignId: string;
+  bbox: { x: number; y: number; width: number; height: number };
+}
+
 export interface LlmPlantAnalysisResult {
   identifiedPlantName: string;
   scientificName: string | null;
   identificationConfidence: number | null;
   likelyStressors: string[];
   summary: string;
-  recommendations: string;
   stressSigns: LlmStressSignResult[];
-  detectedRegions: number;
+  detectedRegions: LlmDetectedRegion[];
 }

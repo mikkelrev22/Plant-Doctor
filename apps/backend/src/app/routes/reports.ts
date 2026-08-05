@@ -164,7 +164,7 @@ export default async function (fastify: FastifyInstance) {
         storageKey: upload.storageKey,
         displayStorageKey: upload.display.storageKey,
         thumbnailStorageKey: upload.thumbnail.storageKey,
-        temperature: validatedFields.temperature ?? 0.2,
+        temperature: validatedFields.temperature ?? 0.05,
         reasoningEffort: validatedFields.reasoningEffort ?? 'none',
       },
     });
@@ -179,7 +179,17 @@ export default async function (fastify: FastifyInstance) {
         temperature: validatedFields.temperature,
         reasoningEffort: validatedFields.reasoningEffort,
       });
-      const analysis = parsePlantAnalysis(llmResponse.content);
+      const analysis = parsePlantAnalysis(llmResponse.content, {
+        // Constrain likelyStressors to the stress-variable vocabulary and
+        // detectedRegions to the stress-sign vocabulary, so the model can't
+        // invent free-text values outside the DB taxonomy.
+        allowedStressorIds: new Set(
+          stressSigns.flatMap((sign) =>
+            sign.variables.map((variable) => variable.id),
+          ),
+        ),
+        allowedStressSignIds: new Set(stressSigns.map((sign) => sign.id)),
+      });
 
       // Only let the LLM rename plants we actually created in this request.
       // Reused plants (matched by name, or looked up by plantId) may have

@@ -1,4 +1,5 @@
 import type {
+  LlmDetectedRegion,
   LlmPlantAnalysisResult,
   LlmStressSignResult,
   ReasoningEffort,
@@ -17,7 +18,7 @@ interface AnalyzePlantImageParams {
     buffer: Buffer;
     mimeType: string;
   };
-  /** Sampling temperature. Defaults to 0.2 when omitted. */
+  /** Sampling temperature. Defaults to 0.05 when omitted. */
   temperature?: number;
   /** Fireworks/Qwen3 reasoning effort. Defaults to 'none' when omitted. */
   reasoningEffort?: ReasoningEffort;
@@ -41,7 +42,6 @@ const PLANT_ANALYSIS_SCHEMA = {
         items: { type: 'string' },
       },
       summary: { type: 'string' },
-      recommendations: { type: 'string' },
       stressSigns: {
         type: 'array',
         items: {
@@ -66,7 +66,28 @@ const PLANT_ANALYSIS_SCHEMA = {
           additionalProperties: false,
         },
       },
-      detectedRegions: { type: 'integer' },
+      detectedRegions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            stressSignId: { type: 'string' },
+            bbox: {
+              type: 'object',
+              properties: {
+                x: { type: 'number' },
+                y: { type: 'number' },
+                width: { type: 'number' },
+                height: { type: 'number' },
+              },
+              required: ['x', 'y', 'width', 'height'],
+              additionalProperties: false,
+            },
+          },
+          required: ['stressSignId', 'bbox'],
+          additionalProperties: false,
+        },
+      },
     },
     required: [
       'identifiedPlantName',
@@ -74,7 +95,6 @@ const PLANT_ANALYSIS_SCHEMA = {
       'identificationConfidence',
       'likelyStressors',
       'summary',
-      'recommendations',
       'stressSigns',
       'detectedRegions',
     ],
@@ -183,7 +203,61 @@ function normalizeStressSign(value: unknown): LlmStressSignResult | null {
   };
 }
 
-export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
+/**
+ * Returns a normalized bbox fraction in [0, 1], or null if any edge is missing,
+ * non-finite, or out of range. The LLM is asked for normalized fractions; we
+ * drop (rather than clamp) malformed boxes so a hallucinated coordinate never
+ * paints a bogus highlight.
+ */
+function normalizeBbox(value: unknown): { x: number; y: number; width: number; height: number } | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const { x, y, width, height } = value;
+  const coords = { x, y, width, height };
+  const out: { x: number; y: number; width: number; height: number } = {} as {
+    x: number; y: number; width: number; height: number;
+  };
+  for (const key of ['x', 'y', 'width', 'height'] as const) {
+    const v = coords[key];
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 1) {
+      return null;
+    }
+    out[key] = v;
+  }
+  return out;
+}
+
+function normalizeDetectedRegion(
+  value: unknown,
+  allowedStressSignIds?: Set<string>,
+): LlmDetectedRegion | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const stressSignId = stringValue(value.stressSignId).trim();
+  if (!stressSignId) {
+    return null;
+  }
+  if (allowedStressSignIds && !allowedStressSignIds.has(stressSignId)) {
+    return null;
+  }
+  const bbox = normalizeBbox(value.bbox);
+  if (!bbox) {
+    return null;
+  }
+  return { stressSignId, bbox };
+}
+
+export function parsePlantAnalysis(
+  content: string,
+  options?: {
+    /** Allowed `stress_variables` ids for `likelyStressors`. */
+    allowedStressorIds?: Set<string>;
+    /** Allowed `stress_signs` ids for `detectedRegions[].stressSignId`. */
+    allowedStressSignIds?: Set<string>;
+  },
+): LlmPlantAnalysisResult {
   const parsed = extractJsonObject(content);
 
   if (!isRecord(parsed)) {
@@ -196,6 +270,34 @@ export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
         .filter((item): item is LlmStressSignResult => Boolean(item))
     : [];
 
+  const { allowedStressorIds, allowedStressSignIds } = options ?? {};
+
+  // Likely stressors: keep only strings, trim, lowercase, and — when the caller
+  // passes the DB-derived stress-variable vocabulary — drop anything off-list so
+  // the model can't invent free-text stressors. Dedupe preserving order.
+  const likelyStressors = Array.isArray(parsed.likelyStressors)
+    ? parsed.likelyStressors
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean)
+        .filter(
+          (value) => !allowedStressorIds || allowedStressorIds.has(value),
+        )
+    : [];
+
+  const seenStressors = new Set<string>();
+  const dedupedStressors = likelyStressors.filter((value) => {
+    if (seenStressors.has(value)) return false;
+    seenStressors.add(value);
+    return true;
+  });
+
+  const detectedRegions = Array.isArray(parsed.detectedRegions)
+    ? parsed.detectedRegions
+        .map((item) => normalizeDetectedRegion(item, allowedStressSignIds))
+        .filter((item): item is LlmDetectedRegion => Boolean(item))
+    : [];
+
   return {
     identifiedPlantName:
       normalizePlantName(
@@ -204,19 +306,10 @@ export function parsePlantAnalysis(content: string): LlmPlantAnalysisResult {
     scientificName:
       typeof parsed.scientificName === 'string' ? parsed.scientificName : null,
     identificationConfidence: numberOrNull(parsed.identificationConfidence),
-    likelyStressors: Array.isArray(parsed.likelyStressors)
-      ? parsed.likelyStressors
-          .filter((value): value is string => typeof value === 'string')
-          .map((value) => value.trim())
-          .filter(Boolean)
-      : [],
+    likelyStressors: dedupedStressors,
     summary: stringValue(parsed.summary, 'No summary returned.'),
-    recommendations: stringValue(
-      parsed.recommendations,
-      'No recommendations returned.',
-    ),
     stressSigns,
-    detectedRegions: numberOrNull(parsed.detectedRegions) ?? 0,
+    detectedRegions,
   };
 }
 
@@ -233,7 +326,7 @@ export async function callPlantAnalysisLlm({
   const startedAt = Date.now();
   const body = {
     model: config.llmApiModel,
-    temperature: temperature ?? 0.2,
+    temperature: temperature ?? 0.05,
     max_tokens: config.llmMaxTokens,
     // 'none' skips Qwen3's thinking block on Fireworks — the dominant cost of
     // the analysis call. 'low'|'medium'|'high' re-enables reasoning. Mutually
