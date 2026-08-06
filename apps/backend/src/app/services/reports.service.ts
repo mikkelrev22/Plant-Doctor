@@ -27,6 +27,7 @@ import {
   stressSignVariables,
   stressVariables,
 } from '@plant-doctor/db/schema';
+import { normalizeLlmResponseForStorage } from './llm.service';
 import type { StoredUpload } from './uploads.service';
 
 function clampConfidence(value: number | null) {
@@ -180,7 +181,7 @@ export async function markLlmRequestSucceeded(
   await db
     .update(llmRequests)
     .set({
-      response: params.response,
+      response: normalizeLlmResponseForStorage(params.response),
       responseMetadata: params.responseMetadata,
       latencyMs: params.latencyMs,
       error: null,

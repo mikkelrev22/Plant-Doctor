@@ -48,7 +48,6 @@ export function RegionOverlayImage({
 
   return (
     <div style={wrapperStyle}>
-      {JSON.stringify(regions)}
       <img
         src={imageUrl}
         alt={alt}
@@ -74,7 +73,7 @@ export function RegionOverlayImage({
               top: `${y * 100}%`,
               width: `${width * 100}%`,
               height: `${height * 100}%`,
-              border: '2px solid red',
+              border: '1px solid red',
               boxSizing: 'border-box',
             }}
           >
@@ -82,15 +81,15 @@ export function RegionOverlayImage({
               style={{
                 position: 'absolute',
                 top: '-1.4em',
-                left: 0,
+                left: -1,
                 background: 'red',
                 color: 'white',
                 fontSize: 10,
+                fontWeight: 'bold',
                 lineHeight: '1.4em',
                 padding: '0 4px',
-                borderRadius: 2,
                 whiteSpace: 'nowrap',
-                maxWidth: '100%',
+                maxWidth: 'calc(100% + 2px)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}

@@ -1,4 +1,4 @@
-import { parsePlantAnalysis } from './llm.service';
+import { normalizeLlmResponseForStorage, parsePlantAnalysis } from './llm.service';
 
 describe('parsePlantAnalysis', () => {
   it('normalizes a fenced JSON response', () => {
@@ -133,5 +133,36 @@ describe('parsePlantAnalysis', () => {
         bbox: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
       },
     ]);
+  });
+});
+
+describe('normalizeLlmResponseForStorage', () => {
+  it('strips ```json fences and returns canonical JSON', () => {
+    const result = normalizeLlmResponseForStorage('```json\n{ "a": 1 }\n```');
+    expect(result).toBe('{"a":1}');
+    expect(() => JSON.parse(result)).not.toThrow();
+  });
+
+  it('returns canonical JSON for already-clean input', () => {
+    const result = normalizeLlmResponseForStorage('{ "a": 1 }');
+    expect(result).toBe('{"a":1}');
+  });
+
+  it('extracts JSON from surrounding prose', () => {
+    const result = normalizeLlmResponseForStorage(
+      'Here is the result: { "a": 1 } done.',
+    );
+    expect(result).toBe('{"a":1}');
+  });
+
+  it('returns empty/whitespace input unchanged', () => {
+    expect(normalizeLlmResponseForStorage('')).toBe('');
+    expect(normalizeLlmResponseForStorage('   ')).toBe('   ');
+  });
+
+  it('falls back to stripped content for invalid JSON without throwing', () => {
+    const result = normalizeLlmResponseForStorage('```json\n{ "a": \n```');
+    expect(result).toBe('{ "a":');
+    expect(() => normalizeLlmResponseForStorage('{ "a": ')).not.toThrow();
   });
 });

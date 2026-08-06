@@ -183,6 +183,36 @@ function extractJsonObject(content: string) {
   }
 }
 
+/**
+ * Normalizes a raw LLM content string for storage in `llm_requests.response`.
+ * Some providers wrap JSON output in ```json markdown fences or surround it
+ * with prose even when `response_format: json_schema` is requested. This
+ * guarantees that whenever the output is valid JSON, the stored value is
+ * clean, canonical JSON (no fences, no surrounding prose). If the output
+ * cannot be parsed as JSON, the fence-stripped string is preserved as-is so
+ * no data is lost — storage normalization must never throw.
+ */
+export function normalizeLlmResponseForStorage(content: string): string {
+  if (!content || !content.trim()) {
+    return content;
+  }
+
+  try {
+    const parsed = extractJsonObject(content);
+    return JSON.stringify(parsed);
+  } catch {
+    const stripped = content
+      .replace(/^```(?:json)?/i, '')
+      .replace(/```$/i, '')
+      .trim();
+    console.warn(
+      'LLM response could not be normalized to valid JSON; storing stripped content:',
+      stripped.slice(0, 200),
+    );
+    return stripped;
+  }
+}
+
 function normalizeStressSign(value: unknown): LlmStressSignResult | null {
   if (!isRecord(value)) {
     return null;
