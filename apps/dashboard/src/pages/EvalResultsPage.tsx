@@ -1,7 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Group, Loader, Select, Stack, Title, Text } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  Group,
+  Loader,
+  SegmentedControl,
+  Select,
+  Stack,
+  Title,
+  Text,
+} from '@mantine/core';
 import { usePlantReportsEval, usePlants } from '../queries';
+import { EvalResultsGrid } from '../components/EvalResultsGrid';
 import { EvalResultsTable } from '../components/EvalResultsTable';
 import { EvalStatsPanel } from '../components/EvalStatsPanel';
 
@@ -21,6 +32,7 @@ export function EvalResultsPage() {
   const [selectedPlant, setSelectedPlant] = useState<string | null>(
     plantId !== null ? String(plantId) : null,
   );
+  const [view, setView] = useState<'table' | 'grid'>('table');
 
   if (plantId === null) {
     return <Text c="dimmed">Invalid plant id.</Text>;
@@ -67,7 +79,22 @@ export function EvalResultsPage() {
       ) : (
         <>
           <EvalStatsPanel reports={reports} />
-          <EvalResultsTable reports={reports} />
+          <Group justify="flex-end">
+            <SegmentedControl
+              size="xs"
+              value={view}
+              onChange={(v) => setView(v as 'table' | 'grid')}
+              data={[
+                { value: 'table', label: 'Table' },
+                { value: 'grid', label: 'Grid' },
+              ]}
+            />
+          </Group>
+          {view === 'table' ? (
+            <EvalResultsTable reports={reports} />
+          ) : (
+            <EvalResultsGrid reports={reports} />
+          )}
         </>
       )}
     </Stack>

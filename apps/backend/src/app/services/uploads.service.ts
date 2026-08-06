@@ -122,7 +122,15 @@ export async function storePlantPhoto(
   const sourceImage = sharp(buffer, { failOn: 'none' });
   const originalMetadata = await sourceImage.metadata();
 
+  // `.rotate()` bakes the EXIF orientation into the pixels (and, since we don't
+  // call .withMetadata(), the orientation tag is dropped on output). Without
+  // this, sharp decodes in sensor-native (un-rotated) orientation, so the LLM —
+  // which sees `display.buffer` — would emit bounding boxes in an un-rotated
+  // coordinate frame while the browser renders the EXIF-rotated original
+  // upright, misaligning the region overlay. Rotating before resize lets
+  // resize use the upright dimensions. No-op for orientation-1 photos.
   const displayPipeline = sharp(buffer, { failOn: 'none' })
+    .rotate()
     .resize({
       fit: 'inside',
       width: DISPLAY_MAX_DIMENSION,
@@ -136,6 +144,7 @@ export async function storePlantPhoto(
     });
 
   const thumbPipeline = sharp(buffer, { failOn: 'none' })
+    .rotate()
     .resize({
       fit: 'inside',
       width: THUMB_MAX_DIMENSION,

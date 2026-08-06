@@ -103,7 +103,7 @@ export function EvalStatsPanel({ reports }: EvalStatsPanelProps) {
   // Latest run's photo (reports come back newest-first). Prefer the thumbnail
   // when available.
   const photoUrl =
-    reports[0]?.photo?.thumbnailUrl ?? reports[0]?.photo?.imageUrl ?? null;
+    reports[0]?.photo?.imageUrl ?? null;
 
   const totalCost = computeTotalCost(reports);
   const costRuns = reports.filter((r) => computeRunCost(r.llmRequest) !== null).length;
@@ -218,8 +218,8 @@ export function EvalStatsPanel({ reports }: EvalStatsPanelProps) {
             fit="cover"
             src={photoUrl}
             alt={reports[0]?.plantName ?? 'Latest report photo'}
-            maw={200}
-            mah={220}
+            maw={220}
+            mah={280}
             style={{ flex: '0 0 auto', alignSelf: 'center' }}
           />
         )}

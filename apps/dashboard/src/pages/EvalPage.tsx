@@ -17,8 +17,8 @@ export function EvalPage() {
   const queryClient = useQueryClient();
 
   const [images, setImages] = useState<File[]>([]);
-  const [runs, setRuns] = useState(5);
-  const [temperature, setTemperature] = useState(0.2);
+  const [runs, setRuns] = useState(10);
+  const [temperature, setTemperature] = useState(0.05);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('none');
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });

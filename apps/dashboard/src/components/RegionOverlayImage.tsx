@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { LlmDetectedRegion } from '@plant-doctor/api-types';
 
 interface RegionOverlayImageProps {
@@ -15,6 +15,12 @@ interface RegionOverlayImageProps {
   // page's 420px photo height.
   maxHeight?: number;
   alt?: string;
+  // Optional content pinned to the bottom corners of the image (rendered inside
+  // the overlay layer, so it sits on the photo, aligned to the image bottom
+  // regardless of aspect ratio). Used by the eval grid cards for the report id
+  // and present-stress-sign count.
+  bottomLeft?: ReactNode;
+  bottomRight?: ReactNode;
 }
 
 // Renders a plant photo with the LLM's detected stress regions drawn as red
@@ -29,6 +35,8 @@ export function RegionOverlayImage({
   signNames,
   maxHeight = 420,
   alt = 'Plant',
+  bottomLeft,
+  bottomRight,
 }: RegionOverlayImageProps) {
   // Natural pixel dimensions, captured on load so we can cap the rendered
   // height while keeping the overlay layer edge-to-edge with the image.
@@ -99,6 +107,16 @@ export function RegionOverlayImage({
           </div>
         );
       })}
+      {bottomLeft && (
+        <div style={{ position: 'absolute', bottom: 4, left: 4, zIndex: 5 }}>
+          {bottomLeft}
+        </div>
+      )}
+      {bottomRight && (
+        <div style={{ position: 'absolute', bottom: 4, right: 4, zIndex: 5 }}>
+          {bottomRight}
+        </div>
+      )}
     </div>
   );
 }
