@@ -20,6 +20,7 @@ import {
   overallScoreFrom,
   signConsistency,
 } from '../utils/eval-scoring';
+import { toImgSrc } from '../utils/urls';
 
 interface EvalStatsPanelProps {
   reports: PlantReportEvalDto[];
@@ -102,8 +103,7 @@ export function EvalStatsPanel({ reports }: EvalStatsPanelProps) {
 
   // Latest run's photo (reports come back newest-first). Prefer the thumbnail
   // when available.
-  const photoUrl =
-    reports[0]?.photo?.imageUrl ?? null;
+  const photoUrl = toImgSrc(reports[0]?.photo?.imageUrl ?? null);
 
   const totalCost = computeTotalCost(reports);
   const costRuns = reports.filter((r) => computeRunCost(r.llmRequest) !== null).length;

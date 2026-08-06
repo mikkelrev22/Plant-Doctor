@@ -8,6 +8,7 @@ import {
   formatTemperature,
 } from '../utils/formatters';
 import { computeOverallScore, consistencyColor } from '../utils/eval-scoring';
+import { toImgSrc } from '../utils/urls';
 import { usePlantReportsEval } from '../queries';
 import { RowLink } from './RowLink';
 import styles from '../app.module.css';
@@ -84,7 +85,7 @@ function PlantEvalHistoryRow({ plant }: { plant: PlantListItemEvalDto }) {
         <Group gap="sm" align="center">
           {plant.thumbnailUrl ? (
             <Image
-              src={plant.thumbnailUrl}
+              src={toImgSrc(plant.thumbnailUrl)}
               alt={plant.name}
               radius="sm"
               w={36}

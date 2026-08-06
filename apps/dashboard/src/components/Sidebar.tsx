@@ -10,6 +10,7 @@ import {
 } from '@mantine/core';
 import { IconPlant } from '@tabler/icons-react';
 import type { PlantListItemDto } from '@plant-doctor/api-types';
+import { toImgSrc } from '../utils/urls';
 import styles from '../app.module.css';
 
 interface SidebarProps {
@@ -42,7 +43,7 @@ export function Sidebar({ plants }: SidebarProps) {
                   <Group gap="sm" wrap="nowrap">
                     {plant.thumbnailUrl ? (
                       <Avatar
-                        src={plant.thumbnailUrl}
+                        src={toImgSrc(plant.thumbnailUrl)}
                         alt={plant.name}
                         radius="sm"
                         size="sm"

@@ -13,6 +13,7 @@ import {
 import type { PlantReportExtendedDto } from '@plant-doctor/api-types';
 import { usePlantReportsExtended } from '../queries';
 import { formatDate } from '../utils/formatters';
+import { toImgSrc } from '../utils/urls';
 import { StressSignBadge } from './StressSignBadge';
 import styles from '../app.module.css';
 
@@ -96,7 +97,7 @@ export function ReportsTable({ plantId }: ReportsTableProps) {
                           </Text>
                           {report.photo?.thumbnailUrl ? (
                             <Image
-                              src={report.photo.thumbnailUrl}
+                              src={toImgSrc(report.photo.thumbnailUrl)}
                               alt={report.identifiedPlantName ?? report.plantName}
                               radius="sm"
                               w={48}

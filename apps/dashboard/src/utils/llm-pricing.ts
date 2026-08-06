@@ -38,6 +38,12 @@ export const MODEL_PRICING: Record<
     output: 4,
   },
 
+  'accounts/fireworks/models/kimi-k3': {
+    uncached: 3,
+    cached: 0.3,
+    output: 15,
+  },
+
   'gemma4:31b-cloud': {
     uncached: 0.1,
     cached: 0.01,

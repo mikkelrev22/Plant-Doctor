@@ -146,7 +146,7 @@ export function computeOverallScore(reports: PlantReportEvalDto[]): number | nul
 // otherwise red. null → gray (not enough data).
 export function consistencyColor(pct: number | null): string {
   if (pct === null) return 'gray';
-  if (pct === 100) return 'teal';
+  if (pct >= 95) return 'teal';
   if (pct >= 80) return 'yellow';
   return 'red';
 }

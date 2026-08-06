@@ -8,6 +8,7 @@ import type {
 } from '@plant-doctor/api-types';
 import { useLlmRequest } from '../queries';
 import { RegionOverlayImage } from './RegionOverlayImage';
+import { toImgSrc } from '../utils/urls';
 import styles from '../app.module.css';
 
 interface EvalResultsGridProps {
@@ -65,7 +66,7 @@ function EvalGridCard({ report }: { report: PlantReportEvalDto }) {
     [report.stressSigns],
   );
 
-  const imageUrl = report.photo?.imageUrl ?? report.photo?.thumbnailUrl ?? null;
+  const imageUrl = toImgSrc(report.photo?.imageUrl ?? report.photo?.thumbnailUrl ?? null);
   const presentCount = report.stressSigns.filter((s) => s.status === 'present').length;
 
   // Pinned to the bottom corners of the image (rendered inside the overlay

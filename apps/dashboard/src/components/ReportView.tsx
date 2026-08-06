@@ -10,6 +10,7 @@ import {
 import type { LlmDetectedRegion, PlantReportDetailDto } from '@plant-doctor/api-types';
 import { RegionOverlayImage } from './RegionOverlayImage';
 import { StressSignCard } from './StressSignCard';
+import { toImgSrc } from '../utils/urls';
 import styles from '../app.module.css';
 
 interface ReportViewProps {
@@ -21,7 +22,7 @@ interface ReportViewProps {
 }
 
 export function ReportView({ report, pendingImageUrl, detectedRegions }: ReportViewProps) {
-  const imageUrl = report?.photo?.imageUrl ?? pendingImageUrl;
+  const imageUrl = toImgSrc(report?.photo?.imageUrl ?? pendingImageUrl);
   // stressSignId -> name for the region frame labels, from the report's
   // evaluated signs. Falls back to "Region N" inside the overlay for ids not
   // in this list.
