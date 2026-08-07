@@ -9,6 +9,13 @@ import Fastify, { FastifyInstance } from 'fastify';
 import { app } from './app';
 import { BACKEND_VERSION } from '../version';
 
+// The first `server.ready()` pays the @fastify/autoload cost: it dynamically
+// imports every plugin + route (sharp, drizzle, the LLM SDK, zod, …). On a
+// cold/slow runner (e.g. CI's 2-core ubuntu-latest) that first registration
+// can take well over Jest's 5s default and time out the beforeEach. 60s gives
+// it headroom; subsequent tests reuse the now-cached modules and stay fast.
+jest.setTimeout(60000);
+
 describe('GET /', () => {
   let server: FastifyInstance;
 
