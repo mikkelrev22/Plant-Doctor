@@ -13,6 +13,17 @@ import type {
 } from '@plant-doctor/api-types';
 import { config } from '../config';
 
+/**
+ * Dashboard API client for the Plant-Doctor Node backend (apps/backend).
+ *
+ * Consumes the backend's `consumer` AND `admin` route groups — the dashboard is
+ * a superset of the mobile-app's consumer surface (it calls the same plants /
+ * reports endpoints) plus the admin-only eval / llm-requests / config /
+ * stress-signs / architecture endpoints. See apps/backend/src/app/routes/ and
+ * docs/backend-endpoints.md for the per-consumer grouping and the planned
+ * per-group authorization.
+ */
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${config.backendUrl}${path}`, {
     ...init,

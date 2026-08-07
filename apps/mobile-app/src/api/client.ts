@@ -12,6 +12,12 @@ import { Platform } from 'react-native';
 /**
  * Fetch-based client for the Plant-Doctor Node backend (apps/backend).
  *
+ * Consumes the backend's `consumer` route group
+ * (apps/backend/src/app/routes/consumer/); see docs/backend-endpoints.md for the
+ * per-consumer grouping and the planned per-group authorization. The mobile app
+ * is the consumer-facing app; the dashboard is a superset that also calls the
+ * `admin` group.
+ *
  * NOTE on secrets: `EXPO_PUBLIC_*` vars are inlined at build time and exposed in
  * the client bundle, so `EXPO_PUBLIC_BACKEND_API_KEY` is NOT secret. This
  * matches how the existing web frontends bundle `BACKEND_API_KEY` — it's a

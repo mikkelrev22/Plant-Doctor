@@ -61,6 +61,11 @@ Returns the report history for a specific Research User plant.
 - **Parameters**: `plantId` (integer)
 - **Response**: Array of report summaries for the specified plant.
 
+### GET /plants/:plantId/reports/extended
+Returns report history for one plant, including per-report stress-sign evaluations (used by the over-time stress-sign table and by the mobile app's report list to render stress-sign dots before a report is opened).
+- **Parameters**: `plantId` (integer)
+- **Response**: Extended report array with stress-sign evaluation data.
+
 ### GET /reports/:reportId
 Returns a full report including photo details, stress checklist, and LLM log summary.
 - **Parameters**: `reportId` (integer)
@@ -91,11 +96,6 @@ Admin/internal extras used by the `dashboard` (LLM eval platform) and the `archi
 Extended plant list for the eval tool: same fields as `GET /plants` plus a `models` array containing the distinct LLM model names used across each plant's reports.
 - **Response**: Array of plant objects with an extra `models` field.
 - **Note**: Registered via the admin group, which `app.ts` registers **before** the consumer group, preserving the static-before-parametric guard so `/plants/evals` is not shadowed by `/plants/:plantId`. Intended to be disable-able in production independently.
-
-### GET /plants/:plantId/reports/extended
-Returns report history for one plant, including per-report stress-sign evaluations (used by the over-time stress-sign table).
-- **Parameters**: `plantId` (integer)
-- **Response**: Extended report array with stress-sign evaluation data.
 
 ### GET /plants/:plantId/reports/eval
 Returns report history for one plant, including per-report stress-sign evaluations **and LLM metrics** (latency, token usage, model, error) parsed from each `llm_requests` row. Powers the eval results table.

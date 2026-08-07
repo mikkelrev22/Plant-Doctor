@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../../types/fastify';
 import { createPlant, getPlantForUser, listPlants, updatePlant } from '../../services/plants.service';
-import { listReportsForPlant } from '../../services/reports.service';
+import {
+  listReportsForPlant,
+  listReportsForPlantExtended,
+} from '../../services/reports.service';
 import { plantIdParams } from '../_shared/schemas';
 
 export default async function (fastify: FastifyInstance) {
@@ -69,6 +72,25 @@ export default async function (fastify: FastifyInstance) {
       const { plantId } = request.params;
 
       return listReportsForPlant(fastify.db, plantId);
+    }
+  );
+
+  // Returns report history for one Research User plant, including per-report
+  // stress-sign evaluations (used by the over-time stress-sign table and by the
+  // mobile app's report list to render stress-sign dots before a report is
+  // opened). The simpler GET /plants/:plantId/reports above stays available for
+  // other uses; the eval variant (with LLM metrics) lives in the admin group.
+  server.get(
+    '/plants/:plantId/reports/extended',
+    {
+      schema: {
+        params: plantIdParams,
+      },
+    },
+    async function (request) {
+      const { plantId } = request.params;
+
+      return listReportsForPlantExtended(fastify.db, plantId);
     }
   );
 

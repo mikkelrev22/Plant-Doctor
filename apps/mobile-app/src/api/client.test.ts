@@ -78,7 +78,7 @@ describe('api client', () => {
     fetchMock.mockResolvedValue(jsonResponse({ plant: { id: 1 }, report: { id: 9 } }));
     await analyzeReport({ imageUri: 'file:///x.jpg', mimeType: 'image/jpeg', plantId: 5 });
     // The web branch fetches the image URI first; the POST is the last call.
-    const [url, init] = fetchMock.mock.calls.at(-1)!;
+    const [url, init] = fetchMock.mock.calls[fetchMock.mock.calls.length - 1];
     expect(url).toBe('http://localhost:4100/reports/analyze');
     expect((init as RequestInit).method).toBe('POST');
     const form = (init as RequestInit).body as FormData;
@@ -91,7 +91,9 @@ describe('api client', () => {
   it('analyzeReport omits plantId when not provided', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ plant: { id: 1 }, report: { id: 9 } }));
     await analyzeReport({ imageUri: 'file:///x.jpg', mimeType: 'image/jpeg' });
-    const form = (fetchMock.mock.calls.at(-1)![1] as RequestInit).body as FormData;
+    const form = (
+      fetchMock.mock.calls[fetchMock.mock.calls.length - 1][1] as RequestInit
+    ).body as FormData;
     expect(form.get('plantId')).toBeNull();
   });
 });
