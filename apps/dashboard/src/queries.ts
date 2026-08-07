@@ -4,18 +4,24 @@ import type {
   LlmRequestDetailDto,
   PlantDto,
   PlantListItemDto,
+  PlantListItemEvalDto,
   PlantReportDetailDto,
+  PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
+  ReasoningEffort,
   StressSignDto,
 } from '@plant-doctor/api-types';
 import {
   analyzePlantReport,
+  getLlmConfig,
   getLlmRequest,
   getPlant,
   getPlantReports,
+  getPlantReportsEval,
   getPlantReportsExtended,
   getPlants,
+  getPlantsForEval,
   getReport,
   getStressSigns,
   updatePlantName,
@@ -24,6 +30,7 @@ import {
 
 export const plantKeys = {
   all: ['plants'] as const,
+  forEval: ['plants', 'eval'] as const,
   byId: (plantId: number) => [...plantKeys.all, 'detail', plantId] as const,
 };
 
@@ -36,6 +43,8 @@ export const reportKeys = {
   byPlant: (plantId: number) => [...reportKeys.all, 'plant', plantId] as const,
   byPlantExtended: (plantId: number) =>
     [...reportKeys.all, 'plant-extended', plantId] as const,
+  byPlantEval: (plantId: number) =>
+    [...reportKeys.all, 'plant-eval', plantId] as const,
   byId: (reportId: number) => [...reportKeys.all, 'detail', reportId] as const,
 };
 
@@ -49,6 +58,15 @@ export function usePlants() {
   return useQuery<PlantListItemDto[]>({
     queryKey: plantKeys.all,
     queryFn: getPlants,
+  });
+}
+
+// Eval-only plant list (GET /plants/evals) carrying the LLM model names used per
+// plant. Separate from usePlants so the endpoint can be disabled in production.
+export function usePlantsForEval() {
+  return useQuery<PlantListItemEvalDto[]>({
+    queryKey: plantKeys.forEval,
+    queryFn: getPlantsForEval,
   });
 }
 
@@ -92,6 +110,17 @@ export function usePlantReportsExtended(plantId: number | null) {
   });
 }
 
+export function usePlantReportsEval(plantId: number | null) {
+  return useQuery<PlantReportEvalDto[]>({
+    queryKey: reportKeys.byPlantEval(plantId ?? 0),
+    queryFn: () => {
+      if (plantId === null) throw new Error('plantId is required');
+      return getPlantReportsEval(plantId);
+    },
+    enabled: plantId !== null,
+  });
+}
+
 export function useReport(reportId: number | null) {
   return useQuery<PlantReportDetailDto>({
     queryKey: reportKeys.byId(reportId ?? 0),
@@ -100,6 +129,17 @@ export function useReport(reportId: number | null) {
       return getReport(reportId);
     },
     enabled: reportId !== null,
+  });
+}
+
+// Live backend LLM config (model name) for display on the Eval page. The value
+// is fixed at backend startup from env, so it won't change mid-session — cache
+// it for the session rather than refetching on every mount.
+export function useLlmConfig() {
+  return useQuery<{ model: string }>({
+    queryKey: ['llm-config'],
+    queryFn: getLlmConfig,
+    staleTime: Infinity,
   });
 }
 
@@ -121,15 +161,21 @@ export function useAnalyzeReport() {
     image: File;
     plantId?: number;
     plantName?: string;
+    temperature?: number;
+    reasoningEffort?: ReasoningEffort;
   }>({
     mutationFn: analyzePlantReport,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: plantKeys.all });
+      queryClient.invalidateQueries({ queryKey: plantKeys.forEval });
       queryClient.invalidateQueries({
         queryKey: reportKeys.byPlant(data.plant.id),
       });
       queryClient.invalidateQueries({
         queryKey: reportKeys.byPlantExtended(data.plant.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: reportKeys.byPlantEval(data.plant.id),
       });
     },
   });

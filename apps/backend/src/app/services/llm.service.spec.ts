@@ -1,4 +1,4 @@
-import { parsePlantAnalysis } from './llm.service';
+import { normalizeLlmResponseForStorage, parsePlantAnalysis } from './llm.service';
 
 describe('parsePlantAnalysis', () => {
   it('normalizes a fenced JSON response', () => {
@@ -9,7 +9,6 @@ describe('parsePlantAnalysis', () => {
   "identificationConfidence": 95,
   "likelyStressors": ["water", "humidity"],
   "summary": "Generally healthy.",
-  "recommendations": "Water deeply, then let soil dry.",
   "stressSigns": [
     {
       "stressSignId": "brown_crispy_tips_edges",
@@ -19,7 +18,12 @@ describe('parsePlantAnalysis', () => {
       "notes": "Brown dry leaf tips are visible."
     }
   ],
-  "detectedRegions": 0
+  "detectedRegions": [
+    {
+      "stressSignId": "brown_crispy_tips_edges",
+      "bbox": { "x": 0.2, "y": 0.4, "width": 0.15, "height": 0.1 }
+    }
+  ]
 }
 \`\`\``);
 
@@ -32,6 +36,12 @@ describe('parsePlantAnalysis', () => {
       confidence: 90,
       notes: 'Brown dry leaf tips are visible.',
     });
+    expect(result.detectedRegions).toEqual([
+      {
+        stressSignId: 'brown_crispy_tips_edges',
+        bbox: { x: 0.2, y: 0.4, width: 0.15, height: 0.1 },
+      },
+    ]);
   });
 
   it('handles an empty JSON object by returning defaults', () => {
@@ -39,6 +49,7 @@ describe('parsePlantAnalysis', () => {
     expect(result.identifiedPlantName).toBe('Unknown plant');
     expect(result.summary).toBe('No summary returned.');
     expect(result.stressSigns).toEqual([]);
+    expect(result.detectedRegions).toEqual([]);
   });
 
   it('handles JSON with extra text around it', () => {
@@ -53,5 +64,105 @@ describe('parsePlantAnalysis', () => {
     // which results in '{ "first": 1 } some text { "identifiedPlantName": "Pothos" }'
     // which is NOT valid JSON.
     expect(() => parsePlantAnalysis(content)).toThrow();
+  });
+
+  it('drops likelyStressors outside the allowed vocabulary and dedupes', () => {
+    const result = parsePlantAnalysis(
+      JSON.stringify({
+        identifiedPlantName: 'Pothos',
+        likelyStressors: ['water', 'Sunburn', 'water', 'drought', 'humidity'],
+        summary: 's',
+        stressSigns: [],
+        detectedRegions: [],
+      }),
+      {
+        allowedStressorIds: new Set([
+          'water',
+          'light',
+          'nutrients',
+          'pests',
+          'disease',
+          'humidity',
+          'temperature',
+          'other',
+        ]),
+      },
+    );
+    // 'Sunburn' lowercased isn't in the taxonomy; 'drought' isn't either.
+    // 'water' appears twice but is deduped.
+    expect(result.likelyStressors).toEqual(['water', 'humidity']);
+  });
+
+  it('drops detectedRegions with an unknown stressSignId or an invalid bbox', () => {
+    const result = parsePlantAnalysis(
+      JSON.stringify({
+        identifiedPlantName: 'Pothos',
+        likelyStressors: [],
+        summary: 's',
+        stressSigns: [],
+        detectedRegions: [
+          // valid
+          {
+            stressSignId: 'brown_spots_lesions',
+            bbox: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+          },
+          // hallucinated stressSignId — dropped via allowedStressSignIds
+          {
+            stressSignId: 'made_up_sign',
+            bbox: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+          },
+          // bbox out of [0,1] range — dropped
+          {
+            stressSignId: 'brown_spots_lesions',
+            bbox: { x: -0.1, y: 0.2, width: 0.3, height: 0.4 },
+          },
+          // missing bbox — dropped
+          { stressSignId: 'brown_spots_lesions' },
+        ],
+      }),
+      {
+        allowedStressSignIds: new Set([
+          'brown_spots_lesions',
+          'leaf_yellowing_chlorosis',
+        ]),
+      },
+    );
+    expect(result.detectedRegions).toEqual([
+      {
+        stressSignId: 'brown_spots_lesions',
+        bbox: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+      },
+    ]);
+  });
+});
+
+describe('normalizeLlmResponseForStorage', () => {
+  it('strips ```json fences and returns canonical JSON', () => {
+    const result = normalizeLlmResponseForStorage('```json\n{ "a": 1 }\n```');
+    expect(result).toBe('{"a":1}');
+    expect(() => JSON.parse(result)).not.toThrow();
+  });
+
+  it('returns canonical JSON for already-clean input', () => {
+    const result = normalizeLlmResponseForStorage('{ "a": 1 }');
+    expect(result).toBe('{"a":1}');
+  });
+
+  it('extracts JSON from surrounding prose', () => {
+    const result = normalizeLlmResponseForStorage(
+      'Here is the result: { "a": 1 } done.',
+    );
+    expect(result).toBe('{"a":1}');
+  });
+
+  it('returns empty/whitespace input unchanged', () => {
+    expect(normalizeLlmResponseForStorage('')).toBe('');
+    expect(normalizeLlmResponseForStorage('   ')).toBe('   ');
+  });
+
+  it('falls back to stripped content for invalid JSON without throwing', () => {
+    const result = normalizeLlmResponseForStorage('```json\n{ "a": \n```');
+    expect(result).toBe('{ "a":');
+    expect(() => normalizeLlmResponseForStorage('{ "a": ')).not.toThrow();
   });
 });

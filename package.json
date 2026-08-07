@@ -6,7 +6,8 @@
     "dev": "npx nx serve frontend",
     "dashboard": "npx nx serve dashboard",
     "architecture": "npx nx serve architecture",
-    "db": "npx nx run db:studio"
+    "db": "npx nx run db:studio",
+    "collab": "cloudflared tunnel --url http://localhost:4500"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

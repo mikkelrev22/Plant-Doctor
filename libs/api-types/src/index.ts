@@ -11,6 +11,12 @@ export const stressSeverityLevels = [
 ] as const;
 export type StressSeverity = (typeof stressSeverityLevels)[number];
 
+// Fireworks/Qwen3 reasoning effort for the analysis call. 'none' skips the
+// thinking block (faster, fine for structured JSON); 'low' | 'medium' | 'high'
+// re-enable reasoning. Sent per-request from the eval UI; defaults to 'none'.
+export const reasoningEffortLevels = ['none', 'low', 'medium', 'high'] as const;
+export type ReasoningEffort = (typeof reasoningEffortLevels)[number];
+
 export interface PlantDto {
   id: number;
   name: string;
@@ -39,6 +45,15 @@ export interface PlantListItemDto extends PlantDto {
    *  state. Empty when the plant has no reports or its latest report has no
    *  present signs. Compact shape (no notes/variables/confidence). */
   latestReportStressSigns: PlantListItemStressSignDto[];
+}
+
+// Extended plant list item for the eval tool: adds the distinct LLM model names
+// used across the plant's reports (latest first), so runs against different
+// models can be told apart in the "Past eval tables" list. Served by a separate
+// GET /plants/evals endpoint that can be disabled in production independently of
+// the general GET /plants list.
+export interface PlantListItemEvalDto extends PlantListItemDto {
+  models: string[];
 }
 
 export interface CreatePlantRequest {
@@ -118,6 +133,37 @@ export interface PlantReportExtendedDto extends PlantReportSummaryDto {
   stressSigns: ReportStressSignDto[];
 }
 
+// LLM metrics for a report, extracted from the `llm_requests` row. Token counts
+// are parsed from the provider `usage` object stored in `response_metadata`
+// (latency/model/error are direct columns). Used by the eval tool to compare
+// consistency and cost across consecutive /reports/analyze runs.
+export interface LlmRequestMetricsDto {
+  id: number;
+  provider: string | null;
+  model: string | null;
+  latencyMs: number | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+  // Prompt tokens served from the provider's cache (OpenAI
+  // `usage.prompt_tokens_details.cached_tokens`). Null when the provider
+  // doesn't report cache details; cost calc then prices all input as uncached.
+  cachedTokens: number | null;
+  // Sampling params captured per-request in `request_metadata` (not direct
+  // columns). Null for legacy rows that predate persisting them.
+  temperature: number | null;
+  reasoningEffort: ReasoningEffort | null;
+  error: string | null;
+  createdAt: string;
+}
+
+// One row in an eval results table: an extended report plus the LLM metrics for
+// the run that produced it. Served by GET /plants/:plantId/reports/eval so an
+// eval table can be reopened any time, like the regular plant reports view.
+export interface PlantReportEvalDto extends PlantReportExtendedDto {
+  llmRequest: LlmRequestMetricsDto | null;
+}
+
 export interface PlantReportDetailDto extends PlantReportSummaryDto {
   stressSigns: ReportStressSignDto[];
   llmRequest: LlmRequestSummaryDto | null;
@@ -147,13 +193,21 @@ export interface LlmStressSignResult {
   notes: string;
 }
 
+// A region of the image showing stress, for later highlight overlays. `bbox` is
+// in normalized fractions 0.0–1.0 of the image dimensions (x, y = top-left
+// corner), so it maps to any rendered size regardless of the variant the LLM
+// saw. `stressSignId` ties the box to a checklist sign.
+export interface LlmDetectedRegion {
+  stressSignId: string;
+  bbox: { x: number; y: number; width: number; height: number };
+}
+
 export interface LlmPlantAnalysisResult {
   identifiedPlantName: string;
   scientificName: string | null;
   identificationConfidence: number | null;
   likelyStressors: string[];
   summary: string;
-  recommendations: string;
   stressSigns: LlmStressSignResult[];
-  detectedRegions: number;
+  detectedRegions: LlmDetectedRegion[];
 }

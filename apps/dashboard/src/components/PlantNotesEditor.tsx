@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
-  ActionIcon,
+  ActionIcon, Flex,
   Group,
   Stack,
   Text,
   Textarea,
-  Title,
+  Title
 } from '@mantine/core';
 import { IconCheck, IconEdit, IconX } from '@tabler/icons-react';
 import { useUpdatePlantNotes } from '../queries';
@@ -57,7 +57,7 @@ export function PlantNotesEditor({
 
   if (isEditing) {
     return (
-      <Stack gap="xs">
+      <Flex gap="xs">
         <Textarea
           value={editedNotes}
           onChange={(e) => setEditedNotes(e.currentTarget.value)}
@@ -66,6 +66,7 @@ export function PlantNotesEditor({
           }}
           autosize
           minRows={2}
+          w="100%"
           autoFocus
           placeholder="Notes about this plant — context the analysis will weigh…"
         />
@@ -88,7 +89,7 @@ export function PlantNotesEditor({
             <IconX size={20} />
           </ActionIcon>
         </Group>
-      </Stack>
+      </Flex>
     );
   }
 

@@ -1,3 +1,9 @@
+import { and, count, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import type {
+  PlantDto,
+  PlantListItemDto,
+  PlantListItemEvalDto,
+} from '@plant-doctor/api-types';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type {
   PlantDto,
@@ -8,6 +14,12 @@ import type {
 } from '@plant-doctor/api-types';
 import { RESEARCH_USER_ID } from '@plant-doctor/api-types';
 import type { Database } from '@plant-doctor/db';
+import {
+  llmRequests,
+  plantPhotos,
+  plantReports,
+  plants,
+} from '@plant-doctor/db/schema';
 import {
   plantPhotos,
   plantReportStressSigns,
@@ -122,6 +134,88 @@ export async function listPlants(db: Database): Promise<PlantListItemDto[]> {
     thumbnailUrl: thumbnailByPlantId.get(plant.id) ?? null,
     reportCount: countByPlantId.get(plant.id) ?? 0,
     latestReportStressSigns: signsByPlantId.get(plant.id) ?? [],
+  }));
+}
+
+/**
+ * Like `listPlants`, but also returns the distinct LLM model names used across
+ * each plant's reports (latest first). Powers the eval tool's "Past eval
+ * tables" list, where runs against different models need to be told apart.
+ *
+ * Served by a dedicated GET /plants/evals route so it can be gated/disabled in
+ * production independently of the general plant list — it joins `llm_requests`,
+ * which is internal telemetry not exposed by GET /plants.
+ */
+export async function listPlantsForEval(
+  db: Database,
+): Promise<PlantListItemEvalDto[]> {
+  const plantRows = await db
+    .select()
+    .from(plants)
+    .where(eq(plants.userId, RESEARCH_USER_ID))
+    .orderBy(desc(plants.id));
+
+  const reportCounts = await db
+    .select({ plantId: plantReports.plantId, count: count() })
+    .from(plantReports)
+    .groupBy(plantReports.plantId);
+
+  const latestPhotos = (await db.execute(sql`
+    SELECT DISTINCT ON (${plantReports.plantId})
+      ${plantReports.plantId} AS "plantId",
+      ${plantPhotos.thumbnailUrl} AS "thumbnailUrl"
+    FROM ${plantReports}
+    LEFT JOIN ${plantPhotos} ON ${plantPhotos.plantReportId} = ${plantReports.id}
+    WHERE ${plantPhotos.thumbnailUrl} IS NOT NULL
+    ORDER BY ${plantReports.plantId}, ${plantReports.reportedAt} DESC
+  `)) as Array<{ plantId: number; thumbnailUrl: string }>;
+
+  // Distinct model names per plant, ordered by most-recent report first within
+  // each plant. We pull every (plantId, model, reportedAt) row and dedupe in
+  // memory — the set is small (one row per report) and this avoids a
+  // correlated/distinct aggregate that Drizzle expresses awkwardly.
+  const modelRows = await db
+    .select({
+      plantId: plantReports.plantId,
+      model: llmRequests.model,
+      reportedAt: plantReports.reportedAt,
+    })
+    .from(plantReports)
+    .innerJoin(
+      llmRequests,
+      and(
+        eq(llmRequests.plantReportId, plantReports.id),
+        isNotNull(llmRequests.model),
+      ),
+    )
+    .orderBy(desc(plantReports.reportedAt));
+
+  const modelsByPlantId = new Map<number, string[]>();
+  const seenByPlantId = new Map<number, Set<string>>();
+  for (const row of modelRows) {
+    const seen = seenByPlantId.get(row.plantId) ?? new Set<string>();
+    if (!seen.has(row.model)) {
+      seen.add(row.model);
+      modelsByPlantId.set(
+        row.plantId,
+        [...(modelsByPlantId.get(row.plantId) ?? []), row.model],
+      );
+    }
+    seenByPlantId.set(row.plantId, seen);
+  }
+
+  const countByPlantId = new Map(
+    reportCounts.map((row) => [row.plantId, row.count]),
+  );
+  const thumbnailByPlantId = new Map(
+    latestPhotos.map((row) => [row.plantId, row.thumbnailUrl]),
+  );
+
+  return plantRows.map((plant) => ({
+    ...toPlantDto(plant),
+    thumbnailUrl: thumbnailByPlantId.get(plant.id) ?? null,
+    reportCount: countByPlantId.get(plant.id) ?? 0,
+    models: modelsByPlantId.get(plant.id) ?? [],
   }));
 }
 

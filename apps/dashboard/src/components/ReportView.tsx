@@ -2,23 +2,33 @@ import {
   Badge,
   Card,
   Group,
-  Image,
   SimpleGrid,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
-import type { PlantReportDetailDto } from '@plant-doctor/api-types';
+import type { LlmDetectedRegion, PlantReportDetailDto } from '@plant-doctor/api-types';
+import { RegionOverlayImage } from './RegionOverlayImage';
 import { StressSignCard } from './StressSignCard';
+import { toImgSrc } from '../utils/urls';
 import styles from '../app.module.css';
 
 interface ReportViewProps {
   report: PlantReportDetailDto | null;
   pendingImageUrl: string | null;
+  // LLM-detected stress regions to draw over the photo. Parsed on the host
+  // page from the llm-request detail response; empty/undefined = no overlay.
+  detectedRegions?: LlmDetectedRegion[];
 }
 
-export function ReportView({ report, pendingImageUrl }: ReportViewProps) {
-  const imageUrl = report?.photo?.imageUrl ?? pendingImageUrl;
+export function ReportView({ report, pendingImageUrl, detectedRegions }: ReportViewProps) {
+  const imageUrl = toImgSrc(report?.photo?.imageUrl ?? pendingImageUrl);
+  // stressSignId -> name for the region frame labels, from the report's
+  // evaluated signs. Falls back to "Region N" inside the overlay for ids not
+  // in this list.
+  const signNames = report
+    ? new Map(report.stressSigns.map((s) => [s.stressSignId, s.name]))
+    : undefined;
 
   return (
     <Stack gap="lg">
@@ -27,7 +37,12 @@ export function ReportView({ report, pendingImageUrl }: ReportViewProps) {
           <Stack gap="sm">
             <div className={styles.photoFrame}>
               {imageUrl ? (
-                <Image className={styles.photo} src={imageUrl} alt="Plant" />
+                <RegionOverlayImage
+                  imageUrl={imageUrl}
+                  regions={detectedRegions ?? []}
+                  signNames={signNames}
+                  alt="Plant"
+                />
               ) : (
                 <div className={styles.emptyPhoto}>
                   Upload a plant image to generate the first report.

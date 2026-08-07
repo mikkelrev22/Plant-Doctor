@@ -3,9 +3,12 @@ import type {
   LlmRequestDetailDto,
   PlantDto,
   PlantListItemDto,
+  PlantListItemEvalDto,
   PlantReportDetailDto,
+  PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
+  ReasoningEffort,
   StressSignDto,
 } from '@plant-doctor/api-types';
 import { config } from '../config';
@@ -31,6 +34,10 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function getPlants() {
   return fetchJson<PlantListItemDto[]>('/plants');
+}
+
+export function getPlantsForEval() {
+  return fetchJson<PlantListItemEvalDto[]>('/plants/evals');
 }
 
 export function getPlant(id: number) {
@@ -75,6 +82,10 @@ export function getPlantReportsExtended(plantId: number) {
   );
 }
 
+export function getPlantReportsEval(plantId: number) {
+  return fetchJson<PlantReportEvalDto[]>(`/plants/${plantId}/reports/eval`);
+}
+
 export function getReport(reportId: number) {
   return fetchJson<PlantReportDetailDto>(`/reports/${reportId}`);
 }
@@ -83,11 +94,18 @@ export function getLlmRequest(llmRequestId: number) {
   return fetchJson<LlmRequestDetailDto>(`/llm-requests/${llmRequestId}`);
 }
 
+// Live backend LLM config (currently just the model name) for display. Read-only.
+export function getLlmConfig() {
+  return fetchJson<{ model: string }>('/config/llm');
+}
+
 export function analyzePlantReport(params: {
   image: File;
   plantId?: number;
   plantName?: string;
   process?: boolean;
+  temperature?: number;
+  reasoningEffort?: ReasoningEffort;
 }) {
   const formData = new FormData();
 
@@ -101,6 +119,14 @@ export function analyzePlantReport(params: {
 
   if (params.process !== undefined) {
     formData.append('process', String(params.process));
+  }
+
+  if (params.temperature !== undefined) {
+    formData.append('temperature', String(params.temperature));
+  }
+
+  if (params.reasoningEffort !== undefined) {
+    formData.append('reasoningEffort', params.reasoningEffort);
   }
 
   formData.append('image', params.image);

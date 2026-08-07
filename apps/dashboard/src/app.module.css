@@ -9,7 +9,7 @@
 }
 
 .panel {
-  border: 1px solid var(--mantine-color-gray-2);
+  /*border: 1px solid var(--mantine-color-gray-2);*/
   box-shadow: 0 14px 35px rgba(15, 23, 42, 0.06);
 }
 
@@ -21,12 +21,6 @@
   overflow: hidden;
   border-radius: var(--mantine-radius-md);
   background: var(--mantine-color-gray-0);
-}
-
-.photo {
-  width: 100%;
-  max-height: 420px;
-  object-fit: contain;
 }
 
 .emptyPhoto {
@@ -110,7 +104,20 @@
   left: 0;
   z-index: 2;
   background: var(--mantine-color-body);
-  cursor: pointer;
+}
+
+/* Clickable table rows: the row is the containing block so a link's ::after
+   can stretch across the whole row — the entire row becomes one link target
+   (middle-click/⌘-click opens a new tab, keyboard Tab reaches it). The link
+   itself keeps real visible text, so no aria-label is needed. */
+.linkRow {
+  position: relative;
+}
+
+.rowLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 
 .reportsTable tbody tr:hover .reportLabelCell {

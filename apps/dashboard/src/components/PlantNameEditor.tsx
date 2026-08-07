@@ -59,6 +59,7 @@ export function PlantNameEditor({
             if (e.key === 'Escape') handleCancel();
           }}
           autoFocus
+          size="lg"
           style={{ flex: 1 }}
         />
         <ActionIcon
@@ -85,7 +86,7 @@ export function PlantNameEditor({
   return (
     <Stack gap={2}>
       <Group gap="xs" align="center">
-        <Title order={2}>{initialName}</Title>
+        <Title order={1}>{initialName}</Title>
         <ActionIcon
           variant="subtle"
           color="gray"
@@ -95,8 +96,8 @@ export function PlantNameEditor({
         </ActionIcon>
       </Group>
       {species ? (
-        <Text c="dimmed" fs="italic" size="sm">
-          {species}
+        <Text size="md">
+          Species: <b>{species}</b>
         </Text>
       ) : null}
     </Stack>

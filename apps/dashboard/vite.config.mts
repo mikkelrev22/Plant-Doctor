@@ -13,6 +13,21 @@ export default defineConfig(() => ({
   server: {
     port: 4500,
     host: 'localhost',
+    // Proxy backend traffic through the Vite dev server so the dashboard and
+    // API share one origin. This makes dev (and a reverse tunnel to :4500)
+    // same-origin — no CORS, no absolute backend URLs baked into the bundle,
+    // and the same code works locally and when shared with a colleague.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4100',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api/, ''),
+      },
+      '/uploads': {
+        target: 'http://localhost:4100',
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port: 4500,

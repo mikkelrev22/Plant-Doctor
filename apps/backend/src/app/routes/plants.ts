@@ -2,8 +2,12 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
-import { createPlant, getPlantForUser, listPlants, updatePlant } from '../services/plants.service';
-import { listReportsForPlant, listReportsForPlantExtended } from '../services/reports.service';
+import { createPlant, getPlantForUser, listPlants, listPlantsForEval, updatePlant } from '../services/plants.service';
+import {
+  listReportsForPlant,
+  listReportsForPlantEval,
+  listReportsForPlantExtended,
+} from '../services/reports.service';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
@@ -11,6 +15,14 @@ export default async function (fastify: FastifyInstance) {
   // Lists preview plants for the Research User dropdown.
   server.get('/plants', async function () {
     return listPlants(fastify.db);
+  });
+
+  // Extended plant list for the eval tool: same fields as GET /plants plus the
+  // distinct LLM model names used across each plant's reports. Registered before
+  // the parametric /plants/:plantId routes so the static path isn't shadowed.
+  // Separate route so it can be disabled in production independently.
+  server.get('/plants/evals', async function () {
+    return listPlantsForEval(fastify.db);
   });
 
   // Updates a plant's editable fields (name and/or notes). At least one must be
@@ -91,6 +103,26 @@ export default async function (fastify: FastifyInstance) {
       const { plantId } = request.params;
 
       return listReportsForPlantExtended(fastify.db, plantId);
+    }
+  );
+
+  // Returns report history for one Research User plant, including per-report
+  // stress-sign evaluations AND LLM metrics (latency, token usage parsed from
+  // response_metadata, model, error) extracted from the llm_requests row for
+  // each report. Powers the eval results table, which is reopenable any time.
+  server.get(
+    '/plants/:plantId/reports/eval',
+    {
+      schema: {
+        params: z.object({
+          plantId: z.coerce.number().int(),
+        }),
+      },
+    },
+    async function (request) {
+      const { plantId } = request.params;
+
+      return listReportsForPlantEval(fastify.db, plantId);
     }
   );
 
