@@ -1,25 +1,22 @@
 # Backend API Endpoints
 
-This document lists the available API endpoints for both backends in the monorepo.
-
-| Backend | Stack | Default URL |
-|---------|-------|-------------|
-| Node (`backend`) | Fastify | `http://localhost:4100` |
-| Python (`backend-py`) | FastAPI + LangGraph | `http://localhost:4200` |
-
----
-
-# Node backend (Fastify)
+This document lists the available API endpoints for the Node backend in the monorepo (`apps/backend`, Fastify).
 
 ## Base URL
 
-Default: `http://localhost:4100`
+Default: `http://localhost:4100` (env `PORT` / `HOST` / `BACKEND_URL`).
+
+## Auth
+
+All routes require an `x-api-key` header matching `BACKEND_API_KEY`, **except** `OPTIONS`, `GET /`, and any path under `/uploads/`. A missing, wrong, or empty key fails closed with **401 Unauthorized**. See `apps/backend/src/app/plugins/api-key.ts`.
+
+---
 
 ## Root
 
 ### GET /
-Returns a simple message confirming the backend is running.
-- **Response**: `{ "message": "Node.js backend is running" }`
+Health/version probe. API-key-exempt.
+- **Response**: `{ "message": "Node.js backend is running", "version": "<BACKEND_VERSION>" }`
 
 ---
 
@@ -28,6 +25,11 @@ Returns a simple message confirming the backend is running.
 ### GET /plants
 Lists preview plants for the Research User dropdown.
 - **Response**: Array of plant objects from the database.
+
+### GET /plants/evals
+Extended plant list for the eval tool: same fields as `GET /plants` plus a `models` array containing the distinct LLM model names used across each plant's reports.
+- **Response**: Array of plant objects with an extra `models` field.
+- **Note**: Registered before the parametric `/plants/:plantId` so the static path isn't shadowed. Intended to be disable-able in production independently.
 
 ### POST /plants
 Creates a plant for the Research User. If no name is provided, a friendly name is generated.
@@ -40,10 +42,11 @@ Returns a single plant by ID.
 - **Response**: Plant object or 404 if not found.
 
 ### PATCH /plants/:plantId
-Updates a plant's name.
+Updates a plant's editable fields (`name` and/or `notes`).
 - **Parameters**: `plantId` (integer)
-- **Body**: `{ "name": "string" }` (required, min length 1)
+- **Body**: `{ "name": "string" (min length 1) }` and/or `{ "notes": "string" | null }` — at least one field must be present. `notes: null` clears the notes.
 - **Response**: The updated plant object.
+- **Errors**: 400 if neither `name` nor `notes` is provided.
 
 ### GET /plants/:plantId/reports
 Returns the report history for a specific Research User plant.
@@ -54,6 +57,11 @@ Returns the report history for a specific Research User plant.
 Returns report history for one plant, including per-report stress-sign evaluations (used by the over-time stress-sign table).
 - **Parameters**: `plantId` (integer)
 - **Response**: Extended report array with stress-sign evaluation data.
+
+### GET /plants/:plantId/reports/eval
+Returns report history for one plant, including per-report stress-sign evaluations **and LLM metrics** (latency, token usage, model, error) parsed from each `llm_requests` row. Powers the eval results table.
+- **Parameters**: `plantId` (integer)
+- **Response**: Eval report array with stress-sign evaluation data and LLM metrics.
 
 ---
 
@@ -66,14 +74,18 @@ Returns a full report including photo details, stress checklist, and LLM log sum
 
 ### POST /reports/analyze
 Uploads a plant image, requests an LLM diagnosis, logs the request, and stores the resulting report.
-- **Content-Type**: `multipart/form-data`
+- **Content-Type**: `multipart/form-data` (max 1 file, ≤10 MB each)
 - **Fields**:
   - `image` (file, required): The plant photo to analyze.
   - `plantId` (string, optional): ID of an existing plant.
   - `plantName` (string, optional): Name for a new or existing plant.
-  - `process` (string, optional): When `true` (default), the image is resized to a vision-friendly size and converted to JPEG before being sent to the LLM. Set to `false` to send the raw uploaded image.
+  - `process` (string, optional): When `true` (default), the image is resized to a vision-friendly size and converted to JPEG before being sent to the LLM. Set to `false` (or `"0"`) to send the raw uploaded image.
+  - `capturedAt` (string, optional): EXIF capture time from the mobile client, as an ISO 8601 string.
+  - `temperature` (number, optional, 0–2): Eval override; defaults to `0.05` when omitted (logged in request metadata).
+  - `reasoningEffort` (string, optional, one of `reasoningEffortLevels`): Eval override; defaults to `'none'` when omitted (logged in request metadata).
 - **Response**: `{ "plant": { ... }, "report": { ... } }`
-- **Errors**: 502 Bad Gateway if LLM analysis fails.
+- **Errors**: 400 `A plant image is required` if no `image` part; 502 Bad Gateway (`Plant analysis failed`, generic message to the client with the full error logged server-side) if LLM analysis fails.
+- **Note**: Plant rename only happens for plants created in this request; species is set once and never overwritten.
 
 ---
 
@@ -90,97 +102,37 @@ Returns the full LLM request log for one request, including prompt, response, an
 
 ### GET /stress-signs
 Returns the seeded stress checklist and the stress-variable taxonomy (nutrients, water, light, etc.).
-- **Response**: Object containing stress signs and their associations.
+- **Response**: Array of stress-sign objects, each with nested `variables`.
+
+---
+
+## Architecture
+
+Used by the `apps/architecture` browser app to read/write the hand-edited architecture diagram stored in `docs/architecture.json`.
+
+### GET /architecture/graph
+Loads the architecture diagram from `docs/architecture.json`.
+- **Response**: `{ "nodes": [...], "edges": [...] }`. Returns `{ "nodes": [], "edges": [] }` if the file does not yet exist (ENOENT).
+
+### PUT /architecture/graph
+Overwrites `docs/architecture.json` with the provided body (creates the directory tree if needed).
+- **Body**: `{ "nodes": [...], "edges": [...] }`
+- **Response**: `{ "ok": true, "nodes": <count>, "edges": <count> }`
+- **Errors**: 400 if the body is not an object with `nodes` and `edges` arrays.
+
+---
+
+## Config
+
+### GET /config/llm
+Read-only live LLM config so the dashboard can show the current model. Returns only non-sensitive values — no keys, URLs, or credentials.
+- **Response**: `{ "model": "<config.llmApiModel>" }`
 
 ---
 
 ## Static Files
 
 ### GET /uploads/plant-photos/*
-Serves uploaded plant photos.
+Serves uploaded plant photos. API-key-exempt (browser `<img>` tags can't attach headers).
 - **Example**: `/uploads/plant-photos/abcd-1234.jpg`
-
----
-
-# Python backend (`backend-py`)
-
-FastAPI service that exposes two LangGraph orchestrations: a deterministic linear pipeline and a non-deterministic ReAct agent. Both share the same underlying capabilities in `apps/backend-py/src/backend_py/capabilities/`.
-
-## Base URL
-
-Default: `http://localhost:4200` (`BACKEND_PY_URL` in `.env`)
-
-The frontend calls this backend from `/diagnose` (linear) and `/agent` (chat).
-
-## Root
-
-### GET /
-Health check.
-- **Response**: `{ "message": "Python backend is running" }`
-
----
-
-## Linear diagnosis
-
-### POST /diagnose/linear
-Runs the deterministic pipeline: triage → vision → retrieval → diagnosis → formatting.
-- **Content-Type**: `application/json`
-- **Body**:
-  ```json
-  {
-    "image_url": "https://example.com/plant.jpg",
-    "user_text": "Yellowing leaves near a south-facing window."
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "result": {
-      "image_url": "...",
-      "user_text": "...",
-      "triage": { "is_plant": true, "structured_facts": { ... } },
-      "symptom_report": { "species": "...", "symptoms": [], "confidence": 0.0 },
-      "care_profile": { "species": "...", "ideal_conditions": {}, "common_failure_modes": [] },
-      "diagnosis": { "species": "...", "symptoms": [], "candidate_causes": [] },
-      "advice": { "summary": "...", "actions": ["..."] }
-    }
-  }
-  ```
-- **Primary output**: `result.advice` (`summary` + `actions`)
-
----
-
-## ReAct agent
-
-### POST /chat/agent
-Runs the non-deterministic ReAct agent graph (agent ↔ tools loop). Supports multi-turn conversation via `thread_id` and a checkpointer for resume.
-- **Content-Type**: `application/json`
-- **Body**:
-  ```json
-  {
-    "message": "My pothos has brown spots on the leaves.",
-    "thread_id": "optional-uuid-for-follow-up-turns"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "thread_id": "uuid",
-    "result": {
-      "messages": [
-        { "role": "human", "content": "..." },
-        { "role": "ai", "content": "..." },
-        { "role": "tool", "content": "..." }
-      ]
-    }
-  }
-  ```
-- **Multi-turn**: Omit `thread_id` on the first message; reuse the returned `thread_id` on follow-up requests.
-- **Primary output**: Last `ai` message in `result.messages`
-- **Errors**: 502 Bad Gateway if the agent run fails (e.g. LLM connection error)
-
-### Agent tools (internal)
-The agent can call these tools during a run (not separate HTTP endpoints):
-- `analyze_plant_image` — vision analysis
-- `lookup_plant_care` — RAG retrieval for species care profile
-- `ask_user` — suspend and ask a clarifying question (resume with same `thread_id`)
+- **Note**: Only mounted when `STORAGE_DRIVER=local` (default). With `STORAGE_DRIVER=s3`, uploads are served directly from the bucket's public URLs and this route is not registered.
