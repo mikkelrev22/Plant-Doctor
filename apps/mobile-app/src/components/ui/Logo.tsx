@@ -2,8 +2,9 @@ import { StyleProp, ViewStyle } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 /**
- * Temporary Plant Doctor logo: a potted flower from the SVG Repo asset
- * `assets/images/logo.svg`. Used in place of the 🌿 emoji on the login screen.
+ * Temporary Plant Doctor logo: a potted flower (SVG Repo asset), inlined as
+ * XML so no asset file needs to be bundled. Used in place of the 🌿 emoji on
+ * the login screen.
  */
 const logoXml = `<?xml version="1.0" encoding="iso-8859-1"?>
 <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
@@ -45,7 +46,7 @@ const logoXml = `<?xml version="1.0" encoding="iso-8859-1"?>
 </g>
 </svg>`;
 
-export type LogoProps = {
+type LogoProps = {
   width?: number;
   height?: number;
   style?: StyleProp<ViewStyle>;

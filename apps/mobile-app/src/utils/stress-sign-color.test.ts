@@ -1,8 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-// theme.ts imports `Platform` from react-native; the node test env can't parse
-// the Flow-typed RN source, so stub it out (mirrors api/client.test.ts).
-vi.mock('react-native', () => ({ Platform: { select: () => undefined } }));
+import { describe, expect, it } from 'vitest';
 
 import { theme } from '@/constants/theme';
 import { stressSignColor } from './stress-sign-color';

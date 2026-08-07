@@ -16,8 +16,6 @@ interface HeaderButtonProps {
 const isWeb = Platform.OS === 'web';
 
 const webWrap = {
-  // borderWidth: 1,
-  // borderColor: palette.leaf,
   borderRadius: theme.radii.pill,
   paddingVertical: 10,
   backgroundColor: "white",

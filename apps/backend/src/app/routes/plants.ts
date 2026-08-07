@@ -8,6 +8,7 @@ import {
   listReportsForPlantEval,
   listReportsForPlantExtended,
 } from '../services/reports.service';
+import { plantIdParams } from './schemas';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
@@ -32,9 +33,7 @@ export default async function (fastify: FastifyInstance) {
     '/plants/:plantId',
     {
       schema: {
-        params: z.object({
-          plantId: z.coerce.number().int(),
-        }),
+        params: plantIdParams,
         body: z
           .object({
             name: z.string().min(1).optional(),
@@ -75,9 +74,7 @@ export default async function (fastify: FastifyInstance) {
     '/plants/:plantId/reports',
     {
       schema: {
-        params: z.object({
-          plantId: z.coerce.number().int(),
-        }),
+        params: plantIdParams,
       },
     },
     async function (request) {
@@ -94,9 +91,7 @@ export default async function (fastify: FastifyInstance) {
     '/plants/:plantId/reports/extended',
     {
       schema: {
-        params: z.object({
-          plantId: z.coerce.number().int(),
-        }),
+        params: plantIdParams,
       },
     },
     async function (request) {
@@ -114,9 +109,7 @@ export default async function (fastify: FastifyInstance) {
     '/plants/:plantId/reports/eval',
     {
       schema: {
-        params: z.object({
-          plantId: z.coerce.number().int(),
-        }),
+        params: plantIdParams,
       },
     },
     async function (request) {
@@ -131,9 +124,7 @@ export default async function (fastify: FastifyInstance) {
     '/plants/:plantId',
     {
       schema: {
-        params: z.object({
-          plantId: z.coerce.number().int(),
-        }),
+        params: plantIdParams,
       },
     },
     async function (request) {

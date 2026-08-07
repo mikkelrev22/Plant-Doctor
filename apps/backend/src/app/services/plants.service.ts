@@ -4,8 +4,6 @@ import type {
   PlantListItemDto,
   PlantListItemEvalDto,
   PlantListItemStressSignDto,
-  StressSeverity,
-  StressSignStatus,
 } from '@plant-doctor/api-types';
 import { RESEARCH_USER_ID } from '@plant-doctor/api-types';
 import type { Database } from '@plant-doctor/db';
@@ -19,6 +17,7 @@ import {
 } from '@plant-doctor/db/schema';
 import { NotFoundError } from '../errors';
 import { generatePlantName } from './plant-names';
+import { toStressSeverity, toStressSignStatus } from './stress-signs.util';
 
 function toPlantDto(plant: typeof plants.$inferSelect): PlantDto {
   return {
@@ -106,8 +105,8 @@ export async function listPlants(db: Database): Promise<PlantListItemDto[]> {
     list.push({
       stressSignId: row.stressSignId,
       name: row.name,
-      status: row.status as StressSignStatus,
-      severity: row.severity as StressSeverity,
+      status: toStressSignStatus(row.status),
+      severity: toStressSeverity(row.severity),
     });
     signsByReportId.set(row.reportId, list);
   }
@@ -288,7 +287,7 @@ export async function updatePlantName(
 
 /** Max length of stored plant notes, in characters. Bounds the surface that
  * notes contribute to the analysis prompt (prompt-injection defense-in-depth). */
-export const MAX_PLANT_NOTES_LENGTH = 1000;
+const MAX_PLANT_NOTES_LENGTH = 1000;
 
 /**
  * Normalizes user-supplied notes for storage: trims, strips control characters

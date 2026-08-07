@@ -11,17 +11,8 @@ import { Spinner } from '@/components/ui/Spinner';
 import { theme } from '@/constants/theme';
 import { useReport, useReportsExtended } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
-}
-
-const STATUS_COLOR: Record<string, string> = {
-  present: theme.colors.coral,
-  absent: theme.colors.success,
-  unknown: theme.colors.textMuted,
-};
+import { formatDateTime } from '@/utils/format-date';
+import { stressSignColor } from '@/utils/stress-sign-color';
 
 /** Report page: full report content plus links to the plant's other reports. */
 export default function ReportScreen() {
@@ -89,7 +80,7 @@ export default function ReportScreen() {
               <View key={sign.stressSignId} style={styles.signRow}>
                 <View style={styles.signHead}>
                   <Text style={styles.signName}>{sign.name}</Text>
-                  <Text style={[styles.signStatus, { color: STATUS_COLOR[sign.status] ?? theme.colors.text }]}>
+                  <Text style={[styles.signStatus, { color: stressSignColor(sign) }]}>
                     {sign.status}
                     {sign.status !== 'absent' && sign.severity !== 'none' ? ` · ${sign.severity}` : ''}
                   </Text>
@@ -101,7 +92,7 @@ export default function ReportScreen() {
         ) : null}
 
         <Text style={styles.meta}>
-          Reported {formatDate(report.reportedAt)}
+          Reported {formatDateTime(report.reportedAt)}
         </Text>
 
         {otherReports.length > 0 ? (

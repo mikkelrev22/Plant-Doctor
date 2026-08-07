@@ -1,4 +1,4 @@
-import { resolveCapturedAt, sanitizeCaptureDate } from './routes/reports';
+import { resolveCapturedAt, sanitizeCaptureDate } from './services/capture-date.util';
 
 describe('resolveCapturedAt', () => {
   it('returns null for missing/empty input', () => {

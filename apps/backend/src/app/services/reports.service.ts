@@ -10,8 +10,6 @@ import type {
   PlantReportEvalDto,
   PlantReportExtendedDto,
   PlantReportSummaryDto,
-  ReasoningEffort,
-  ReportStressSignDto,
   StressSeverity,
   StressSignStatus,
 } from '@plant-doctor/api-types';
@@ -28,6 +26,12 @@ import {
   stressVariables,
 } from '@plant-doctor/db/schema';
 import { normalizeLlmResponseForStorage } from './llm.service';
+import {
+  groupStressSigns,
+  groupStressSignsByReport,
+  pickFirstByReportId,
+  toReasoningEffort,
+} from './stress-signs.util';
 import type { StoredUpload } from './uploads.service';
 
 function clampConfidence(value: number | null) {
@@ -139,6 +143,73 @@ function summaryFromRow(params: {
     recommendations: params.report.recommendations,
     photo: params.photo ? toPhotoDto(params.photo) : null,
   };
+}
+
+// Shared query builders for the three plant-reports list endpoints, which all
+// select the same base report+plant rows and the same batched photos / stress
+// signs. Centralizing them removes the verbatim query duplication across
+// listReportsForPlant / listReportsForPlantExtended / listReportsForPlantEval.
+
+function selectReportsForPlant(db: Database, plantId: number) {
+  return db
+    .select({ report: plantReports, plant: plants })
+    .from(plantReports)
+    .innerJoin(plants, eq(plants.id, plantReports.plantId))
+    .where(
+      and(
+        eq(plants.userId, RESEARCH_USER_ID),
+        eq(plantReports.plantId, plantId),
+      ),
+    )
+    .orderBy(desc(plantReports.reportedAt));
+}
+
+function selectEarliestPhotosForReports(db: Database, reportIds: number[]) {
+  // Order by plantReportId ASC then createdAt ASC so pickFirstByReportId keeps
+  // the earliest photo per report (one batched query instead of N).
+  return db
+    .select()
+    .from(plantPhotos)
+    .where(inArray(plantPhotos.plantReportId, reportIds))
+    .orderBy(asc(plantPhotos.plantReportId), asc(plantPhotos.createdAt));
+}
+
+function selectStressSignsForReports(db: Database, reportIds: number[]) {
+  // Left-join from every stress sign so unevaluated signs still surface (with a
+  // null status) — the eval/extended views show the full checklist per report.
+  return db
+    .select({
+      reportId: plantReportStressSigns.plantReportId,
+      id: stressSigns.id,
+      name: stressSigns.name,
+      status: plantReportStressSigns.status,
+      severity: plantReportStressSigns.severity,
+      confidence: plantReportStressSigns.confidence,
+      notes: plantReportStressSigns.notes,
+      variableId: stressVariables.id,
+      variableName: stressVariables.name,
+    })
+    .from(stressSigns)
+    .leftJoin(
+      plantReportStressSigns,
+      and(
+        eq(plantReportStressSigns.stressSignId, stressSigns.id),
+        inArray(plantReportStressSigns.plantReportId, reportIds),
+      ),
+    )
+    .leftJoin(
+      stressSignVariables,
+      eq(stressSignVariables.stressSignId, stressSigns.id),
+    )
+    .leftJoin(
+      stressVariables,
+      eq(stressVariables.id, stressSignVariables.stressVariableId),
+    )
+    .orderBy(
+      asc(plantReportStressSigns.plantReportId),
+      asc(stressSigns.sortOrder),
+      asc(stressVariables.name),
+    );
 }
 
 export async function createLlmRequestLog(
@@ -338,20 +409,7 @@ export async function listReportsForPlant(
   db: Database,
   plantId: number,
 ): Promise<PlantReportSummaryDto[]> {
-  const rows = await db
-    .select({
-      report: plantReports,
-      plant: plants,
-    })
-    .from(plantReports)
-    .innerJoin(plants, eq(plants.id, plantReports.plantId))
-    .where(
-      and(
-        eq(plants.userId, RESEARCH_USER_ID),
-        eq(plantReports.plantId, plantId),
-      ),
-    )
-    .orderBy(desc(plantReports.reportedAt));
+  const rows = await selectReportsForPlant(db, plantId);
 
   if (rows.length === 0) {
     return [];
@@ -361,19 +419,8 @@ export async function listReportsForPlant(
   // createdAt ASC), then keep the first per report in memory — instead of one
   // query per report.
   const reportIds = rows.map((row) => row.report.id);
-  const photoRows = await db
-    .select()
-    .from(plantPhotos)
-    .where(inArray(plantPhotos.plantReportId, reportIds))
-    .orderBy(asc(plantPhotos.plantReportId), asc(plantPhotos.createdAt));
-
-  const photoByReportId = new Map<number, typeof plantPhotos.$inferSelect>();
-  for (const photo of photoRows) {
-    const reportId = photo.plantReportId;
-    if (reportId !== null && !photoByReportId.has(reportId)) {
-      photoByReportId.set(reportId, photo);
-    }
-  }
+  const photoRows = await selectEarliestPhotosForReports(db, reportIds);
+  const photoByReportId = pickFirstByReportId(photoRows);
 
   return rows.map((row) =>
     summaryFromRow({
@@ -388,115 +435,22 @@ export async function listReportsForPlantExtended(
   db: Database,
   plantId: number,
 ): Promise<PlantReportExtendedDto[]> {
-  const rows = await db
-    .select({
-      report: plantReports,
-      plant: plants,
-    })
-    .from(plantReports)
-    .innerJoin(plants, eq(plants.id, plantReports.plantId))
-    .where(
-      and(
-        eq(plants.userId, RESEARCH_USER_ID),
-        eq(plantReports.plantId, plantId),
-      ),
-    )
-    .orderBy(desc(plantReports.reportedAt));
+  const rows = await selectReportsForPlant(db, plantId);
 
   if (rows.length === 0) {
     return [];
   }
 
-  const reportIds = rows.map((row) => row.report.id);
-
   // Fetch the earliest photo per report and the full stress-sign evaluation for
   // every report in two batched queries, instead of one query per report.
+  const reportIds = rows.map((row) => row.report.id);
   const [photoRows, stressRows] = await Promise.all([
-    db
-      .select()
-      .from(plantPhotos)
-      .where(inArray(plantPhotos.plantReportId, reportIds))
-      .orderBy(asc(plantPhotos.plantReportId), asc(plantPhotos.createdAt)),
-    db
-      .select({
-        reportId: plantReportStressSigns.plantReportId,
-        id: stressSigns.id,
-        name: stressSigns.name,
-        status: plantReportStressSigns.status,
-        severity: plantReportStressSigns.severity,
-        confidence: plantReportStressSigns.confidence,
-        notes: plantReportStressSigns.notes,
-        variableId: stressVariables.id,
-        variableName: stressVariables.name,
-      })
-      .from(stressSigns)
-      .leftJoin(
-        plantReportStressSigns,
-        and(
-          eq(plantReportStressSigns.stressSignId, stressSigns.id),
-          inArray(plantReportStressSigns.plantReportId, reportIds),
-        ),
-      )
-      .leftJoin(
-        stressSignVariables,
-        eq(stressSignVariables.stressSignId, stressSigns.id),
-      )
-      .leftJoin(
-        stressVariables,
-        eq(stressVariables.id, stressSignVariables.stressVariableId),
-      )
-      .orderBy(
-        asc(plantReportStressSigns.plantReportId),
-        asc(stressSigns.sortOrder),
-        asc(stressVariables.name),
-      ),
+    selectEarliestPhotosForReports(db, reportIds),
+    selectStressSignsForReports(db, reportIds),
   ]);
 
-  const photoByReportId = new Map<number, typeof plantPhotos.$inferSelect>();
-  for (const photo of photoRows) {
-    const reportId = photo.plantReportId;
-    if (reportId !== null && !photoByReportId.has(reportId)) {
-      photoByReportId.set(reportId, photo);
-    }
-  }
-
-  // Group stress-sign rows by report, then by sign, accumulating variables per
-  // sign — the same shape `getReportDetail` produces for a single report.
-  const stressByReportId = new Map<
-    number,
-    Map<string, ReportStressSignDto>
-  >();
-
-  for (const stressRow of stressRows) {
-    const reportId = stressRow.reportId;
-    if (reportId === null) {
-      continue;
-    }
-
-    const signsForReport =
-      stressByReportId.get(reportId) ?? new Map<string, ReportStressSignDto>();
-    const stressSign =
-      signsForReport.get(stressRow.id) ??
-      ({
-        stressSignId: stressRow.id,
-        name: stressRow.name,
-        status: (stressRow.status ?? 'unknown') as StressSignStatus,
-        severity: (stressRow.severity ?? 'none') as StressSeverity,
-        confidence: stressRow.confidence,
-        notes: stressRow.notes,
-        variables: [],
-      } satisfies ReportStressSignDto);
-
-    if (stressRow.variableId && stressRow.variableName) {
-      stressSign.variables.push({
-        id: stressRow.variableId,
-        name: stressRow.variableName,
-      });
-    }
-
-    signsForReport.set(stressRow.id, stressSign);
-    stressByReportId.set(reportId, signsForReport);
-  }
+  const photoByReportId = pickFirstByReportId(photoRows);
+  const stressByReportId = groupStressSignsByReport(stressRows);
 
   return rows.map((row) => {
     const signsForReport = stressByReportId.get(row.report.id);
@@ -519,10 +473,7 @@ function toLlmRequestMetrics(
   const meta = request.requestMetadata;
   const temperature =
     meta && typeof meta.temperature === 'number' ? meta.temperature : null;
-  const reasoningEffort =
-    meta && typeof meta.reasoningEffort === 'string'
-      ? (meta.reasoningEffort as ReasoningEffort)
-      : null;
+  const reasoningEffort = toReasoningEffort(meta?.reasoningEffort);
   return {
     id: request.id,
     provider: request.provider,
@@ -544,20 +495,7 @@ export async function listReportsForPlantEval(
   db: Database,
   plantId: number,
 ): Promise<PlantReportEvalDto[]> {
-  const rows = await db
-    .select({
-      report: plantReports,
-      plant: plants,
-    })
-    .from(plantReports)
-    .innerJoin(plants, eq(plants.id, plantReports.plantId))
-    .where(
-      and(
-        eq(plants.userId, RESEARCH_USER_ID),
-        eq(plantReports.plantId, plantId),
-      ),
-    )
-    .orderBy(desc(plantReports.reportedAt));
+  const rows = await selectReportsForPlant(db, plantId);
 
   if (rows.length === 0) {
     return [];
@@ -569,44 +507,8 @@ export async function listReportsForPlantEval(
   // batched queries instead of one per report. For llm_requests we order by
   // plantReportId ASC then createdAt DESC and keep the first per report.
   const [photoRows, stressRows, llmRequestRows] = await Promise.all([
-    db
-      .select()
-      .from(plantPhotos)
-      .where(inArray(plantPhotos.plantReportId, reportIds))
-      .orderBy(asc(plantPhotos.plantReportId), asc(plantPhotos.createdAt)),
-    db
-      .select({
-        reportId: plantReportStressSigns.plantReportId,
-        id: stressSigns.id,
-        name: stressSigns.name,
-        status: plantReportStressSigns.status,
-        severity: plantReportStressSigns.severity,
-        confidence: plantReportStressSigns.confidence,
-        notes: plantReportStressSigns.notes,
-        variableId: stressVariables.id,
-        variableName: stressVariables.name,
-      })
-      .from(stressSigns)
-      .leftJoin(
-        plantReportStressSigns,
-        and(
-          eq(plantReportStressSigns.stressSignId, stressSigns.id),
-          inArray(plantReportStressSigns.plantReportId, reportIds),
-        ),
-      )
-      .leftJoin(
-        stressSignVariables,
-        eq(stressSignVariables.stressSignId, stressSigns.id),
-      )
-      .leftJoin(
-        stressVariables,
-        eq(stressVariables.id, stressSignVariables.stressVariableId),
-      )
-      .orderBy(
-        asc(plantReportStressSigns.plantReportId),
-        asc(stressSigns.sortOrder),
-        asc(stressVariables.name),
-      ),
+    selectEarliestPhotosForReports(db, reportIds),
+    selectStressSignsForReports(db, reportIds),
     db
       .select()
       .from(llmRequests)
@@ -614,62 +516,9 @@ export async function listReportsForPlantEval(
       .orderBy(asc(llmRequests.plantReportId), desc(llmRequests.createdAt)),
   ]);
 
-  const photoByReportId = new Map<number, typeof plantPhotos.$inferSelect>();
-  for (const photo of photoRows) {
-    const reportId = photo.plantReportId;
-    if (reportId !== null && !photoByReportId.has(reportId)) {
-      photoByReportId.set(reportId, photo);
-    }
-  }
-
-  const llmRequestByReportId = new Map<
-    number,
-    typeof llmRequests.$inferSelect
-  >();
-  for (const request of llmRequestRows) {
-    const reportId = request.plantReportId;
-    if (reportId !== null && !llmRequestByReportId.has(reportId)) {
-      llmRequestByReportId.set(reportId, request);
-    }
-  }
-
-  // Group stress-sign rows by report, then by sign, accumulating variables per
-  // sign — the same shape used by listReportsForPlantExtended.
-  const stressByReportId = new Map<
-    number,
-    Map<string, ReportStressSignDto>
-  >();
-
-  for (const stressRow of stressRows) {
-    const reportId = stressRow.reportId;
-    if (reportId === null) {
-      continue;
-    }
-
-    const signsForReport =
-      stressByReportId.get(reportId) ?? new Map<string, ReportStressSignDto>();
-    const stressSign =
-      signsForReport.get(stressRow.id) ??
-      ({
-        stressSignId: stressRow.id,
-        name: stressRow.name,
-        status: (stressRow.status ?? 'unknown') as StressSignStatus,
-        severity: (stressRow.severity ?? 'none') as StressSeverity,
-        confidence: stressRow.confidence,
-        notes: stressRow.notes,
-        variables: [],
-      } satisfies ReportStressSignDto);
-
-    if (stressRow.variableId && stressRow.variableName) {
-      stressSign.variables.push({
-        id: stressRow.variableId,
-        name: stressRow.variableName,
-      });
-    }
-
-    signsForReport.set(stressRow.id, stressSign);
-    stressByReportId.set(reportId, signsForReport);
-  }
+  const photoByReportId = pickFirstByReportId(photoRows);
+  const stressByReportId = groupStressSignsByReport(stressRows);
+  const llmRequestByReportId = pickFirstByReportId(llmRequestRows);
 
   return rows.map((row) => {
     const signsForReport = stressByReportId.get(row.report.id);
@@ -763,30 +612,7 @@ export async function getReportDetail(
 
   const photo = photoRows[0] ?? null;
   const llmRequest = llmRequestRows[0];
-  const stressSignsById = new Map<string, ReportStressSignDto>();
-
-  for (const stressRow of stressRows) {
-    const stressSign =
-      stressSignsById.get(stressRow.id) ??
-      ({
-        stressSignId: stressRow.id,
-        name: stressRow.name,
-        status: (stressRow.status ?? 'unknown') as StressSignStatus,
-        severity: (stressRow.severity ?? 'none') as StressSeverity,
-        confidence: stressRow.confidence,
-        notes: stressRow.notes,
-        variables: [],
-      } satisfies ReportStressSignDto);
-
-    if (stressRow.variableId && stressRow.variableName) {
-      stressSign.variables.push({
-        id: stressRow.variableId,
-        name: stressRow.variableName,
-      });
-    }
-
-    stressSignsById.set(stressRow.id, stressSign);
-  }
+  const stressSignsById = groupStressSigns(stressRows);
 
   return {
     ...summaryFromRow({

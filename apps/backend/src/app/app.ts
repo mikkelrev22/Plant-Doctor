@@ -2,10 +2,7 @@ import * as path from 'path';
 import { FastifyInstance } from 'fastify';
 import AutoLoad from '@fastify/autoload';
 
-/* eslint-disable-next-line */
-export interface AppOptions {}
-
-export async function app(fastify: FastifyInstance, opts: AppOptions) {
+export async function app(fastify: FastifyInstance, opts: Record<string, unknown>) {
   // This loads all plugins defined in plugins
   // those should be support plugins that are reused
   // through your application

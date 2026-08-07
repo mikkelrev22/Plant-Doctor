@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import type { LlmConfigDto } from '@plant-doctor/api-types';
 import { config } from '../../config';
 
 /**
@@ -8,7 +9,7 @@ import { config } from '../../config';
  * non-sensitive values — never keys, URLs, or credentials.
  */
 export default async function (fastify: FastifyInstance) {
-  fastify.get('/config/llm', async function () {
+  fastify.get('/config/llm', async function (): Promise<LlmConfigDto> {
     return { model: config.llmApiModel };
   });
 }

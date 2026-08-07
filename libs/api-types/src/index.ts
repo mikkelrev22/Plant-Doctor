@@ -27,16 +27,23 @@ export interface PlantDto {
 }
 
 /**
- * Compact stress-sign shape used in list payloads. Omits `confidence`, `notes`,
- * and `variables` (not needed for the indicator dots) so the plants-list query
- * avoids the extra joins those fields require.
+ * Compact stress-sign shape: the fields every stress-sign payload shares
+ * (plants-list items, report list items, indicator dots). Full per-report
+ * signs extend this with `confidence`, `notes`, and `variables`; list items
+ * use it as-is so their queries can skip the joins those extra fields require.
  */
-export interface PlantListItemStressSignDto {
+export interface CompactStressSignDto {
   stressSignId: string;
   name: string;
   status: StressSignStatus;
   severity: StressSeverity;
 }
+
+/**
+ * Compact stress-sign shape used in plants-list payloads. Structurally identical
+ * to {@link CompactStressSignDto}; kept as a named alias for call-site clarity.
+ */
+export type PlantListItemStressSignDto = CompactStressSignDto;
 
 export interface PlantListItemDto extends PlantDto {
   thumbnailUrl: string | null;
@@ -54,10 +61,6 @@ export interface PlantListItemDto extends PlantDto {
 // the general GET /plants list.
 export interface PlantListItemEvalDto extends PlantListItemDto {
   models: string[];
-}
-
-export interface CreatePlantRequest {
-  name?: string;
 }
 
 export interface StressVariableDto {
@@ -86,11 +89,7 @@ export interface PlantPhotoDto {
   createdAt: string;
 }
 
-export interface ReportStressSignDto {
-  stressSignId: string;
-  name: string;
-  status: StressSignStatus;
-  severity: StressSeverity;
+export interface ReportStressSignDto extends CompactStressSignDto {
   confidence: number | null;
   notes: string | null;
   variables: StressVariableDto[];
@@ -171,6 +170,11 @@ export interface PlantReportDetailDto extends PlantReportExtendedDto {
 export interface AnalyzeReportResponse {
   plant: PlantDto;
   report: PlantReportDetailDto;
+}
+
+/** GET /config/llm — non-secret model name the backend is configured to use. */
+export interface LlmConfigDto {
+  model: string;
 }
 
 export interface ApiErrorResponse {

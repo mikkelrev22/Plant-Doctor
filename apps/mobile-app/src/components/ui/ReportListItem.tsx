@@ -3,16 +3,11 @@ import type { PlantReportExtendedDto } from '@plant-doctor/api-types';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StressDots } from '@/components/ui/StressDots';
 import { theme } from '@/constants/theme';
+import { formatDate } from '@/utils/format-date';
 
 interface ReportListItemProps {
   report: PlantReportExtendedDto;
   onPress: () => void;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /** A report row: thumbnail, identified name, stress-sign dots, date, confidence pill. */

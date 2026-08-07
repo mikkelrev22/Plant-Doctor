@@ -1,13 +1,12 @@
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { getHealth } from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
 import { Screen } from '@/components/ui/Screen';
 import { theme } from '@/constants/theme';
+import { useHealth } from '@/hooks/queries';
 import { useSessionStore } from '@/state/session-store';
 
 /**
@@ -22,7 +21,7 @@ export default function LoginScreen() {
   // App ver comes from the OTA update's app.json (expo-constants); backend ver is
   // fetched via the API-key-exempt GET /. Both fall back to '—' if unavailable.
   const appVersion = Constants.expoConfig?.version ?? '—';
-  const { data } = useQuery({ queryKey: ['health'], queryFn: getHealth });
+  const { data } = useHealth();
   const backendVersion = data?.version ?? '—';
 
   useEffect(() => {

@@ -1,18 +1,5 @@
-import type {
-  StressSeverity,
-  StressSignStatus,
-} from '@plant-doctor/api-types';
+import type { CompactStressSignDto } from '@plant-doctor/api-types';
 import { theme } from '@/constants/theme';
-
-/**
- * The shape both list payloads share: the compact `PlantListItemStressSignDto`
- * (plants list) and the full `ReportStressSignDto` (reports list) both satisfy
- * this, so the helper works for either without a union type.
- */
-export interface StressSignColorInput {
-  status: StressSignStatus;
-  severity: StressSeverity;
-}
 
 /**
  * Maps a stress sign's status + severity to a theme color token.
@@ -23,9 +10,14 @@ export interface StressSignColorInput {
  *               none=warning (a present sign with no severity is treated as
  *               the mildest visible tier rather than rendered as healthy)
  *
+ * Accepts the compact sign shape (`Pick<CompactStressSignDto, 'status' |
+ * 'severity'>`), so it works for both list payloads that satisfy it.
+ *
  * Pure data (no React) so it's trivially unit-testable.
  */
-export function stressSignColor(sign: StressSignColorInput): string {
+export function stressSignColor(
+  sign: Pick<CompactStressSignDto, 'status' | 'severity'>,
+): string {
   switch (sign.status) {
     case 'absent':
       return theme.colors.success;

@@ -36,5 +36,4 @@ export default function AddPlantScreen() {
 const styles = StyleSheet.create({
   header: { paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.md, gap: 4 },
   title: { ...theme.typography.title, color: theme.colors.leafDark },
-  subtitle: { ...theme.typography.body, color: theme.colors.textMuted },
 });

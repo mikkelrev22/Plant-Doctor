@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import '../types/fastify';
 import { getLlmRequestDetail } from '../services/reports.service';
+import { llmRequestIdParams } from './schemas';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
@@ -14,9 +14,7 @@ export default async function (fastify: FastifyInstance) {
     '/llm-requests/:llmRequestId',
     {
       schema: {
-        params: z.object({
-          llmRequestId: z.coerce.number().int(),
-        }),
+        params: llmRequestIdParams,
       },
     },
     async function (request) {

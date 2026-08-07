@@ -1,22 +1,10 @@
-import type {
-  StressSeverity,
-  StressSignStatus,
-} from '@plant-doctor/api-types';
+import type { CompactStressSignDto } from '@plant-doctor/api-types';
 import { StyleSheet, View } from 'react-native';
 import { theme } from '@/constants/theme';
 import { stressSignColor } from '@/utils/stress-sign-color';
 
-/** Compact sign shape accepted by the dots — matches both the plants-list
- *  `PlantListItemStressSignDto` and the reports-list `ReportStressSignDto`. */
-export interface StressDotSign {
-  stressSignId: string;
-  name: string;
-  status: StressSignStatus;
-  severity: StressSeverity;
-}
-
 interface StressDotsProps {
-  signs: StressDotSign[];
+  signs: CompactStressSignDto[];
   /** Circle diameter in px. Defaults to 8. */
   size?: number;
   /** When true (default), render a single green dot when no signs are present

@@ -3,14 +3,9 @@ import type {
   LlmPlantAnalysisResult,
   LlmStressSignResult,
   ReasoningEffort,
-  StressSeverity,
-  StressSignStatus,
-} from '@plant-doctor/api-types';
-import {
-  stressSeverityLevels,
-  stressSignStatuses,
 } from '@plant-doctor/api-types';
 import { config } from '../../config';
+import { toStressSeverity, toStressSignStatus } from './stress-signs.util';
 
 interface AnalyzePlantImageParams {
   prompt: string;
@@ -140,18 +135,6 @@ function numberOrNull(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function statusValue(value: unknown): StressSignStatus {
-  return stressSignStatuses.includes(value as StressSignStatus)
-    ? (value as StressSignStatus)
-    : 'unknown';
-}
-
-function severityValue(value: unknown): StressSeverity {
-  return stressSeverityLevels.includes(value as StressSeverity)
-    ? (value as StressSeverity)
-    : 'none';
-}
-
 function extractJsonObject(content: string) {
   const withoutFence = content
     .replace(/^```(?:json)?/i, '')
@@ -226,8 +209,8 @@ function normalizeStressSign(value: unknown): LlmStressSignResult | null {
 
   return {
     stressSignId,
-    status: statusValue(value.status),
-    severity: severityValue(value.severity),
+    status: toStressSignStatus(value.status),
+    severity: toStressSeverity(value.severity),
     confidence: numberOrNull(value.confidence),
     notes: stringValue(value.notes),
   };

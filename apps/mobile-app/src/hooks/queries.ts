@@ -7,15 +7,20 @@ import type { AnalyzeReportResponse } from '@plant-doctor/api-types';
 import {
   analyzeReport,
   type AnalyzeParams,
+  getHealth,
   getPlant,
   getReport,
   listPlants,
-  listReports,
   listReportsExtended,
   updatePlantName,
   updatePlantNotes,
 } from '@/api/client';
 import { qk } from '@/api/query-keys';
+
+/** GET / — backend health/version probe (API-key exempt, safe pre-login). */
+export function useHealth() {
+  return useQuery({ queryKey: qk.health, queryFn: getHealth });
+}
 
 /** GET /plants */
 export function usePlants() {
@@ -28,15 +33,6 @@ export function usePlant(id: number) {
     queryKey: qk.plant(id),
     queryFn: () => getPlant(id),
     enabled: Number.isFinite(id) && id > 0,
-  });
-}
-
-/** GET /plants/:id/reports (latest first) */
-export function useReports(plantId: number) {
-  return useQuery({
-    queryKey: qk.reports(plantId),
-    queryFn: () => listReports(plantId),
-    enabled: Number.isFinite(plantId) && plantId > 0,
   });
 }
 
@@ -94,10 +90,10 @@ export function useAnalyzeReport() {
     mutationFn: (params) => analyzeReport(params),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: qk.plants });
-      qc.invalidateQueries({ queryKey: qk.reports(data.plant.id) });
-      // `reportsExtended` is a descendent of `reports`, so the line above
-      // already covers it; kept explicit for clarity and to survive any future
-      // key-shape drift.
+      // `reportsExtended` is nested under the per-plant reports path, which is
+      // a descendent of `qk.plants`, so invalidating the plant list above also
+      // covers it. Invalidate it explicitly too so a future key-shape change
+      // can't silently leave it stale.
       qc.invalidateQueries({ queryKey: qk.reportsExtended(data.plant.id) });
       qc.setQueryData(qk.plant(data.plant.id), data.plant);
       qc.setQueryData(qk.report(data.report.id), data.report);

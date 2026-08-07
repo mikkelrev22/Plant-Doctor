@@ -5,7 +5,6 @@ import type {
   PlantListItemDto,
   PlantReportDetailDto,
   PlantReportExtendedDto,
-  PlantReportSummaryDto,
   RootResponse,
 } from '@plant-doctor/api-types';
 import { Platform } from 'react-native';
@@ -99,11 +98,6 @@ export function updatePlantNotes(
     method: 'PATCH',
     body: JSON.stringify({ notes }),
   });
-}
-
-/** GET /plants/:id/reports — report history, ordered reportedAt DESC (latest first). */
-export function listReports(plantId: number): Promise<PlantReportSummaryDto[]> {
-  return request<PlantReportSummaryDto[]>(`/plants/${plantId}/reports`);
 }
 
 /** GET /plants/:id/reports/extended — report history with per-report stress
