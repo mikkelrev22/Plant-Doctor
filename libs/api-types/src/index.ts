@@ -20,9 +20,25 @@ export interface PlantDto {
   updatedAt: string;
 }
 
+/**
+ * Compact stress-sign shape used in list payloads. Omits `confidence`, `notes`,
+ * and `variables` (not needed for the indicator dots) so the plants-list query
+ * avoids the extra joins those fields require.
+ */
+export interface PlantListItemStressSignDto {
+  stressSignId: string;
+  name: string;
+  status: StressSignStatus;
+  severity: StressSeverity;
+}
+
 export interface PlantListItemDto extends PlantDto {
   thumbnailUrl: string | null;
   reportCount: number;
+  /** Present stress signs from the plant's latest report — the plant's current
+   *  state. Empty when the plant has no reports or its latest report has no
+   *  present signs. Compact shape (no notes/variables/confidence). */
+  latestReportStressSigns: PlantListItemStressSignDto[];
 }
 
 export interface CreatePlantRequest {
@@ -115,6 +131,12 @@ export interface AnalyzeReportResponse {
 export interface ApiErrorResponse {
   error: string;
   message: string;
+}
+
+/** GET / — backend health/version probe (API-key exempt, safe to call pre-login). */
+export interface RootResponse {
+  message: string;
+  version: string;
 }
 
 export interface LlmStressSignResult {

@@ -9,7 +9,12 @@ describe('query keys', () => {
   it('scopes plant/reports/report keys by id', () => {
     expect(qk.plant(7)).toEqual(['plants', 7]);
     expect(qk.reports(7)).toEqual(['plants', 7, 'reports']);
+    expect(qk.reportsExtended(7)).toEqual(['plants', 7, 'reports', 'extended']);
     expect(qk.report(42)).toEqual(['reports', 42]);
+  });
+
+  it('nests reportsExtended under reports so list invalidation covers it', () => {
+    expect(qk.reportsExtended(7).slice(0, 3)).toEqual(qk.reports(7));
   });
 
   it('shares a prefix so invalidating plants also covers reports', () => {

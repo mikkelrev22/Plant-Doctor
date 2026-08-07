@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BottomLink } from '@/components/ui/BottomLink';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HeroImage } from '@/components/ui/HeroImage';
@@ -8,7 +9,7 @@ import { ReportListItem } from '@/components/ui/ReportListItem';
 import { Screen } from '@/components/ui/Screen';
 import { Spinner } from '@/components/ui/Spinner';
 import { theme } from '@/constants/theme';
-import { useReport, useReports } from '@/hooks/queries';
+import { useReport, useReportsExtended } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 
 function formatDate(iso: string): string {
@@ -28,7 +29,7 @@ export default function ReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const reportId = Number(id);
   const { data: report, isLoading, error } = useReport(reportId);
-  const { data: plantReports } = useReports(report?.plantId ?? -1);
+  const { data: plantReports } = useReportsExtended(report?.plantId ?? -1);
 
   // Sibling reports, excluding the current one.
   const otherReports = useMemo(
@@ -117,12 +118,12 @@ export default function ReportScreen() {
           </Section>
         ) : null}
 
-        <Pressable
-          onPress={() => router.push({ pathname: '/plant/[id]', params: { id: String(report.plantId) } })}
-          style={({ pressed }) => [styles.backLink, pressed && styles.dimmed]}
-        >
-          <Text style={styles.backText}>← Back to {report.plantName}</Text>
-        </Pressable>
+        <BottomLink
+          label={`Back to ${report.plantName}`}
+          onPress={() =>
+            router.dismissTo({ pathname: '/plant/[id]', params: { id: String(report.plantId) } })
+          }
+        />
       </ScrollView>
     </Screen>
   );
@@ -158,7 +159,4 @@ const styles = StyleSheet.create({
   signStatus: { ...theme.typography.caption, textTransform: 'capitalize' },
   signNotes: { ...theme.typography.caption, color: theme.colors.textMuted, marginTop: 2 },
   meta: { ...theme.typography.caption, color: theme.colors.textMuted, paddingTop: theme.spacing.lg },
-  backLink: { paddingTop: theme.spacing.xl },
-  backText: { ...theme.typography.subtitle, color: theme.colors.leaf },
-  dimmed: { opacity: 0.6 },
 });

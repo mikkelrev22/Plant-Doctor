@@ -4,7 +4,9 @@ import type {
   PlantDto,
   PlantListItemDto,
   PlantReportDetailDto,
+  PlantReportExtendedDto,
   PlantReportSummaryDto,
+  RootResponse,
 } from '@plant-doctor/api-types';
 import { Platform } from 'react-native';
 
@@ -65,6 +67,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** GET / — backend health/version probe (API-key exempt, safe to call pre-login). */
+export function getHealth(): Promise<RootResponse> {
+  return request<RootResponse>('/');
+}
+
 /** GET /plants — list of plants with derived thumbnail + report count. */
 export function listPlants(): Promise<PlantListItemDto[]> {
   return request<PlantListItemDto[]>('/plants');
@@ -97,6 +104,17 @@ export function updatePlantNotes(
 /** GET /plants/:id/reports — report history, ordered reportedAt DESC (latest first). */
 export function listReports(plantId: number): Promise<PlantReportSummaryDto[]> {
   return request<PlantReportSummaryDto[]>(`/plants/${plantId}/reports`);
+}
+
+/** GET /plants/:id/reports/extended — report history with per-report stress
+ *  signs (all 16 signs, unknown/none defaults for unevaluated ones). Used by
+ *  the reports list to render the stress-sign dots before a report is opened. */
+export function listReportsExtended(
+  plantId: number,
+): Promise<PlantReportExtendedDto[]> {
+  return request<PlantReportExtendedDto[]>(
+    `/plants/${plantId}/reports/extended`,
+  );
 }
 
 /** GET /reports/:id — full report with photo, stress signs, and LLM log summary. */

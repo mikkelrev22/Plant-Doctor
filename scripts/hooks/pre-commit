@@ -1,0 +1,4 @@
+#!/bin/sh
+# Pre-commit: bump the patch version of any app with staged changes and stage
+# the bumped files into the commit. Skipped when SKIP_VERSION_BUMP=1.
+node "$(git rev-parse --show-toplevel)/scripts/bump-versions.mjs"

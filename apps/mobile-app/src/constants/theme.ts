@@ -31,6 +31,10 @@ export const palette = {
   border: '#E5E0D6',
   danger: '#C04848',
   success: '#3B7A3A',
+
+  /** Stress-severity accents (used by the list-item stress-sign dots). */
+  warning: '#E8C547', // mild
+  alert: '#E8853A', // moderate
 } as const;
 
 export type PaletteColor = keyof typeof palette;

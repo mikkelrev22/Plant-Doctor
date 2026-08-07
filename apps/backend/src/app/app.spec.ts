@@ -7,6 +7,7 @@ jest.mock('@plant-doctor/db', () => ({
 
 import Fastify, { FastifyInstance } from 'fastify';
 import { app } from './app';
+import { BACKEND_VERSION } from '../version';
 
 describe('GET /', () => {
   let server: FastifyInstance;
@@ -27,7 +28,10 @@ describe('GET /', () => {
       url: '/',
     });
 
-    expect(response.json()).toEqual({ message: 'Node.js backend is running' });
+    expect(response.json()).toEqual({
+      message: 'Node.js backend is running',
+      version: BACKEND_VERSION,
+    });
   });
 
   it('should return 400 for invalid reportId', async () => {

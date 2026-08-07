@@ -11,6 +11,7 @@ import {
   getReport,
   listPlants,
   listReports,
+  listReportsExtended,
   updatePlantName,
   updatePlantNotes,
 } from '@/api/client';
@@ -35,6 +36,17 @@ export function useReports(plantId: number) {
   return useQuery({
     queryKey: qk.reports(plantId),
     queryFn: () => listReports(plantId),
+    enabled: Number.isFinite(plantId) && plantId > 0,
+  });
+}
+
+/** GET /plants/:id/reports/extended (latest first) — report history with
+ *  per-report stress signs, used to render the stress-sign dots on report rows
+ *  before a report is opened. */
+export function useReportsExtended(plantId: number) {
+  return useQuery({
+    queryKey: qk.reportsExtended(plantId),
+    queryFn: () => listReportsExtended(plantId),
     enabled: Number.isFinite(plantId) && plantId > 0,
   });
 }
@@ -83,6 +95,10 @@ export function useAnalyzeReport() {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: qk.plants });
       qc.invalidateQueries({ queryKey: qk.reports(data.plant.id) });
+      // `reportsExtended` is a descendent of `reports`, so the line above
+      // already covers it; kept explicit for clarity and to survive any future
+      // key-shape drift.
+      qc.invalidateQueries({ queryKey: qk.reportsExtended(data.plant.id) });
       qc.setQueryData(qk.plant(data.plant.id), data.plant);
       qc.setQueryData(qk.report(data.report.id), data.report);
     },
