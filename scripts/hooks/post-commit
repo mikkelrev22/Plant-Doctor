@@ -1,0 +1,40 @@
+#!/bin/sh
+# Post-commit: if the just-made commit changed the mobile app, ship an OTA
+# update with `eas-cli`. Runs detached in the background so it never blocks
+# the committing client (terminal or GitHub Desktop), and a deploy failure
+# only warns — it can't abort an already-completed commit. Silent no-op if
+# eas-cli isn't installed, so a missing tool never triggers a slow `npx`
+# download on the commit path.
+set -u
+
+top_level=$(git rev-parse --show-toplevel)
+changed=$(git diff-tree --no-commit-id --name-only -r HEAD)
+
+case "$changed" in
+  *apps/mobile-app/*)
+    # Skip the OTA push for WIP commits the author opted out of.
+    [ "${SKIP_VERSION_BUMP:-0}" = "1" ] && exit 0
+
+    # Resolve the eas-cli binary from the global PATH or a local node_modules.
+    # If it isn't installed anywhere, stop silently rather than falling back to
+    # `npx` (which would download it and stall the commit).
+    eas_bin=$(command -v eas 2>/dev/null || true)
+    [ -x "$eas_bin" ] || eas_bin="$top_level/node_modules/.bin/eas"
+    [ -x "$eas_bin" ] || eas_bin="$top_level/apps/mobile-app/node_modules/.bin/eas"
+    [ -x "$eas_bin" ] || exit 0
+
+    message=$(git log -1 --pretty=%s HEAD)
+    log="$top_level/.eas-ota.log"
+
+    echo "post-commit: shipping OTA update with eas-cli in the background…"
+    # `--json` implies non-interactive mode (per `eas update --help`) and writes
+    # structured output, so we don't pass `--non-interactive` separately. Detach
+    # with nohup + /dev/null stdin so the process survives the hook exiting and
+    # never blocks the committing client.
+    nohup sh -c '
+      cd "$1" || exit 0
+      "$2" update --branch preview --message "$3" --json
+    ' _ "$top_level/apps/mobile-app" "$eas_bin" "$message" \
+      </dev/null >>"$log" 2>&1 &
+    ;;
+esac

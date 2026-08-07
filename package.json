@@ -3,7 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "npx nx serve frontend"
+    "dev": "npx nx serve frontend",
+    "dashboard": "npx nx serve dashboard",
+    "architecture": "npx nx serve architecture",
+    "db": "npx nx run db:studio",
+    "collab": "cloudflared tunnel --url http://localhost:4500"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
@@ -35,6 +39,8 @@
     "@vitejs/plugin-react": "^6.0.0",
     "@vitest/coverage-v8": "~4.1.0",
     "@vitest/ui": "~4.1.0",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-mermaid-generator": "^0.0.5",
     "esbuild": "^0.27.0",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
@@ -49,6 +55,9 @@
     "jiti": "2.4.2",
     "jsdom": "^27.1.0",
     "nx": "23.0.1",
+    "postcss": "^8.5.16",
+    "postcss-preset-mantine": "^1.18.0",
+    "postcss-simple-vars": "^7.0.1",
     "prettier": "~3.6.2",
     "ts-jest": "^29.4.0",
     "ts-node": "10.9.1",
@@ -59,15 +68,31 @@
     "vitest": "~4.1.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1101.0",
     "@fastify/autoload": "~6.0.3",
     "@fastify/cors": "^11.2.0",
+    "@fastify/multipart": "^10.0.0",
     "@fastify/sensible": "~6.0.2",
+    "@fastify/static": "^9.1.3",
+    "@mantine/core": "^9.4.1",
+    "@mantine/dropzone": "^9.4.1",
+    "@mantine/hooks": "^9.4.1",
+    "@tabler/icons-react": "^3.44.0",
+    "@tanstack/react-query": "^5.101.2",
+    "@xyflow/react": "^12.11.2",
     "dotenv": "^16.6.1",
+    "drizzle-orm": "^0.45.2",
+    "exifr": "^7.1.3",
     "express": "^5.1.0",
     "fastify": "^5.9.0",
     "fastify-plugin": "~5.0.1",
+    "fastify-type-provider-zod": "^7.0.0",
+    "postgres": "^3.4.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^6.30.4"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^6.30.4",
+    "sharp": "^0.33.5",
+    "zod": "^4.4.3"
   }
 }

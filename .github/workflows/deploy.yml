@@ -1,0 +1,116 @@
+# Deploy: SSH into EC2, pull main, rebuild + restart the compose stack.
+#
+# Manual-only: triggered by `workflow_dispatch` (Actions → Deploy → Run
+# workflow). GitHub restricts `workflow_dispatch` to users with write access
+# (collaborators); the `production` environment below adds an explicit
+# approval gate on top.
+#
+# Phase 1 (this file): the image is built ON EC2 so sharp's native binary matches
+# the runtime arch. No registry yet.
+#
+# Phase 2 seam: the single line `docker compose up -d --build --wait` below is
+# the thing that changes. In Phase 2, CI builds and pushes an image to a
+# registry (ECR/GHCR); this workflow instead runs
+#   docker compose pull && docker compose up -d --wait
+# and docker-compose.yml switches `backend.build: .` (and `migrate.build`) to
+# `image: <registry>/backend:<tag>`. Everything else in this file stays the same.
+#
+# Required ENVIRONMENT secrets — create a `production` environment in
+# Settings → Environments, add required reviewers (the collaborators who may
+# deploy), then add these as ENVIRONMENT secrets under that environment (NOT
+# repo secrets, so they are only exposed after the approval gate passes):
+#   EC2_HOST         EC2 public hostname/IP
+#   EC2_USER         SSH deploy user (must be in the `docker` group)
+#   EC2_SSH_KEY      private SSH key (PEM, with newlines) — dedicated to this user
+#   EC2_DEPLOY_PATH  absolute path of the repo clone on EC2 (e.g. /opt/plant-doctor)
+#
+# The repo is public, so never `echo` these. appleboy/ssh-action masks `key`;
+# EC2_DEPLOY_PATH is forwarded via `envs:` and not logged.
+name: Deploy
+
+on:
+  workflow_dispatch: # manual deploy; gated by the `production` environment
+
+# Never run two deploys concurrently on the same host — they'd race on
+# `git pull` and the compose build. Newer run waits; older run is not cancelled
+# mid-deploy (cancel-in-progress: false) to avoid leaving the stack half-rebuilt.
+concurrency:
+  group: deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: SSH deploy to EC2
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # `production` environment holds the EC2_* environment secrets and enforces
+    # required reviewers (collaborators) — a manual dispatch pauses here until
+    # a reviewer approves. Create it in Settings → Environments → production.
+    environment: production
+
+    steps:
+      # Checkout gives us the commit SHA to log on the remote (so the deploy
+      # log records exactly which commit went out). We do NOT build anything
+      # here in Phase 1.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # appleboy/ssh-action handles key management and streams remote output.
+      # `envs` forwards the listed runner-side env vars to the remote shell, so
+      # the deploy path never appears inline. `script_stop` makes a non-zero
+      # remote command fail the step.
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          EC2_DEPLOY_PATH: ${{ secrets.EC2_DEPLOY_PATH }}
+          DEPLOY_COMMIT: ${{ github.sha }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: EC2_DEPLOY_PATH, DEPLOY_COMMIT
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            echo "Deploying commit $DEPLOY_COMMIT to $EC2_DEPLOY_PATH"
+            cd "$EC2_DEPLOY_PATH"
+
+            # 1. Fast-forward to the pushed commit. --ff-only refuses to create a
+            #    merge commit, so a diverged local branch fails loudly instead
+            #    of silently drifting.
+            git fetch origin main
+            git checkout main
+            git pull --ff-only origin main
+
+            # 2. Rebuild + restart. --build rebuilds changed images; --wait
+            #    blocks until every service with a healthcheck (db + backend) is
+            #    healthy and the migrate one-shot has completed successfully.
+            #    Migrations run first (compose dependency order), gated by db
+            #    health, so this is a safe redeploy.
+            docker compose up -d --build --wait
+
+            # 3. Public-endpoint probe THROUGH Caddy (verifies TLS + proxy, not
+            #    just the container). Load DOMAIN/BACKEND_URL from .env without
+            #    printing the file; poll up to ~60s.
+            set -a; . ./.env; set +a
+            url="${BACKEND_URL:-https://$DOMAIN/}"
+            case "$url" in
+              */) : ;;
+              *) url="$url/" ;;
+            esac
+            for i in $(seq 1 30); do
+              if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
+                echo "Health check passed: $url"
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "ERROR: health check failed for $url" >&2
+            # Print the last lines of the backend log to help debugging, without
+            # dumping .env or secrets.
+            docker compose logs --tail=50 backend >&2 || true
+            exit 1

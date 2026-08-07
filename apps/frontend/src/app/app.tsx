@@ -1,74 +1,68 @@
-// import styles from './app.module.css';
 import { useEffect, useState } from 'react';
-import { Route, Routes, Link } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
+
+import { checkBackendPyHealth } from '../api/backend-py';
 import { config } from '../config';
+import { AgentChatPage } from './agent-chat';
+import { LinearDiagnosisPage } from './linear-diagnosis';
 
 export function App() {
-  const [data, setData] = useState<string>('Loading...');
-  const [dataPy, setDataPy] = useState<string>('Loading...');
+  const [backendStatus, setBackendStatus] = useState('Checking Python backend...');
 
   useEffect(() => {
-    fetch(config.backendUrl)
-      .then((response) => response.json())
-      .then((data) => {
-        setData(JSON.stringify(data));
-      });
-
-    fetch(config.backendPyUrl)
-      .then((response) => response.json())
-      .then((data) => {
-        setDataPy(JSON.stringify(data));
-      });
+    checkBackendPyHealth()
+      .then((message) => setBackendStatus(message))
+      .catch(() => setBackendStatus('Python backend unavailable'));
   }, []);
 
-
   return (
-    <div>
-      <div role="navigation">
-        <ul>
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-          <li>
-            <Link to="/page-2">Page 2</Link>
-          </li>
-        </ul>
-      </div>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <div>
-              This is the generated root route.{' '}
-              <Link to="/page-2">Click here for page 2.</Link>
-            </div>
-          }
-        />
-        <Route
-          path="/page-2"
-          element={
-            <div>
-              <Link to="/">Click here to go back to root page.</Link>
-            </div>
-          }
-        />
-      </Routes>
+    <div className="app-shell">
+      <header className="site-header">
+        <div>
+          <p className="eyebrow">Plant Doctor</p>
+          <h1>Diagnose your houseplants</h1>
+        </div>
+        <p className="meta">
+          Python API: {config.backendPyUrl} · {backendStatus}
+        </p>
+      </header>
 
-      <hr />
-      <div>
-        <p>
-          Testing API call at {config.backendUrl}: <b>{data}</b>
-        </p>
-      </div>
-      <div>
-        <p>
-          Testing API call at {config.backendPyUrl}: <b>{dataPy}</b>
-        </p>
-      </div>
+      <nav className="site-nav" aria-label="Main">
+        <Link to="/">Home</Link>
+        <Link to="/diagnose">Linear diagnosis</Link>
+        <Link to="/agent">Agent chat</Link>
+      </nav>
+
+      <main>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <section className="page">
+                <div className="card hero-card">
+                  <h2>Choose a workflow</h2>
+                  <p>
+                    Compare the deterministic pipeline against the ReAct agent on
+                    the same plant-care task.
+                  </p>
+                  <div className="hero-actions">
+                    <Link className="button-link" to="/diagnose">
+                      Run linear diagnosis
+                    </Link>
+                    <Link className="button-link secondary" to="/agent">
+                      Chat with agent
+                    </Link>
+                  </div>
+                </div>
+              </section>
+            }
+          />
+          <Route path="/diagnose" element={<LinearDiagnosisPage />} />
+          <Route path="/agent" element={<AgentChatPage />} />
+        </Routes>
+      </main>
     </div>
   );
 }
 
 export default App;
-
-

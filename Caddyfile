@@ -1,0 +1,5 @@
+# Caddy terminates TLS (automatic Let's Encrypt) and reverse-proxies to the
+# backend container. DOMAIN is injected from .env via docker-compose.
+{$DOMAIN} {
+	reverse_proxy backend:4100
+}

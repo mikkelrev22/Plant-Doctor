@@ -1,0 +1,107 @@
+.appGroup {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border: 2px dashed var(--mantine-color-violet-7);
+  border-radius: var(--mantine-radius-md);
+  background: color-mix(in srgb, var(--mantine-color-violet-0) 40%, transparent);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.resizeLine {
+  border-color: var(--mantine-color-violet-6);
+}
+
+.resizeHandle {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mantine-color-violet-7);
+  border: none;
+}
+
+.appGroupHeader {
+  padding: 6px 10px;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--mantine-color-violet-9);
+  background: color-mix(in srgb, var(--mantine-color-violet-2) 70%, transparent);
+  border-bottom: 1px solid var(--mantine-color-violet-3);
+  border-radius: var(--mantine-radius-md) var(--mantine-radius-md) 0 0;
+  width: 100%;
+}
+
+.card {
+  padding: 8px 12px;
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-xs);
+  font-size: var(--mantine-font-size-sm);
+  min-width: 160px;
+}
+
+.feature {
+  border-left: 4px solid var(--mantine-color-teal-6);
+}
+
+.endpoint {
+  border-left: 4px solid var(--mantine-color-grape-6);
+}
+
+.lib {
+  border-left: 4px solid var(--mantine-color-gray-6);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.route {
+  color: var(--mantine-color-dark-filled);
+  font-size: var(--mantine-font-size-xs);
+  font-family: var(--mantine-font-family-monospace);
+}
+
+.methodRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.method {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: var(--mantine-radius-xs);
+  color: var(--mantine-color-white);
+}
+
+.methodGET {
+  background: var(--mantine-color-teal-7);
+}
+
+.methodPOST {
+  background: var(--mantine-color-blue-7);
+}
+
+.methodPATCH {
+  background: var(--mantine-color-orange-7);
+}
+
+.methodPUT {
+  background: var(--mantine-color-orange-7);
+}
+
+.methodDELETE {
+  background: var(--mantine-color-red-7);
+}
+
+.path {
+  color: var(--mantine-color-dark-filled);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  font-family: var(--mantine-font-family-monospace);
+}

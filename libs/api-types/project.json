@@ -1,0 +1,21 @@
+{
+  "name": "api-types",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api-types/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "platform": "neutral",
+        "outputPath": "dist/libs/api-types",
+        "format": ["esm"],
+        "bundle": true,
+        "main": "libs/api-types/src/index.ts",
+        "tsConfig": "libs/api-types/tsconfig.lib.json"
+      }
+    }
+  },
+  "tags": []
+}
