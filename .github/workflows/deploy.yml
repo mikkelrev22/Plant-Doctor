@@ -1,5 +1,10 @@
 # Deploy: SSH into EC2, pull main, rebuild + restart the compose stack.
 #
+# Manual-only: triggered by `workflow_dispatch` (Actions → Deploy → Run
+# workflow). GitHub restricts `workflow_dispatch` to users with write access
+# (collaborators); the `production` environment below adds an explicit
+# approval gate on top.
+#
 # Phase 1 (this file): the image is built ON EC2 so sharp's native binary matches
 # the runtime arch. No registry yet.
 #
@@ -10,7 +15,10 @@
 # and docker-compose.yml switches `backend.build: .` (and `migrate.build`) to
 # `image: <registry>/backend:<tag>`. Everything else in this file stays the same.
 #
-# Required repo secrets (Settings → Secrets and variables → Actions):
+# Required ENVIRONMENT secrets — create a `production` environment in
+# Settings → Environments, add required reviewers (the collaborators who may
+# deploy), then add these as ENVIRONMENT secrets under that environment (NOT
+# repo secrets, so they are only exposed after the approval gate passes):
 #   EC2_HOST         EC2 public hostname/IP
 #   EC2_USER         SSH deploy user (must be in the `docker` group)
 #   EC2_SSH_KEY      private SSH key (PEM, with newlines) — dedicated to this user
@@ -21,9 +29,7 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch: # manual "deploy now" button (convenience)
+  workflow_dispatch: # manual deploy; gated by the `production` environment
 
 # Never run two deploys concurrently on the same host — they'd race on
 # `git pull` and the compose build. Newer run waits; older run is not cancelled
@@ -40,6 +46,10 @@ jobs:
     name: SSH deploy to EC2
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # `production` environment holds the EC2_* environment secrets and enforces
+    # required reviewers (collaborators) — a manual dispatch pauses here until
+    # a reviewer approves. Create it in Settings → Environments → production.
+    environment: production
 
     steps:
       # Checkout gives us the commit SHA to log on the remote (so the deploy
