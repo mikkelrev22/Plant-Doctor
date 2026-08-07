@@ -1,13 +1,8 @@
-import { and, count, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull, sql, asc, inArray } from 'drizzle-orm';
 import type {
   PlantDto,
   PlantListItemDto,
   PlantListItemEvalDto,
-} from '@plant-doctor/api-types';
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
-import type {
-  PlantDto,
-  PlantListItemDto,
   PlantListItemStressSignDto,
   StressSeverity,
   StressSignStatus,
@@ -19,12 +14,7 @@ import {
   plantPhotos,
   plantReports,
   plants,
-} from '@plant-doctor/db/schema';
-import {
-  plantPhotos,
   plantReportStressSigns,
-  plantReports,
-  plants,
   stressSigns,
 } from '@plant-doctor/db/schema';
 import { NotFoundError } from '../errors';
@@ -149,26 +139,11 @@ export async function listPlants(db: Database): Promise<PlantListItemDto[]> {
 export async function listPlantsForEval(
   db: Database,
 ): Promise<PlantListItemEvalDto[]> {
-  const plantRows = await db
-    .select()
-    .from(plants)
-    .where(eq(plants.userId, RESEARCH_USER_ID))
-    .orderBy(desc(plants.id));
-
-  const reportCounts = await db
-    .select({ plantId: plantReports.plantId, count: count() })
-    .from(plantReports)
-    .groupBy(plantReports.plantId);
-
-  const latestPhotos = (await db.execute(sql`
-    SELECT DISTINCT ON (${plantReports.plantId})
-      ${plantReports.plantId} AS "plantId",
-      ${plantPhotos.thumbnailUrl} AS "thumbnailUrl"
-    FROM ${plantReports}
-    LEFT JOIN ${plantPhotos} ON ${plantPhotos.plantReportId} = ${plantReports.id}
-    WHERE ${plantPhotos.thumbnailUrl} IS NOT NULL
-    ORDER BY ${plantReports.plantId}, ${plantReports.reportedAt} DESC
-  `)) as Array<{ plantId: number; thumbnailUrl: string }>;
+  // Reuse the base plant list (plants + thumbnail + reportCount + latest-report
+  // stress-sign dots) and augment it with the one eval-specific field. Sharing
+  // `listPlants` keeps both list endpoints consistent (same dots, same counts)
+  // and avoids duplicating the plant / report-count / thumbnail queries here.
+  const items = await listPlants(db);
 
   // Distinct model names per plant, ordered by most-recent report first within
   // each plant. We pull every (plantId, model, reportedAt) row and dedupe in
@@ -204,17 +179,8 @@ export async function listPlantsForEval(
     seenByPlantId.set(row.plantId, seen);
   }
 
-  const countByPlantId = new Map(
-    reportCounts.map((row) => [row.plantId, row.count]),
-  );
-  const thumbnailByPlantId = new Map(
-    latestPhotos.map((row) => [row.plantId, row.thumbnailUrl]),
-  );
-
-  return plantRows.map((plant) => ({
-    ...toPlantDto(plant),
-    thumbnailUrl: thumbnailByPlantId.get(plant.id) ?? null,
-    reportCount: countByPlantId.get(plant.id) ?? 0,
+  return items.map((plant) => ({
+    ...plant,
     models: modelsByPlantId.get(plant.id) ?? [],
   }));
 }

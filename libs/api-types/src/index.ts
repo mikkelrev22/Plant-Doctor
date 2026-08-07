@@ -164,8 +164,7 @@ export interface PlantReportEvalDto extends PlantReportExtendedDto {
   llmRequest: LlmRequestMetricsDto | null;
 }
 
-export interface PlantReportDetailDto extends PlantReportSummaryDto {
-  stressSigns: ReportStressSignDto[];
+export interface PlantReportDetailDto extends PlantReportExtendedDto {
   llmRequest: LlmRequestSummaryDto | null;
 }
 
