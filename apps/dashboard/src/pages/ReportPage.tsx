@@ -55,7 +55,7 @@ export function ReportPage() {
     <Stack gap="lg">
       <Button
         component={Link}
-        to={`/plant/${report.plantId}`}
+        to={`/eval/${report.plantId}`}
         variant="subtle"
         color="teal"
         leftSection={<IconArrowLeft size={16} />}
