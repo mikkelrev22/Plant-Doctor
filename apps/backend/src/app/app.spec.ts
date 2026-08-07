@@ -5,6 +5,20 @@ jest.mock('@plant-doctor/db', () => ({
   }),
 }));
 
+// Mock plants.service so the /plants/evals shadowing-guard test (below) can
+// assert a 200 without a real drizzle db. Only listPlantsForEval needs a real
+// return value; the rest are stubs (no other test in this file reaches them).
+jest.mock('./services/plants.service', () => ({
+  createPlant: jest.fn(),
+  getPlantForUser: jest.fn(),
+  listPlants: jest.fn(),
+  updatePlant: jest.fn(),
+  listPlantsForEval: jest.fn(async () => [{ id: 1, name: 'Test Plant' }]),
+  findOrCreatePlant: jest.fn(),
+  updatePlantName: jest.fn(),
+  updatePlantSpecies: jest.fn(),
+}));
+
 import Fastify, { FastifyInstance } from 'fastify';
 import { app } from './app';
 import { BACKEND_VERSION } from '../version';
@@ -49,6 +63,22 @@ describe('GET /', () => {
     });
 
     expect(response.statusCode).toBe(400);
+  });
+
+  it('should not shadow /plants/evals with the parametric /plants/:plantId', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/plants/evals',
+      headers: { 'x-api-key': 'test-api-key' },
+    });
+
+    // /plants/evals lives in the admin group and /plants/:plantId in the
+    // consumer group. app.ts registers admin BEFORE consumer so the static
+    // /plants/evals path isn't shadowed by the parametric route. If it were,
+    // `plantId: 'evals'` would fail the plantIdParams number coercion and
+    // return 400. Reaching the evals handler returns 200 with the mocked list.
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([{ id: 1, name: 'Test Plant' }]);
   });
 
   it('should allow PATCH method in CORS preflight', async () => {

@@ -6,13 +6,24 @@ This document lists the available API endpoints for the Node backend in the mono
 
 Default: `http://localhost:4100` (env `PORT` / `HOST` / `BACKEND_URL`).
 
+## Route groups
+
+Routes are organized into **consumer groups** under `apps/backend/src/app/routes/<group>/`, each registered in `app.ts` inside its own `fastify.register` scope. Each scope is the hook point for a future per-group `preHandler` authorization middleware (TODO — not implemented yet). Existing URLs are unchanged; only the `agent` group (a new namespace) is URL-prefixed.
+
+- **`public`** — no auth. Health/version probe.
+- **`consumer`** — the user-facing `mobile-app`. Also called by the `dashboard` (which is a superset: it uses these routes *plus* the `admin` ones).
+- **`admin`** — the `dashboard` (LLM eval platform) and the `architecture` browser app. Internal/admin-only extras.
+- **`agent`** — future `backend-py` (Python LangGraph) microservice, which retrieves DB data through these endpoints as a gateway. Mounted under `/agent`. No endpoints yet.
+
 ## Auth
 
 All routes require an `x-api-key` header matching `BACKEND_API_KEY`, **except** `OPTIONS`, `GET /`, and any path under `/uploads/`. A missing, wrong, or empty key fails closed with **401 Unauthorized**. See `apps/backend/src/app/plugins/api-key.ts`.
 
+The global api-key gate is a stopgap shared by every consumer; it is **not** per-consumer authorization. Per-group auth hooks (e.g. a consumer token for the mobile-app, an admin token for the dashboard, a service key for the agent) will be attached at each route group's `register` scope in `app.ts` later.
+
 ---
 
-## Root
+## public
 
 ### GET /
 Health/version probe. API-key-exempt.
@@ -20,16 +31,13 @@ Health/version probe. API-key-exempt.
 
 ---
 
-## Plants
+## consumer (mobile-app)
+
+Used by the `mobile-app`. The `dashboard` also calls all of these.
 
 ### GET /plants
 Lists preview plants for the Research User dropdown.
 - **Response**: Array of plant objects from the database.
-
-### GET /plants/evals
-Extended plant list for the eval tool: same fields as `GET /plants` plus a `models` array containing the distinct LLM model names used across each plant's reports.
-- **Response**: Array of plant objects with an extra `models` field.
-- **Note**: Registered before the parametric `/plants/:plantId` so the static path isn't shadowed. Intended to be disable-able in production independently.
 
 ### POST /plants
 Creates a plant for the Research User. If no name is provided, a friendly name is generated.
@@ -53,20 +61,6 @@ Returns the report history for a specific Research User plant.
 - **Parameters**: `plantId` (integer)
 - **Response**: Array of report summaries for the specified plant.
 
-### GET /plants/:plantId/reports/extended
-Returns report history for one plant, including per-report stress-sign evaluations (used by the over-time stress-sign table).
-- **Parameters**: `plantId` (integer)
-- **Response**: Extended report array with stress-sign evaluation data.
-
-### GET /plants/:plantId/reports/eval
-Returns report history for one plant, including per-report stress-sign evaluations **and LLM metrics** (latency, token usage, model, error) parsed from each `llm_requests` row. Powers the eval results table.
-- **Parameters**: `plantId` (integer)
-- **Response**: Eval report array with stress-sign evaluation data and LLM metrics.
-
----
-
-## Reports
-
 ### GET /reports/:reportId
 Returns a full report including photo details, stress checklist, and LLM log summary.
 - **Parameters**: `reportId` (integer)
@@ -89,32 +83,47 @@ Uploads a plant image, requests an LLM diagnosis, logs the request, and stores t
 
 ---
 
-## LLM Requests
+## admin (dashboard + architecture)
+
+Admin/internal extras used by the `dashboard` (LLM eval platform) and the `architecture` browser app. The `dashboard` also uses every `consumer` route above.
+
+### GET /plants/evals
+Extended plant list for the eval tool: same fields as `GET /plants` plus a `models` array containing the distinct LLM model names used across each plant's reports.
+- **Response**: Array of plant objects with an extra `models` field.
+- **Note**: Registered via the admin group, which `app.ts` registers **before** the consumer group, preserving the static-before-parametric guard so `/plants/evals` is not shadowed by `/plants/:plantId`. Intended to be disable-able in production independently.
+
+### GET /plants/:plantId/reports/extended
+Returns report history for one plant, including per-report stress-sign evaluations (used by the over-time stress-sign table).
+- **Parameters**: `plantId` (integer)
+- **Response**: Extended report array with stress-sign evaluation data.
+
+### GET /plants/:plantId/reports/eval
+Returns report history for one plant, including per-report stress-sign evaluations **and LLM metrics** (latency, token usage, model, error) parsed from each `llm_requests` row. Powers the eval results table.
+- **Parameters**: `plantId` (integer)
+- **Response**: Eval report array with stress-sign evaluation data and LLM metrics.
 
 ### GET /llm-requests/:llmRequestId
 Returns the full LLM request log for one request, including prompt, response, and request/response metadata. Used by the report page's technical request-log table.
 - **Parameters**: `llmRequestId` (integer)
 - **Response**: LLM request object or 404 if not found.
 
----
-
-## Stress Signs
-
 ### GET /stress-signs
 Returns the seeded stress checklist and the stress-variable taxonomy (nutrients, water, light, etc.).
 - **Response**: Array of stress-sign objects, each with nested `variables`.
 
----
+### GET /config/llm
+Read-only live LLM config so the dashboard can show the current model. Returns only non-sensitive values — no keys, URLs, or credentials.
+- **Response**: `{ "model": "<config.llmApiModel>" }`
 
-## Architecture
+### Architecture
 
 Used by the `apps/architecture` browser app to read/write the hand-edited architecture diagram stored in `docs/architecture.json`.
 
-### GET /architecture/graph
+#### GET /architecture/graph
 Loads the architecture diagram from `docs/architecture.json`.
 - **Response**: `{ "nodes": [...], "edges": [...] }`. Returns `{ "nodes": [], "edges": [] }` if the file does not yet exist (ENOENT).
 
-### PUT /architecture/graph
+#### PUT /architecture/graph
 Overwrites `docs/architecture.json` with the provided body (creates the directory tree if needed).
 - **Body**: `{ "nodes": [...], "edges": [...] }`
 - **Response**: `{ "ok": true, "nodes": <count>, "edges": <count> }`
@@ -122,11 +131,11 @@ Overwrites `docs/architecture.json` with the provided body (creates the director
 
 ---
 
-## Config
+## agent (future, `/agent`)
 
-### GET /config/llm
-Read-only live LLM config so the dashboard can show the current model. Returns only non-sensitive values — no keys, URLs, or credentials.
-- **Response**: `{ "model": "<config.llmApiModel>" }`
+Namespace for the future `backend-py` (Python LangGraph) microservice, which will retrieve DB data through these endpoints as a gateway instead of reading the DB directly. Mounted under `/agent`.
+
+No endpoints yet. To be added alongside `apps/backend/src/app/routes/agent/`.
 
 ---
 
