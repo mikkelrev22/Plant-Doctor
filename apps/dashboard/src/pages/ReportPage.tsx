@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Alert, Button, Loader, Stack, Text } from '@mantine/core';
+import { Alert, Button, Loader, SegmentedControl, Stack, Text } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import type { LlmDetectedRegion, LlmPlantAnalysisResult } from '@plant-doctor/api-types';
+import { AgentRequestsPanel } from '../components/AgentRequestsPanel';
 import { LlmRequestLogTable } from '../components/LlmRequestLogTable';
 import { ReportView } from '../components/ReportView';
 import { useLlmRequest, useReport } from '../queries';
@@ -13,6 +14,10 @@ export function ReportPage() {
 
   const reportQuery = useReport(reportId);
   const report = reportQuery.data ?? null;
+
+  // Switch the bottom section between the agent test console and the existing
+  // LLM request log. Defaults to the agent console.
+  const [tab, setTab] = useState<'agent' | 'llm-log'>('agent');
 
   // Fetch the llm-request detail to get the raw LLM response, which contains
   // the detected stress regions. Deduped with LlmRequestLogTable's call by
@@ -71,9 +76,26 @@ export function ReportPage() {
         detectedRegions={detectedRegions}
       />
 
-      <LlmRequestLogTable
-        llmRequestId={report.llmRequest?.id ?? null}
-      />
+      <Stack gap="xs">
+        <SegmentedControl
+          size="md"
+          value={tab}
+          onChange={(v) => setTab(v as 'agent' | 'llm-log')}
+          data={[
+            { value: 'agent', label: 'Agent requests' },
+            { value: 'llm-log', label: 'LLM request log' },
+          ]}
+        />
+        {tab === 'agent' ? (
+          <AgentRequestsPanel
+            plantId={report.plantId}
+            reportId={report.id}
+            plantName={report.plantName}
+          />
+        ) : (
+          <LlmRequestLogTable llmRequestId={report.llmRequest?.id ?? null} />
+        )}
+      </Stack>
     </Stack>
   );
 }
