@@ -332,11 +332,6 @@ export async function callPlantAnalysisLlm({
   temperature,
   reasoningEffort,
 }: AnalyzePlantImageParams): Promise<LlmCallResult> {
-  if (!config.llmApiKey) {
-    throw new Error('LLM_API_KEY is not configured');
-  }
-
-  const startedAt = Date.now();
   const body = {
     model: config.llmApiModel,
     temperature: temperature ?? 0.05,
@@ -374,6 +369,76 @@ export async function callPlantAnalysisLlm({
     ],
   };
 
+  return postChatCompletions(body);
+}
+
+interface LookAtPhotoParams {
+  /** The agent's natural-language question about the photo. */
+  prompt: string;
+  image: {
+    buffer: Buffer;
+    mimeType: string;
+  };
+}
+
+/**
+ * Vision Q&A for the `agent/lookAtPhoto` tool: answers a free-text question
+ * about a report's photo. Unlike {@link callPlantAnalysisLlm} this returns
+ * plain text (no `response_format` json_schema) and uses a system prompt that
+ * scopes the answer to what is visible in the image, refusing to fabricate
+ * facts the photo does not support.
+ */
+export async function callLookAtPhotoLlm({
+  prompt,
+  image,
+}: LookAtPhotoParams): Promise<LlmCallResult> {
+  const body = {
+    model: config.llmApiModel,
+    temperature: 0.2,
+    max_tokens: config.llmMaxTokens,
+    reasoning_effort: 'none',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are Plant Doctor, a houseplant health assistant. You are shown a photo of a houseplant and asked a specific question about it. Answer the question concisely in plain text, based only on what you can see in the image together with any context provided. If the image does not show enough to answer, say so plainly rather than guessing. Do not output JSON or markdown.',
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${image.mimeType};base64,${image.buffer.toString(
+                'base64',
+              )}`,
+              detail: 'auto',
+            },
+          },
+          { type: 'text', text: prompt },
+        ],
+      },
+    ],
+  };
+
+  return postChatCompletions(body);
+}
+
+/**
+ * Shared request/response loop for the OpenAI-compatible Chat Completions API:
+ * builds the auth header, applies the timeout, parses the first choice's
+ * `message.content`, and returns it with the raw response metadata and latency.
+ * Both {@link callPlantAnalysisLlm} and {@link callLookAtPhotoLlm} route through
+ * here so the fetch/parsing logic stays in one place.
+ */
+async function postChatCompletions(
+  body: Record<string, unknown>,
+): Promise<LlmCallResult> {
+  if (!config.llmApiKey) {
+    throw new Error('LLM_API_KEY is not configured');
+  }
+
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), config.llmTimeoutMs);
 

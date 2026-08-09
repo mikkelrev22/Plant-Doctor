@@ -214,3 +214,47 @@ export interface LlmPlantAnalysisResult {
   stressSigns: LlmStressSignResult[];
   detectedRegions: LlmDetectedRegion[];
 }
+
+// Agent tool-use + chat lifecycle ------------------------------------------------
+// The AI agent (backend-py / LangGraph) calls the Node backend over HTTP under
+// /agent. Chat lifecycle endpoints return JSON (a token, a history blob); the
+// four tool-use endpoints return plain text. The chat handle is an opaque token
+// (not the numeric chat row id), and authorizes queries scoped to the chat's
+// user/plant. Plant/report IDs are passed by the agent and re-authorized via
+// the chat token's user.
+
+/** Tool-use endpoint names, logged in `agent_events.tool`. */
+export const agentToolNames = [
+  'createChat',
+  'getChat',
+  'saveChat',
+  'plantReports',
+  'plantHistory',
+  'userPlants',
+  'lookAtPhoto',
+] as const;
+export type AgentToolName = (typeof agentToolNames)[number];
+
+/** POST /agent/chats — bootstraps a chat for a plant. Returns the opaque chat
+ *  token (handed to the agent) and a plain-text summary of the plant + its
+ *  latest report, which the agent uses to start the session. */
+export interface CreateChatResponseDto {
+  chatToken: string;
+  contextText: string;
+  plantId: number;
+  plantName: string;
+  defaultReportId: number | null;
+}
+
+/** GET /agent/chats/:chatToken — the saved conversation blob, returned for the
+ *  agent to resume. `history` is opaque to the backend (LangGraph's message
+ *  array shape, owned by the agent). */
+export interface ChatHistoryDto {
+  chatToken: string;
+  plantId: number;
+  plantName: string;
+  defaultReportId: number | null;
+  history: unknown;
+  createdAt: string;
+  updatedAt: string;
+}

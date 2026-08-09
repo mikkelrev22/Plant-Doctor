@@ -18,3 +18,8 @@ export const reportIdParams = z.object({
 export const llmRequestIdParams = z.object({
   llmRequestId: z.coerce.number().int(),
 });
+
+/** Path params for `/agent/chats/:chatToken` — the opaque chat handle. */
+export const chatTokenParams = z.object({
+  chatToken: z.string().min(1),
+});

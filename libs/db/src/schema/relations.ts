@@ -1,4 +1,6 @@
 import { relations } from 'drizzle-orm';
+import { agentEvents } from './agent-events';
+import { chats } from './chats';
 import { llmRequests, userEvents } from './logs';
 import { plants } from './plants';
 import { plantPhotos, plantReports } from './reports';
@@ -14,6 +16,8 @@ export const userRelations = relations(users, ({ many }) => ({
   plants: many(plants),
   userEvents: many(userEvents),
   llmRequests: many(llmRequests),
+  chats: many(chats),
+  agentEvents: many(agentEvents),
 }));
 
 export const plantRelations = relations(plants, ({ one, many }) => ({
@@ -25,6 +29,7 @@ export const plantRelations = relations(plants, ({ one, many }) => ({
   photos: many(plantPhotos),
   userEvents: many(userEvents),
   llmRequests: many(llmRequests),
+  chats: many(chats),
 }));
 
 export const plantReportRelations = relations(plantReports, ({ one, many }) => ({
@@ -36,6 +41,8 @@ export const plantReportRelations = relations(plantReports, ({ one, many }) => (
   stressSigns: many(plantReportStressSigns),
   userEvents: many(userEvents),
   llmRequests: many(llmRequests),
+  // Chats that were opened with this report as their default context.
+  defaultChats: many(chats),
 }));
 
 export const plantPhotoRelations = relations(plantPhotos, ({ one }) => ({
@@ -104,7 +111,7 @@ export const userEventRelations = relations(userEvents, ({ one }) => ({
   }),
 }));
 
-export const llmRequestRelations = relations(llmRequests, ({ one }) => ({
+export const llmRequestRelations = relations(llmRequests, ({ one, many }) => ({
   user: one(users, {
     fields: [llmRequests.userId],
     references: [users.id],
@@ -116,5 +123,38 @@ export const llmRequestRelations = relations(llmRequests, ({ one }) => ({
   report: one(plantReports, {
     fields: [llmRequests.plantReportId],
     references: [plantReports.id],
+  }),
+  agentEvents: many(agentEvents),
+}));
+
+export const chatRelations = relations(chats, ({ one, many }) => ({
+  user: one(users, {
+    fields: [chats.userId],
+    references: [users.id],
+  }),
+  plant: one(plants, {
+    fields: [chats.plantId],
+    references: [plants.id],
+  }),
+  defaultReport: one(plantReports, {
+    fields: [chats.defaultReportId],
+    references: [plantReports.id],
+    relationName: 'chat_default_report',
+  }),
+  agentEvents: many(agentEvents),
+}));
+
+export const agentEventRelations = relations(agentEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [agentEvents.userId],
+    references: [users.id],
+  }),
+  chat: one(chats, {
+    fields: [agentEvents.chatId],
+    references: [chats.id],
+  }),
+  llmRequest: one(llmRequests, {
+    fields: [agentEvents.llmRequestId],
+    references: [llmRequests.id],
   }),
 }));

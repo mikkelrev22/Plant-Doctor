@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { FastifyInstance } from 'fastify';
 import AutoLoad from '@fastify/autoload';
+import { agentAuthHook } from './services/agent-auth';
 
 export async function app(fastify: FastifyInstance, opts: Record<string, unknown>) {
   // Global support plugins (db, cors, zod, sensible, uploads, api-key gate).
@@ -52,13 +53,22 @@ export async function app(fastify: FastifyInstance, opts: Record<string, unknown
     });
   });
 
-  // agent: future backend-py namespace. Prefix is safe — no existing clients.
-  fastify.register(async (scope) => {
-    // scope.addHook('preHandler', agentAuthHook); // TODO: per-group auth
-    await scope.register(AutoLoad, {
-      dir: path.join(__dirname, 'routes/agent'),
-      options: { ...opts },
-      prefix: '/agent',
-    });
-  });
+  // agent: backend-py (LangGraph) gateway namespace. Prefix is safe — no
+  // existing clients. A preHandler validates the `x-chat-token` header and
+  // scopes every tool query to the chat's plant/user; routes opt out via
+  // `config.requireChatToken: false` (only POST /agent/chats, which mints the
+  // token and so can't present one yet).
+  fastify.register(
+    async (scope) => {
+      scope.addHook('preHandler', agentAuthHook);
+      await scope.register(AutoLoad, {
+        dir: path.join(__dirname, 'routes/agent'),
+        options: { ...opts },
+      });
+    },
+    // AutoLoad sets skip-override, so it registers routes in this scope's
+    // context — the prefix must live on the outer scope, not on AutoLoad, or
+    // it is silently ignored.
+    { prefix: '/agent' },
+  );
 }

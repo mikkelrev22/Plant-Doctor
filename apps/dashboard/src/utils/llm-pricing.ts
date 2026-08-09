@@ -16,34 +16,39 @@ export const MODEL_PRICING: Record<
     output: number;
   }
 > = {
+  // Fireworks
   'accounts/fireworks/models/qwen3p7-plus': {
     uncached: 0.4,
     cached: 0.08,
     output: 1.6,
+  },
+  'accounts/fireworks/models/kimi-k2p6': {
+    uncached: 0.95,
+    cached: 0.16,
+    output: 4,
+  },
+  'accounts/fireworks/models/kimi-k3': {
+    uncached: 3,
+    cached: 0.3,
+    output: 15,
+  },
+  'accounts/fireworks/models/inkling': {
+    uncached: 1,
+    cached: 0.17,
+    output: 4.05,
+  },
+
+  // Ollama
+  'kimi-k2.6:cloud': {
+    uncached: 0.95,
+    cached: 0.16,
+    output: 4,
   },
   'qwen3.5:cloud': {
     uncached: 0.4,
     cached: 0.08,
     output: 1.6,
   },
-
-  'accounts/fireworks/models/kimi-k2p6': {
-    uncached: 0.95,
-    cached: 0.16,
-    output: 4,
-  },
-  'kimi-k2.6:cloud': {
-    uncached: 0.95,
-    cached: 0.16,
-    output: 4,
-  },
-
-  'accounts/fireworks/models/kimi-k3': {
-    uncached: 3,
-    cached: 0.3,
-    output: 15,
-  },
-
   'gemma4:31b-cloud': {
     uncached: 0.1,
     cached: 0.01,
