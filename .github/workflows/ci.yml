@@ -39,11 +39,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 2. Node 20 matches the Dockerfile builder/runtime base image.
-      - name: Setup Node 20
+      # 2. Node 22 matches the Dockerfile builder/runtime base image.
+      - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm # caches ~/.npm keyed on the lockfile automatically
 
       # 3. Exact deps from the lockfile — no lockfile drift in CI.

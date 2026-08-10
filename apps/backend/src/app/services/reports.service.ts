@@ -218,6 +218,9 @@ export async function createLlmRequestLog(
     plantId: number;
     prompt: string;
     requestMetadata: Record<string, unknown>;
+    /** Defaults to `'plant_report_analysis'`; other calls (e.g. agent
+     *  `lookAtPhoto`) pass their own action for accurate telemetry. */
+    action?: string;
   },
 ) {
   const [request] = await db
@@ -225,7 +228,7 @@ export async function createLlmRequestLog(
     .values({
       userId: RESEARCH_USER_ID,
       plantId: params.plantId,
-      action: 'plant_report_analysis',
+      action: params.action ?? 'plant_report_analysis',
       prompt: params.prompt,
       provider: 'openai-compatible',
       model: params.requestMetadata.model as string | undefined,

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import type { LlmConfigDto } from '@plant-doctor/api-types';
-import { config } from '../../config';
+import { config } from '../../../config';
 
 /**
  * Read-only live backend config, exposed so the dashboard can show what's

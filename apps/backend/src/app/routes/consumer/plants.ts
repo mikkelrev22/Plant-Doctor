@@ -1,14 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
-import '../types/fastify';
-import { createPlant, getPlantForUser, listPlants, listPlantsForEval, updatePlant } from '../services/plants.service';
+import '../../types/fastify';
+import { createPlant, getPlantForUser, listPlants, updatePlant } from '../../services/plants.service';
 import {
   listReportsForPlant,
-  listReportsForPlantEval,
   listReportsForPlantExtended,
-} from '../services/reports.service';
-import { plantIdParams } from './schemas';
+} from '../../services/reports.service';
+import { plantIdParams } from '../_shared/schemas';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
@@ -16,14 +15,6 @@ export default async function (fastify: FastifyInstance) {
   // Lists preview plants for the Research User dropdown.
   server.get('/plants', async function () {
     return listPlants(fastify.db);
-  });
-
-  // Extended plant list for the eval tool: same fields as GET /plants plus the
-  // distinct LLM model names used across each plant's reports. Registered before
-  // the parametric /plants/:plantId routes so the static path isn't shadowed.
-  // Separate route so it can be disabled in production independently.
-  server.get('/plants/evals', async function () {
-    return listPlantsForEval(fastify.db);
   });
 
   // Updates a plant's editable fields (name and/or notes). At least one must be
@@ -85,8 +76,10 @@ export default async function (fastify: FastifyInstance) {
   );
 
   // Returns report history for one Research User plant, including per-report
-  // stress-sign evaluations (used by the over-time stress-sign table). The
-  // simpler GET /plants/:plantId/reports above stays available for other uses.
+  // stress-sign evaluations (used by the over-time stress-sign table and by the
+  // mobile app's report list to render stress-sign dots before a report is
+  // opened). The simpler GET /plants/:plantId/reports above stays available for
+  // other uses; the eval variant (with LLM metrics) lives in the admin group.
   server.get(
     '/plants/:plantId/reports/extended',
     {
@@ -101,25 +94,11 @@ export default async function (fastify: FastifyInstance) {
     }
   );
 
-  // Returns report history for one Research User plant, including per-report
-  // stress-sign evaluations AND LLM metrics (latency, token usage parsed from
-  // response_metadata, model, error) extracted from the llm_requests row for
-  // each report. Powers the eval results table, which is reopenable any time.
-  server.get(
-    '/plants/:plantId/reports/eval',
-    {
-      schema: {
-        params: plantIdParams,
-      },
-    },
-    async function (request) {
-      const { plantId } = request.params;
-
-      return listReportsForPlantEval(fastify.db, plantId);
-    }
-  );
-
   // Returns a single plant by ID.
+  //
+  // NOTE: registered AFTER the admin group's static /plants/evals route in
+  // app.ts (admin registers before consumer) so the parametric /plants/:plantId
+  // does not shadow /plants/evals.
   server.get(
     '/plants/:plantId',
     {

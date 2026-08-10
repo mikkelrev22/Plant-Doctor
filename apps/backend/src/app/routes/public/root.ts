@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import type { RootResponse } from '@plant-doctor/api-types';
-import { BACKEND_VERSION } from '../../version';
+import { BACKEND_VERSION } from '../../../version';
 
 export default async function (fastify: FastifyInstance) {
   // API-key exempt (see plugins/api-key.ts) — doubles as the health/version probe

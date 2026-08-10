@@ -31,7 +31,7 @@ A React web app (Vite + Mantine + React Flow) for keeping an interactive archite
 **Status:** Diagram editor works; content still needs updating.
 
 ### Backend (`apps/backend`)
-The Node API. Fastify with `@fastify/autoload` for plugins (`src/app/plugins`) and routes (`src/app/routes`): `architecture.ts`, `llm-requests.ts`, `plants.ts`, `reports.ts`, `root.ts`, `stress-signs.ts`. Services in `src/app/services`, types in `src/app/types`. Default URL `http://localhost:4100`. Reads root `.env` (`HOST`, `PORT`, `BACKEND_URL`, `FRONTEND_URL`, `DATABASE_URL`). Uses the shared `db` library.
+The Node API. Fastify with `@fastify/autoload` for plugins (`src/app/plugins`) and routes. Routes are grouped by consumer under `src/app/routes/<group>/`, each registered in `app.ts` inside its own `fastify.register` scope so per-group `preHandler` authorization can be attached later; existing URLs are unchanged. Groups: `public/root.ts` (health); `consumer/{plants,reports}.ts` (mobile-app tier, also used by dashboard); `admin/{plants-evals,llm-requests,config,stress-signs,architecture}.ts` (dashboard + architecture); `agent/` (future `backend-py` gateway, mounted under `/agent`, no endpoints yet). Shared path-param schemas in `routes/_shared/schemas.ts`. Services in `src/app/services`, types in `src/app/types`. Default URL `http://localhost:4100`. Reads root `.env` (`HOST`, `PORT`, `BACKEND_URL`, `FRONTEND_URL`, `DATABASE_URL`). Uses the shared `db` library.
 
 **Status:** Implements all currently-needed API endpoints, including one-shot LLM requests for a plant's basic diagnostics.
 

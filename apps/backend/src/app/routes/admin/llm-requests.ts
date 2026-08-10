@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
-import '../types/fastify';
-import { getLlmRequestDetail } from '../services/reports.service';
-import { llmRequestIdParams } from './schemas';
+import '../../types/fastify';
+import { getLlmRequestDetail } from '../../services/reports.service';
+import { llmRequestIdParams } from '../_shared/schemas';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();

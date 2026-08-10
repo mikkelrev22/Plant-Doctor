@@ -3,35 +3,35 @@ import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import type { AnalyzeReportResponse } from '@plant-doctor/api-types';
 import { reasoningEffortLevels } from '@plant-doctor/api-types';
-import { config } from '../../config';
-import '../types/fastify';
+import { config } from '../../../config';
+import '../../types/fastify';
 import {
   callPlantAnalysisLlm,
   parsePlantAnalysis,
-} from '../services/llm.service';
-import { buildPlantAnalysisPrompt } from '../services/prompts';
+} from '../../services/llm.service';
+import { buildPlantAnalysisPrompt } from '../../services/prompts';
 import {
   findOrCreatePlant,
   updatePlantName,
   updatePlantSpecies,
-} from '../services/plants.service';
+} from '../../services/plants.service';
 import {
   createLlmRequestLog,
   createReportFromAnalysis,
   getReportDetail,
   markLlmRequestFailed,
   markLlmRequestSucceeded,
-} from '../services/reports.service';
-import { listStressSigns } from '../services/stress.service';
+} from '../../services/reports.service';
+import { listStressSigns } from '../../services/stress.service';
 import {
   storePlantPhoto,
   type StoredUpload,
-} from '../services/uploads.service';
-import { reportIdParams } from './schemas';
+} from '../../services/uploads.service';
+import { reportIdParams } from '../_shared/schemas';
 import {
   resolveCapturedAt,
   sanitizeCaptureDate,
-} from '../services/capture-date.util';
+} from '../../services/capture-date.util';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
