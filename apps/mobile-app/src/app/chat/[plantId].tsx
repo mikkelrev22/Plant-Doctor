@@ -22,6 +22,7 @@ import { Screen } from '@/components/ui/Screen';
 import { theme } from '@/constants/theme';
 import { useChatHistory, useSaveChatHistory } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
+import { useWebModalA11y } from '@/hooks/use-web-modal-a11y';
 import { useChatHolder } from '@/state/chat-holder';
 
 /**
@@ -93,6 +94,7 @@ export default function ChatScreen() {
   const hydratedRef = useRef(false);
   const sentQRef = useRef(false);
   const [photoReq, setPhotoReq] = useState<AgentPhotoRequestPartData | null>(null);
+  useWebModalA11y(photoReq !== null);
 
   // Reopen: hydrate the saved history once it loads, and make this chat the
   // plant's active thread so follow-ups resume it.

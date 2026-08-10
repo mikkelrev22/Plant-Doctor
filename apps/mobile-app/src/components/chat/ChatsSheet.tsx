@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { theme } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePlantChats } from '@/hooks/queries';
+import { useWebModalA11y } from '@/hooks/use-web-modal-a11y';
 
 /**
  * Bottom sheet listing a plant's chats. A transparent React Native `Modal`
@@ -24,6 +25,7 @@ export function ChatsSheet({
 }) {
   const insets = useSafeAreaInsets();
   const { data: chats, isLoading } = usePlantChats(plantId);
+  useWebModalA11y(visible);
 
   return (
     <Modal

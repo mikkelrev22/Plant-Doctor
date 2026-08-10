@@ -188,7 +188,7 @@ export function ImageSourcePicker({ onImageSelected }: ImageSourcePickerProps) {
             style={styles.camera}
           />
         </GestureDetector>
-        <View pointerEvents="none" style={styles.zoomHintWrap}>
+        <View style={styles.zoomHintWrap}>
           <Text style={styles.zoomHint}>Pinch to zoom</Text>
         </View>
         <View style={styles.cameraControls}>
@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   zoomHint: {
     ...theme.typography.caption,

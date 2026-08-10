@@ -18,10 +18,10 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
+    // boxShadow (cross-platform: parsed by RN on native, native CSS on web)
+    // replaces the deprecated iOS-only shadow* props. Equivalent to the prior
+    // shadowColor #000 / shadowOpacity 0.04 / shadowRadius 6 / offset 0,1.
+    boxShadow: '0px 1px 6px rgba(0, 0, 0, 0.04)',
     elevation: 1,
   },
 });

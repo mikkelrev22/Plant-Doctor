@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { palette } from '@/constants/theme';
+import { useWebModalA11y } from '@/hooks/use-web-modal-a11y';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
@@ -37,6 +38,7 @@ interface LightboxProps {
 export function Lightbox({ url, visible, onClose }: LightboxProps) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  useWebModalA11y(visible);
 
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
