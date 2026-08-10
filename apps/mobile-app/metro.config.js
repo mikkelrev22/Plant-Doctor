@@ -55,6 +55,19 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'zustand' || moduleName.startsWith('zustand/')) {
     return { type: 'sourceFile', filePath: require.resolve(moduleName) };
   }
+  // `@ungap/structured-clone` is a `"type": "module"` package whose `exports`
+  // map resolves the `default` condition to `cjs/index.js`, which starts with
+  // `Object.defineProperty(exports, '__esModule', …)`. With package exports
+  // enabled (SDK 54 default) Metro honours the package's `"type": "module"` and
+  // parses that CJS `.js` as an ES module, where the `exports` free variable is
+  // undefined — so `Object.defineProperty(undefined, …)` throws
+  // "Object.defineProperty() called on non-object" at `require()` time. The
+  // ESM build is plain ESM (`export default`, no `import.meta`), so resolve to
+  // it instead. This is what `src/polyfills.ts` loads for the AI SDK.
+  if (moduleName === '@ungap/structured-clone') {
+    const pkgRoot = path.dirname(require.resolve('@ungap/structured-clone/package.json'));
+    return { type: 'sourceFile', filePath: path.join(pkgRoot, 'esm', 'index.js') };
+  }
   return context.resolveRequest(context, moduleName, platform);
 };
 

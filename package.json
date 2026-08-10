@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npx nx serve frontend",
+    "mobile": "npx nx serve mobile-app",
     "dashboard": "npx nx serve dashboard",
     "architecture": "npx nx serve architecture",
     "agent": "npx nx run backend-agent:serve",
