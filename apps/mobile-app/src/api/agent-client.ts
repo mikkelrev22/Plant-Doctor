@@ -15,6 +15,15 @@ import { fetch as expoFetch } from 'expo/fetch';
  * `JSON.stringify(body)` itself (exactly once). Returning a string here would
  * double-encode the wire body (`"{\"plant_id\":…}"`) and the server would 422.
  *
+ * Do NOT set `content-type` in the returned `headers` — `HttpChatTransport`
+ * already prepends its own `Content-Type: application/json` and then spreads
+ * these headers, so adding it here sends a duplicate. The `Headers` constructor
+ * combines same-named headers with `, `, so the server receives
+ * `content-type: application/json, application/json`, which FastAPI's strict
+ * content-type check rejects (it then skips `request.json()` and hands the raw
+ * body string to Pydantic → 422 `model_attributes_type`). This is why only
+ * `x-api-key` is set below.
+ *
  * `expo/fetch` is used (instead of the Hermes default) so SSE streaming works on
  * native. See `docs/backend-agent.md` for the wire protocol.
  */
@@ -55,7 +64,6 @@ export function createAgentChatTransport(
         },
         headers: {
           'x-api-key': API_KEY,
-          'content-type': 'application/json',
         },
       };
     },

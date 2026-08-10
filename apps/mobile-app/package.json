@@ -1,7 +1,7 @@
 {
   "name": "mobile-plant-doctor",
   "main": "expo-router/entry",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "dependencies": {
     "@ai-sdk/react": "^4.0.61",
     "@stardazed/streams-text-encoding": "^1.0.2",
