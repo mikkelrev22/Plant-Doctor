@@ -4,7 +4,7 @@
 # matches the runtime architecture.
 
 # ---- builder: full deps + Nx build ----
-FROM node:20-bookworm-slim AS builder
+FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 
 # Copy the lockfile first so this layer is cached unless deps change — the full
@@ -30,7 +30,7 @@ WORKDIR /app/dist/apps/backend
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # ---- runtime: lean, self-contained ----
-FROM node:20-bookworm-slim AS runtime
+FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 

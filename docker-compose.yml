@@ -52,7 +52,7 @@ services:
     #   - "4100:4100"
     restart: unless-stopped
     healthcheck:
-      # node:20-bookworm-slim has no curl/wget, but node is always present.
+      # node:22-bookworm-slim has no curl/wget, but node is always present.
       # GET / is API-key-exempt (see plugins/api-key.ts) — a clean liveness
       # probe. `docker compose up --wait` only blocks on services that declare
       # a healthcheck, so without this it returns before Node is listening.
