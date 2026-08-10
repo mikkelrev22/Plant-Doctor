@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -20,6 +20,7 @@ import { ChatMessageList } from '@/components/chat/ChatMessageList';
 import type { AgentChatData, AgentUIMessage } from '@/components/chat/agent-chat-types';
 import { Screen } from '@/components/ui/Screen';
 import { theme } from '@/constants/theme';
+import { useChatHistory, useSaveChatHistory } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useChatHolder } from '@/state/chat-holder';
 
@@ -29,13 +30,31 @@ import { useChatHolder } from '@/state/chat-holder';
  * transport. The server mints the chat token, so the mobile only sends
  * `{ plant_id, message, thread_id? }` (see `agent-client.ts`).
  *
- * `thread_id` arrives in the `data-thread` part and is stashed in `chat-holder`
- * per plant so a reopened chat resumes the same LangGraph thread.
+ * `thread_id` (== `chatToken`, see `chat.py`) arrives in the `data-thread` part
+ * and is stashed in `chat-holder` per plant so follow-ups resume the same thread.
+ *
+ * Two entry modes:
+ *  - **Ask (new chat):** routed with `q` — sent once on mount; the first turn
+ *    mints a fresh chat token.
+ *  - **Reopen (old chat):** routed with `chatToken` — the saved `UIMessage[]`
+ *    history is loaded via `useChatHistory` and set into `useChat` so the prior
+ *    conversation renders; follow-ups resume the same thread.
+ *
+ * After each assistant turn, the current messages are persisted to the backend
+ * (`PUT /agent/chats/:chatToken`) so the "All chats" list preview + reopen
+ * hydration keep working across app restarts.
  */
 export default function ChatScreen() {
   const user = useRequireAuth();
-  const { plantId: plantIdParam } = useLocalSearchParams<{ plantId: string }>();
+  const { plantId: plantIdParam, q, chatToken: chatTokenParam } =
+    useLocalSearchParams<{ plantId: string; q?: string; chatToken?: string }>();
   const plantId = Number(plantIdParam);
+  const reactId = useId();
+
+  // `chatToken` present ⇒ reopening an existing chat (isolated `useChat` state
+  // per chat). Absent ⇒ a fresh Ask; a unique per-mount id keeps repeated Asks
+  // from sharing message state.
+  const chatId = chatTokenParam ? `chat-${chatTokenParam}` : `new-${plantId}-${reactId}`;
 
   const transport = useMemo(
     () =>
@@ -45,21 +64,54 @@ export default function ChatScreen() {
     [plantId],
   );
 
-  const { messages, status, sendMessage, stop } = useChat<
+  const saveChat = useSaveChatHistory();
+  const { data: history } = useChatHistory(chatTokenParam);
+
+  const { messages, status, sendMessage, setMessages, stop } = useChat<
     UIMessage<unknown, AgentChatData>
   >({
-    id: `plant-${plantId}`,
+    id: chatId,
     transport,
     dataPartSchemas,
     onData: (part) => {
       if (part.type === 'data-thread') {
+        // thread_id == chatToken (see chat.py); stash it so follow-ups resume
+        // and so the post-turn save targets the right chat row.
         useChatHolder.getState().setThreadId(plantId, part.data.thread_id);
       }
+    },
+    onFinish: ({ messages: finishedMessages }) => {
+      // Persist the full conversation after each assistant turn so the All-chats
+      // preview + reopen hydration stay current. No-op until the first turn has
+      // minted a chatToken (stashed in the holder via onData above).
+      const chatToken = useChatHolder.getState().getThreadId(plantId);
+      if (chatToken) saveChat.mutate({ chatToken, messages: finishedMessages });
     },
     onError: (err) => console.error('[agent chat]', err),
   });
 
+  const hydratedRef = useRef(false);
+  const sentQRef = useRef(false);
   const [photoReq, setPhotoReq] = useState<AgentPhotoRequestPartData | null>(null);
+
+  // Reopen: hydrate the saved history once it loads, and make this chat the
+  // plant's active thread so follow-ups resume it.
+  useEffect(() => {
+    if (chatTokenParam && history?.history && !hydratedRef.current) {
+      hydratedRef.current = true;
+      useChatHolder.getState().setThreadId(plantId, chatTokenParam);
+      setMessages(history.history as AgentUIMessage[]);
+    }
+  }, [chatTokenParam, history, plantId, setMessages]);
+
+  // Ask: send the prefilled question once on mount (only for new chats), once
+  // auth has resolved.
+  useEffect(() => {
+    if (user && q && !sentQRef.current && !chatTokenParam) {
+      sentQRef.current = true;
+      void sendMessage({ text: q });
+    }
+  }, [user, q, chatTokenParam, sendMessage]);
 
   if (!user) return null;
 

@@ -20,25 +20,31 @@ const SUGGESTIONS = [
 ];
 
 /**
- * Inverted `FlatList` of chat messages. Inverted keeps the newest message at the
- * bottom and the viewport pinned there as tokens stream in, without manual
- * scroll-to-bottom bookkeeping. A synthetic "Thinking…" bubble is appended while
- * the request is `submitted` (before the assistant message exists).
+ * Inverted `FlatList` of chat messages, fed newest-first. `inverted` renders
+ * `data[0]` at the visual bottom and pins the viewport there as tokens stream
+ * in, without manual scroll-to-bottom bookkeeping — so the newest message sits
+ * at the bottom and older ones stack upward, the usual chat reading order. A
+ * synthetic "Thinking…" bubble is prepended while the request is `submitted`
+ * (before the assistant message exists).
  *
- * Token-batch throttling (~50ms) is intentionally omitted — typical agent
- * responses are short enough that per-token re-renders are smooth on Hermes; add
- * a `useBatchedTokens` hook if long answers start to jank.
+ * `messages` arrives chronologically (oldest first) from `useChat`, so it is
+ * reversed here. Token-batch throttling (~50ms) is intentionally omitted —
+ * typical agent responses are short enough that per-token re-renders are smooth
+ * on Hermes; add a `useBatchedTokens` hook if long answers start to jank.
  */
 export function ChatMessageList({ messages, status, onReply, onPhotoRequest }: ChatMessageListProps) {
   const pending = status === 'submitted';
+  const pendingBubble = { id: '__pending__', role: 'assistant', parts: [] } as AgentUIMessage;
+  // Newest first: inverted renders index 0 at the bottom, so the newest (and
+  // the pending bubble while submitted) lands at the bottom, oldest at the top.
   const data: AgentUIMessage[] = pending
-    ? [...messages, { id: '__pending__', role: 'assistant', parts: [] } as AgentUIMessage]
-    : messages;
+    ? [pendingBubble, ...[...messages].reverse()]
+    : [...messages].reverse();
 
   const renderItem: ListRenderItem<AgentUIMessage> = ({ item, index }) => (
     <MessageBubble
       message={item}
-      isStreaming={(status === 'streaming' || pending) && index === data.length - 1}
+      isStreaming={(status === 'streaming' || pending) && index === 0}
       onReply={onReply}
       onPhotoRequest={onPhotoRequest}
     />

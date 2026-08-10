@@ -5,11 +5,13 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type ListRenderItem,
 } from 'react-native';
 import type { PlantReportExtendedDto } from '@plant-doctor/api-types';
 import { ApiError } from '@/api/client';
+import { ChatsSheet } from '@/components/chat/ChatsSheet';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HeaderButton } from '@/components/ui/HeaderButton';
 import { HeroImage } from '@/components/ui/HeroImage';
@@ -18,8 +20,9 @@ import { ReportListItem } from '@/components/ui/ReportListItem';
 import { Screen } from '@/components/ui/Screen';
 import { Spinner } from '@/components/ui/Spinner';
 import { theme } from '@/constants/theme';
-import { usePlant, useReportsExtended, useUpdatePlantName, useUpdatePlantNotes } from '@/hooks/queries';
+import { usePlant, usePlantChats, useReportsExtended, useUpdatePlantName, useUpdatePlantNotes } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
+import { useChatHolder } from '@/state/chat-holder';
 
 /** Plant page: latest-report hero, inline rename, report history, New report. */
 export default function PlantScreen() {
@@ -30,6 +33,7 @@ export default function PlantScreen() {
 
   const { data: plant } = usePlant(plantId);
   const { data: reports, isLoading: reportsLoading } = useReportsExtended(plantId);
+  const { data: chats } = usePlantChats(plantId);
   const rename = useUpdatePlantName();
   const updateNotes = useUpdatePlantNotes();
 
@@ -37,6 +41,8 @@ export default function PlantScreen() {
   const [renameError, setRenameError] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesError, setNotesError] = useState<string | null>(null);
+  const [askText, setAskText] = useState("What's wrong with my plant?");
+  const [chatsSheetOpen, setChatsSheetOpen] = useState(false);
 
   const goNewReport = useCallback(
     () =>
@@ -44,22 +50,28 @@ export default function PlantScreen() {
     [plantId],
   );
 
-  const goChat = useCallback(
-    () =>
-      router.push({ pathname: '/chat/[plantId]', params: { plantId: String(plantId) } }),
-    [plantId],
-  );
+  // Ask starts a fresh consultation: clear the plant's active thread so the first
+  // turn has no `thread_id` and the agent mints a new chat, then push to the chat
+  // screen with the (editable) prefilled question so it auto-sends on mount.
+  const onAsk = useCallback(() => {
+    const text = askText.trim();
+    if (!text) return;
+    useChatHolder.getState().clear(plantId);
+    router.push({
+      pathname: '/chat/[plantId]',
+      params: { plantId: String(plantId), q: text },
+    });
+  }, [askText, plantId]);
 
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.headerRight}>
-          <HeaderButton label="Chat" onPress={goChat} />
           <HeaderButton label="New report" onPress={goNewReport} />
         </View>
       ),
     });
-  }, [navigation, goChat, goNewReport]);
+  }, [navigation, goNewReport]);
 
   if (!user) return null;
 
@@ -177,6 +189,30 @@ export default function PlantScreen() {
             ) : (
               <View style={styles.nameRowPlaceholder} />
             )}
+            <View style={styles.askBlock}>
+              <TextInput
+                value={askText}
+                onChangeText={setAskText}
+                multiline
+                style={styles.askInput}
+                placeholder="Ask the plant doctor anything…"
+                placeholderTextColor={theme.colors.textMuted}
+                maxLength={500}
+              />
+              <Pressable
+                onPress={onAsk}
+                disabled={!askText.trim()}
+                style={({ pressed }) => [styles.askButton, !askText.trim() && styles.askButtonDisabled, pressed && styles.dimmed]}
+              >
+                <Text style={styles.askButtonLabel}>Ask</Text>
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={() => setChatsSheetOpen(true)}
+              style={({ pressed }) => pressed && styles.dimmed}
+            >
+              <Text style={styles.allChatsLink}>All chats ({chats?.length ?? 0})</Text>
+            </Pressable>
             <Text style={styles.sectionTitle}>Reports</Text>
           </View>
         }
@@ -193,6 +229,7 @@ export default function PlantScreen() {
           )
         }
       />
+      <ChatsSheet plantId={plantId} visible={chatsSheetOpen} onClose={() => setChatsSheetOpen(false)} />
     </Screen>
   );
 }
@@ -214,5 +251,26 @@ const styles = StyleSheet.create({
   sectionTitle: { ...theme.typography.subtitle, color: theme.colors.text, marginTop: theme.spacing.sm },
   separator: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.xs },
   headerRight: { flexDirection: 'row', gap: 12 },
+  askBlock: { flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing.sm },
+  askInput: {
+    flex: 1,
+    ...theme.typography.body,
+    color: theme.colors.text,
+    borderWidth: 1.5,
+    borderColor: theme.colors.leaf,
+    borderRadius: theme.radii.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    minHeight: 44,
+  },
+  askButton: {
+    backgroundColor: theme.colors.leaf,
+    borderRadius: theme.radii.pill,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+  },
+  askButtonDisabled: { backgroundColor: theme.colors.border },
+  askButtonLabel: { ...theme.typography.body, color: theme.colors.creamSurface, fontWeight: '700' },
+  allChatsLink: { ...theme.typography.body, color: theme.colors.leaf, fontWeight: '600', paddingVertical: theme.spacing.xs },
   dimmed: { opacity: 0.6 },
 });

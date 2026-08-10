@@ -7,9 +7,10 @@ import { logAgentEvent } from '../../services/agent-tools.service';
 import {
   createChat,
   getChat,
+  listChatsByPlant,
   saveChat,
 } from '../../services/chats.service';
-import { chatTokenParams } from '../_shared/schemas';
+import { chatTokenParams, plantIdParams } from '../_shared/schemas';
 
 export default async function (fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<ZodTypeProvider>();
@@ -88,6 +89,22 @@ export default async function (fastify: FastifyInstance) {
         latencyMs: Date.now() - start,
       });
       return reply.code(204).send();
+    },
+  );
+
+  // listChatsByPlant — the plant's chats, newest first. No chat token exists
+  // for a "list all" call, so this route opts out of the token preHandler (it
+  // scopes by plantId + Research User instead). The mobile app calls this for
+  // the "All chats (N)" list; history is not logged (read-only, can be large).
+  server.get(
+    '/plants/:plantId/chats',
+    {
+      config: { requireChatToken: false },
+      schema: { params: plantIdParams },
+    },
+    async function (request) {
+      const { plantId } = request.params;
+      return listChatsByPlant(fastify.db, { plantId });
     },
   );
 }

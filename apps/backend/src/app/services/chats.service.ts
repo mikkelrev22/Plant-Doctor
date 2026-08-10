@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { and, desc, eq } from 'drizzle-orm';
-import type { ChatHistoryDto, CreateChatResponseDto } from '@plant-doctor/api-types';
+import type { ChatHistoryDto, ChatListItemDto, CreateChatResponseDto } from '@plant-doctor/api-types';
 import { RESEARCH_USER_ID } from '@plant-doctor/api-types';
 import type { Chat, Database } from '@plant-doctor/db';
 import { chats, plantReports, plants } from '@plant-doctor/db/schema';
@@ -115,4 +115,62 @@ export async function saveChat(
   if (updated.length === 0) {
     throw new NotFoundError('Chat not found');
   }
+}
+
+/**
+ * `GET /agent/plants/:plantId/chats` — the plant's chats, newest by `updatedAt`.
+ * Validates the plant belongs to the Research User (mirrors `createChat`).
+ * `lastMessagePreview` is derived from the saved `history` (`UIMessage[]`): the
+ * beginning of the last message's text. `null` when `history` is absent.
+ */
+export async function listChatsByPlant(
+  db: Database,
+  params: { plantId: number },
+): Promise<ChatListItemDto[]> {
+  const plant = await getPlantForUser(db, params.plantId);
+  if (!plant) {
+    throw new NotFoundError('Plant not found');
+  }
+
+  const rows = await db
+    .select()
+    .from(chats)
+    .where(and(eq(chats.plantId, params.plantId), eq(chats.userId, RESEARCH_USER_ID)))
+    .orderBy(desc(chats.updatedAt));
+
+  return rows.map((row) => ({
+    id: row.id,
+    chatToken: row.chatToken,
+    plantId: row.plantId,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    lastMessagePreview: previewFromHistory(row.history),
+  }));
+}
+
+/** Extract the beginning of the last message's text from a saved `UIMessage[]`
+ *  history blob. Tolerant of any shape — returns `null` if nothing is found. */
+function previewFromHistory(history: unknown): string | null {
+  if (!Array.isArray(history) || history.length === 0) return null;
+  const last = history[history.length - 1] as
+    | { parts?: ReadonlyArray<{ type?: string; text?: string }> }
+    | { content?: string }
+    | undefined;
+  if (!last) return null;
+
+  const parts = (last as { parts?: unknown }).parts;
+  const content = (last as { content?: unknown }).content;
+  let text: string | undefined;
+  if (Array.isArray(parts)) {
+    text = parts
+      .filter((p) => (p as { type?: string })?.type === 'text')
+      .map((p) => (p as { text?: string }).text ?? '')
+      .join('')
+      .trim();
+  } else if (typeof content === 'string') {
+    text = content.trim();
+  }
+
+  if (!text) return null;
+  return text.length > 80 ? `${text.slice(0, 80).trimEnd()}…` : text;
 }

@@ -13,4 +13,9 @@ export const qk = {
   reportsExtended: (plantId: number) =>
     ['plants', plantId, 'reports', 'extended'] as const,
   report: (id: number) => ['reports', id] as const,
+  /** GET /agent/plants/:plantId/chats — the plant's chats, newest first. Nested
+   *  under the per-plant path so invalidating the plant covers it. */
+  plantChats: (plantId: number) => ['plants', plantId, 'chats'] as const,
+  /** GET /agent/chats/:chatToken — the saved `UIMessage[]` history for a chat. */
+  chatHistory: (chatToken: string) => ['chats', chatToken] as const,
 } as const;

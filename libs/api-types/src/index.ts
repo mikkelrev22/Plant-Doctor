@@ -295,9 +295,9 @@ export interface AgentPhotoRequestPartData {
   prompt: string;
 }
 
-/** GET /agent/chats/:chatToken — the saved conversation blob, returned for the
- *  agent to resume. `history` is opaque to the backend (LangGraph's message
- *  array shape, owned by the agent). */
+/** GET /agent/chats/:chatToken — the saved conversation blob. `history` is the
+ *  AI SDK `UIMessage[]` the mobile app saved after each turn (see `saveChat`);
+ *  the mobile hydrates `useChat` from it to reopen a past chat. */
 export interface ChatHistoryDto {
   chatToken: string;
   plantId: number;
@@ -306,4 +306,17 @@ export interface ChatHistoryDto {
   history: unknown;
   createdAt: string;
   updatedAt: string;
+}
+
+/** GET /agent/plants/:plantId/chats — the plant's chats, newest by `updatedAt`.
+ *  `lastMessagePreview` is the beginning of the last message's text, derived
+ *  from the saved `history` (`UIMessage[]`); `null` until the first turn is
+ *  saved. Used for the mobile "All chats (N)" list. */
+export interface ChatListItemDto {
+  id: number;
+  chatToken: string;
+  plantId: number;
+  createdAt: string;
+  updatedAt: string;
+  lastMessagePreview: string | null;
 }

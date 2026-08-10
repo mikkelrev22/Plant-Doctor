@@ -23,6 +23,16 @@ jest.mock('./services/chats.service', () => ({
     updatedAt: '2026-01-02T00:00:00.000Z',
   })),
   saveChat: jest.fn(async () => undefined),
+  listChatsByPlant: jest.fn(async () => [
+    {
+      id: 42,
+      chatToken: 'test-token',
+      plantId: 1,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      lastMessagePreview: 'hi',
+    },
+  ]),
   getChatByToken: jest.fn(async (_db: unknown, token: string) =>
     token === 'test-token'
       ? {
@@ -54,6 +64,7 @@ const chatsService = require('./services/chats.service') as {
   createChat: jest.Mock;
   getChat: jest.Mock;
   saveChat: jest.Mock;
+  listChatsByPlant: jest.Mock;
   getChatByToken: jest.Mock;
 };
 const toolsService = require('./services/agent-tools.service') as Record<
@@ -186,5 +197,20 @@ describe('/agent endpoints', () => {
     });
     expect(res.statusCode).toBe(204);
     expect(chatsService.saveChat).toHaveBeenCalled();
+  });
+
+  it('GET /agent/plants/:plantId/chats lists chats without a chat token (only x-api-key)', async () => {
+    const res = await server.inject({
+      method: 'GET',
+      url: '/agent/plants/1/chats',
+      headers: { ...API_KEY },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([
+      expect.objectContaining({ chatToken: 'test-token', lastMessagePreview: 'hi' }),
+    ]);
+    expect(chatsService.listChatsByPlant).toHaveBeenCalledWith(expect.anything(), { plantId: 1 });
+    // Exempt route → preHandler must not look up a chat token.
+    expect(chatsService.getChatByToken).not.toHaveBeenCalled();
   });
 });

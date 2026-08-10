@@ -5,9 +5,15 @@ POST /chat/agent/stream
 
 The server mints the Node ``chatToken`` for ``plant_id`` on the first turn (when
 ``thread_id`` is absent), seeds the agent with the plant's ``contextText``, and
-runs the ReAct loop. LangGraph ``astream_events(v2)`` is mapped to AI SDK typed
-parts so the mobile app's ``useChat`` can render streaming text, tool-progress
-cards, and custom interactive parts (``data-yesno`` etc.). ``thread_id`` is
+runs the ReAct loop. The ``chatToken`` doubles as the LangGraph ``thread_id``
+(1:1), so the mobile only needs one handle to resume a thread and to load/save
+its history. On resume, if the in-process checkpointer has lost the thread (an
+agent restart), the saved ``UIMessage[]`` history is re-seeded into a fresh
+thread so the conversation can continue with context.
+
+LangGraph ``astream_events(v2)`` is mapped to AI SDK typed parts so the mobile
+app's ``useChat`` can render streaming text, tool-progress cards, and custom
+interactive parts (``data-yesno`` etc.). ``thread_id`` (== ``chatToken``) is
 emitted as a ``data-thread`` part so the client can resume later.
 """
 
@@ -71,30 +77,82 @@ async def _emit_event(enc: UIStream, event: dict) -> str:
     return ""
 
 
+def _ui_messages_to_langchain(history: Any) -> list[Any]:
+    """Convert a saved AI SDK ``UIMessage[]`` history blob into LangChain
+    messages for re-seeding a thread after the in-process checkpointer loses
+    state (e.g. an agent restart). Text-only for v1: ``user`` -> HumanMessage,
+    ``assistant`` -> AIMessage; system/custom parts are skipped. Tolerant of any
+    shape — returns ``[]`` if nothing usable is found.
+    """
+    if not isinstance(history, list):
+        return []
+    messages: list[Any] = []
+    for item in history:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        parts = item.get("parts")
+        text = ""
+        if isinstance(parts, list):
+            text = " ".join(
+                p.get("text", "")
+                for p in parts
+                if isinstance(p, dict) and p.get("type") == "text"
+            ).strip()
+        elif isinstance(item.get("content"), str):
+            text = item["content"].strip()
+        if not text:
+            continue
+        if role == "user":
+            messages.append(HumanMessage(content=text))
+        elif role == "assistant":
+            messages.append(AIMessage(content=text))
+    return messages
+
+
 async def _agent_stream(
     graph: Any,
     payload: AgentStreamRequest,
 ) -> AsyncIterator[str]:
     enc = UIStream()
     message_id = f"msg_{uuid4().hex}"
-    thread_id = payload.thread_id or str(uuid4())
-    cfg = react_invoke_config(thread_id)
-
     client = get_agent_client()
 
-    # Resolve chat_token: mint on first turn, reuse from checkpointer on resume.
+    # The Node-minted ``chatToken`` doubles as the LangGraph ``thread_id`` (1:1
+    # by design), so the mobile only needs one handle to resume AND to load/save
+    # history. First turn: mint the token, then adopt it as the thread id.
+    # Resume: ``thread_id`` == the chat's ``chatToken``.
     if payload.thread_id:
+        thread_id = payload.thread_id
+        cfg = react_invoke_config(thread_id)
         state = await graph.aget_state(cfg)
         chat_token = (state.values or {}).get("chat_token")
-        if not chat_token:
-            yield enc.error(
-                "No chat_token for this thread; start a new chat without thread_id."
+        if chat_token:
+            # Thread is alive in memory — resume in place.
+            graph_input: dict[str, Any] = {
+                "messages": [HumanMessage(content=payload.message)]
+            }
+        else:
+            # Checkpointer lost the thread (agent restart). Re-seed from the
+            # saved UIMessage history so the conversation continues with context.
+            try:
+                saved = await client.get_chat(thread_id)
+            except AgentClientError as exc:
+                yield enc.error(f"Failed to resume chat: {exc}")
+                yield enc.done()
+                return
+            seed_messages = _ui_messages_to_langchain(saved.get("history"))
+            if not seed_messages:
+                yield enc.error(
+                    "No saved history for this chat; start a new chat instead."
+                )
+                yield enc.done()
+                return
+            await graph.aupdate_state(
+                cfg, {"messages": seed_messages, "chat_token": thread_id}
             )
-            yield enc.done()
-            return
-        graph_input: dict[str, Any] = {
-            "messages": [HumanMessage(content=payload.message)]
-        }
+            chat_token = thread_id
+            graph_input = {"messages": [HumanMessage(content=payload.message)]}
         meta: dict[str, Any] = {"thread_id": thread_id, "chat_token": chat_token}
     else:
         try:
@@ -104,6 +162,8 @@ async def _agent_stream(
             yield enc.done()
             return
         chat_token = created["chatToken"]
+        thread_id = chat_token
+        cfg = react_invoke_config(thread_id)
         context_text = created.get("contextText", "")
         graph_input = {
             "messages": [

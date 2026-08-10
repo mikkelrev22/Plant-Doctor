@@ -15,6 +15,11 @@ import {
   updatePlantName,
   updatePlantNotes,
 } from '@/api/client';
+import {
+  getChatHistory,
+  listPlantChats,
+  saveChatHistory,
+} from '@/api/agent-rest';
 import { qk } from '@/api/query-keys';
 
 /** GET / — backend health/version probe (API-key exempt, safe pre-login). */
@@ -97,6 +102,44 @@ export function useAnalyzeReport() {
       qc.invalidateQueries({ queryKey: qk.reportsExtended(data.plant.id) });
       qc.setQueryData(qk.plant(data.plant.id), data.plant);
       qc.setQueryData(qk.report(data.report.id), data.report);
+    },
+  });
+}
+
+/** GET /agent/plants/:plantId/chats — the plant's chats, newest first. Powers
+ *  the "All chats (N)" count + the bottom-sheet list on the Plant page. */
+export function usePlantChats(plantId: number) {
+  return useQuery({
+    queryKey: qk.plantChats(plantId),
+    queryFn: () => listPlantChats(plantId),
+    enabled: Number.isFinite(plantId) && plantId > 0,
+  });
+}
+
+/** GET /agent/chats/:chatToken — the saved `UIMessage[]` history, to hydrate
+ *  `useChat` when reopening a past chat. */
+export function useChatHistory(chatToken: string | undefined) {
+  return useQuery({
+    queryKey: qk.chatHistory(chatToken ?? ''),
+    queryFn: () => getChatHistory(chatToken as string),
+    enabled: !!chatToken,
+  });
+}
+
+/** PUT /agent/chats/:chatToken — persist the current `UIMessage[]` after a turn.
+ *  Invalidates the plant's chats list so the "All chats" count + previews stay
+ *  fresh. */
+export function useSaveChatHistory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ chatToken, messages }: { chatToken: string; messages: unknown }) =>
+      saveChatHistory(chatToken, messages),
+    onSuccess: (_data, { chatToken }) => {
+      // Invalidate any cached history for this chat + every plant's chats list
+      // (the chat row's `updatedAt`/preview change; we don't know the plantId
+      // here without an extra lookup, so a broad chats-list invalidate is fine).
+      qc.invalidateQueries({ queryKey: qk.chatHistory(chatToken) });
+      qc.invalidateQueries({ queryKey: ['plants'], exact: false });
     },
   });
 }
