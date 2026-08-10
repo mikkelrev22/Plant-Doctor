@@ -44,11 +44,22 @@ export default function PlantScreen() {
     [plantId],
   );
 
+  const goChat = useCallback(
+    () =>
+      router.push({ pathname: '/chat/[plantId]', params: { plantId: String(plantId) } }),
+    [plantId],
+  );
+
   useEffect(() => {
     navigation.setOptions({
-      headerRight: () => <HeaderButton label="New report" onPress={goNewReport} />,
+      headerRight: () => (
+        <View style={styles.headerRight}>
+          <HeaderButton label="Chat" onPress={goChat} />
+          <HeaderButton label="New report" onPress={goNewReport} />
+        </View>
+      ),
     });
-  }, [navigation, goNewReport]);
+  }, [navigation, goChat, goNewReport]);
 
   if (!user) return null;
 
@@ -202,5 +213,6 @@ const styles = StyleSheet.create({
   nameRowPlaceholder: { height: 32 },
   sectionTitle: { ...theme.typography.subtitle, color: theme.colors.text, marginTop: theme.spacing.sm },
   separator: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.xs },
+  headerRight: { flexDirection: 'row', gap: 12 },
   dimmed: { opacity: 0.6 },
 });

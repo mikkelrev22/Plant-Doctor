@@ -17,10 +17,12 @@ cp .env.example .env
 | `HOST`            | backend    | Network interface the API binds to           |
 | `PORT`            | backend    | Port the Node API listens on                 |
 | `BACKEND_PY_PORT` | backend-py | Port the Python API listens on               |
+| `BACKEND_AGENT_PORT` | backend-agent | Port the agent service listens on        |
 | `DATABASE_URL`    | backend/db | PostgreSQL connection string                 |
 | `FRONTEND_URL`    | all        | Public URL of the React app                  |
 | `BACKEND_URL`     | both       | Public URL of the Fastify API                |
 | `BACKEND_PY_URL`  | backend-py | Public URL of the FastAPI service            |
+| `BACKEND_AGENT_URL` | backend-agent | Public URL of the agent service          |
 
 All apps read from the **root** `.env` file (gitignored). Use the per-app config modules in code:
 
@@ -63,6 +65,7 @@ That script is defined in the root `package.json` and starts both apps in parall
 | `frontend`   | React + Vite UI         | http://localhost:4000    |
 | `backend`    | Fastify API (Node)      | http://localhost:4100    |
 | `backend-py` | FastAPI (Python + uv)   | http://localhost:4101    |
+| `backend-agent` | FastAPI agent (Python + uv) | http://localhost:4300 |
 
 To run a single app instead:
 
@@ -70,6 +73,7 @@ To run a single app instead:
 npx nx serve frontend
 npx nx serve backend
 npx nx serve backend-py
+npx nx run backend-agent:serve   # or: npm run agent
 ```
 
 > **Tip:** Use `npx nx` (or install Nx globally) — there is no separate `nx` binary in `PATH` unless you use `npx`.
@@ -85,6 +89,7 @@ npx nx show projects
 | `frontend`     | `apps/frontend`       | React app (Vite)               |
 | `backend`      | `apps/backend`        | Fastify API (esbuild + Node)   |
 | `backend-py`   | `apps/backend-py`     | FastAPI (uv + Python 3.12)     |
+| `backend-agent`| `apps/backend-agent`  | FastAPI agent (uv + Python 3.12) |
 | `db`           | `libs/db`             | Drizzle schema and migrations  |
 
 To see all tasks available for a project:
@@ -110,8 +115,10 @@ npx nx build backend           # production build → dist/apps/backend
 npx nx test frontend           # Vitest unit tests
 npx nx test backend            # Jest unit tests
 npx nx test backend-py         # pytest unit tests
+npx nx test backend-agent      # pytest unit tests
 npx nx lint frontend           # ESLint
 npx nx lint backend-py         # ruff
+npx nx lint backend-agent      # ruff
 ```
 
 Run the same task across multiple projects:
@@ -204,9 +211,10 @@ npm run dev
             └── backend:serve     →  build + node (port 4100)
 
 npx nx serve backend-py          →  uvicorn (port 4101, separate from npm run dev)
+npx nx run backend-agent:serve   →  uvicorn (port 4300, alias `npm run agent`)
 ```
 
-- **Project** = `frontend`, `backend`, `backend-py`
+- **Project** = `frontend`, `backend`, `backend-py`, `backend-agent`
 - **Target / task** = `serve`, `build`, `test`, `lint`, `e2e`, …
 - **Invocation** = `npx nx <target> <project>`
 

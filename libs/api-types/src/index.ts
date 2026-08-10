@@ -246,6 +246,55 @@ export interface CreateChatResponseDto {
   defaultReportId: number | null;
 }
 
+// AI SDK UI Message Stream custom `data-*` parts emitted by the agent service
+// (apps/backend-agent) and rendered by the mobile chat screen. These are the
+// interactive controls that make the agent UI more than plain text: the agent
+// emits a part, the mobile renders a control, and the user's response goes back
+// as their next message. The part `type` on the wire is `data-<name>`; the
+// `data` payload shapes below are shared by the Python emitter and the RN
+// `parts` renderer so the contract lives in one place. See docs/backend-agent.md.
+
+/** `data-thread` — emitted at the start of every run so the client can resume
+ *  the same LangGraph thread. On the first turn all fields are present; on
+ *  resume only `thread_id` + `chat_token` are sent. */
+export interface AgentThreadPartData {
+  thread_id: string;
+  chat_token?: string;
+  plant_id?: number;
+  plant_name?: string;
+  default_report_id?: number | null;
+}
+
+/** `data-yesno` — the agent asks a binary question; the UI renders Yes/No
+ *  buttons whose tap becomes the user's next message. */
+export interface AgentYesNoPartData {
+  id: string;
+  prompt: string;
+  /** Mirrors the wire `type` the backend writes via `get_stream_writer()`. */
+  type?: 'yesno';
+}
+
+/** `data-questionnaire` — a short multi-question form the user fills in and
+ *  sends back as one message. (UI-ready; the agent doesn't emit this yet.) */
+export interface AgentQuestionnaireItem {
+  id: string;
+  text: string;
+  options: string[];
+}
+export interface AgentQuestionnairePartData {
+  id: string;
+  title?: string;
+  questions: AgentQuestionnaireItem[];
+}
+
+/** `data-photo-request` — the agent asks the user to take/select another photo.
+ *  (UI-ready; ingesting a fresh image in-chat needs a new gateway tool — see
+ *  the plan's open decisions.) */
+export interface AgentPhotoRequestPartData {
+  id: string;
+  prompt: string;
+}
+
 /** GET /agent/chats/:chatToken — the saved conversation blob, returned for the
  *  agent to resume. `history` is opaque to the backend (LangGraph's message
  *  array shape, owned by the agent). */

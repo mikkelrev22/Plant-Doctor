@@ -1,0 +1,26 @@
+"""Pydantic models for the chat API contract."""
+
+from pydantic import BaseModel, Field
+
+
+class AgentStreamRequest(BaseModel):
+    """Start or resume a plant-scoped agent chat.
+
+    The server mints the Node ``chatToken`` for ``plant_id`` on the first turn
+    (when ``thread_id`` is absent) so the mobile client only needs to know the
+    plant and the message. ``thread_id`` resumes an existing LangGraph thread.
+    """
+
+    plant_id: int
+    message: str
+    thread_id: str | None = None
+
+
+class AgentStreamMeta(BaseModel):
+    """Diagnostic metadata returned alongside the stream (not the stream body)."""
+
+    thread_id: str = ""
+    chat_token: str = ""
+    plant_id: int | None = None
+    plant_name: str | None = None
+    default_report_id: int | None = Field(default=None)

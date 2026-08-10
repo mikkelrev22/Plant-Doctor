@@ -1,0 +1,183 @@
+"""Agent chat streaming route — emits the AI SDK UI Message Stream protocol.
+
+POST /chat/agent/stream
+  body: {"plant_id": int, "message": str, "thread_id": str | None}
+
+The server mints the Node ``chatToken`` for ``plant_id`` on the first turn (when
+``thread_id`` is absent), seeds the agent with the plant's ``contextText``, and
+runs the ReAct loop. LangGraph ``astream_events(v2)`` is mapped to AI SDK typed
+parts so the mobile app's ``useChat`` can render streaming text, tool-progress
+cards, and custom interactive parts (``data-yesno`` etc.). ``thread_id`` is
+emitted as a ``data-thread`` part so the client can resume later.
+"""
+
+from collections.abc import AsyncIterator
+from typing import Any
+from uuid import uuid4
+
+from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+from backend_agent.agent_client import AgentClientError, get_agent_client
+from backend_agent.graphs.react import react_invoke_config
+from backend_agent.schemas import AgentStreamRequest
+from backend_agent.uimessage import STREAM_HEADERS, UIStream
+
+router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+def _message_content(message: Any) -> str:
+    content = getattr(message, "content", message)
+    if isinstance(content, str):
+        return content
+    return str(content)
+
+
+async def _emit_event(enc: UIStream, event: dict) -> str:
+    """Map one astream_events(v2) event to AI SDK stream parts."""
+    kind = event["event"]
+    node = event.get("metadata", {}).get("langgraph_node", "")
+
+    if kind == "on_chat_model_start" and node == "agent":
+        return enc.start_step()
+
+    if kind == "on_chat_model_stream" and node == "agent":
+        chunk = event.get("data", {}).get("chunk")
+        delta = _message_content(chunk) if chunk is not None else ""
+        if delta:
+            return enc.text_delta(delta)
+        return ""
+
+    if kind == "on_chat_model_end" and node == "agent":
+        return enc.finish_step()
+
+    if kind == "on_tool_start":
+        tool_name = event.get("name", "tool")
+        tool_call_id = event.get("run_id", f"call_{uuid4().hex}")
+        tool_input = event.get("data", {}).get("input", {})
+        return enc.tool_start(tool_call_id, tool_name, tool_input)
+
+    if kind == "on_tool_end":
+        tool_call_id = event.get("run_id", "")
+        output = event.get("data", {}).get("output", "")
+        return enc.tool_end(tool_call_id, _message_content(output))
+
+    if kind == "on_custom_event":
+        data = event.get("data") or {}
+        part_type = data.get("type", "custom") if isinstance(data, dict) else "custom"
+        return enc.custom(part_type, data)
+
+    return ""
+
+
+async def _agent_stream(
+    graph: Any,
+    payload: AgentStreamRequest,
+) -> AsyncIterator[str]:
+    enc = UIStream()
+    message_id = f"msg_{uuid4().hex}"
+    thread_id = payload.thread_id or str(uuid4())
+    cfg = react_invoke_config(thread_id)
+
+    client = get_agent_client()
+
+    # Resolve chat_token: mint on first turn, reuse from checkpointer on resume.
+    if payload.thread_id:
+        state = await graph.aget_state(cfg)
+        chat_token = (state.values or {}).get("chat_token")
+        if not chat_token:
+            yield enc.error(
+                "No chat_token for this thread; start a new chat without thread_id."
+            )
+            yield enc.done()
+            return
+        graph_input: dict[str, Any] = {
+            "messages": [HumanMessage(content=payload.message)]
+        }
+        meta: dict[str, Any] = {"thread_id": thread_id, "chat_token": chat_token}
+    else:
+        try:
+            created = await client.create_chat(payload.plant_id)
+        except AgentClientError as exc:
+            yield enc.error(f"Failed to start chat: {exc}")
+            yield enc.done()
+            return
+        chat_token = created["chatToken"]
+        context_text = created.get("contextText", "")
+        graph_input = {
+            "messages": [
+                SystemMessage(
+                    content=(
+                        "You are a friendly plant-care assistant for the user's "
+                        "houseplants. Use the provided tools to read the plant's "
+                        "reports, history, and photos before answering. Initial "
+                        f"context for this chat:\n{context_text}"
+                    )
+                ),
+                HumanMessage(content=payload.message),
+            ],
+            "chat_token": chat_token,
+        }
+        meta = {
+            "thread_id": thread_id,
+            "chat_token": chat_token,
+            "plant_id": created.get("plantId"),
+            "plant_name": created.get("plantName"),
+            "default_report_id": created.get("defaultReportId"),
+        }
+
+    cfg["configurable"]["chat_token"] = chat_token
+
+    try:
+        yield enc.start(message_id)
+        # Tell the client which thread/chat this is so it can resume later.
+        yield enc.custom("thread", meta)
+
+        errored = False
+        async for event in graph.astream_events(graph_input, config=cfg, version="v2"):
+            if event["event"] == "on_chain_error":
+                err = event.get("data", {}).get("error", "Agent error")
+                yield enc.error(str(err))
+                errored = True
+                break
+            out = await _emit_event(enc, event)
+            if out:
+                yield out
+
+        # Fallback for non-streaming / placeholder runs: emit the final assistant
+        # message as a single text delta if nothing streamed.
+        if not errored and not enc.emitted_text:
+            state = await graph.aget_state(cfg)
+            messages = (state.values or {}).get("messages", [])
+            for message in reversed(messages):
+                if isinstance(message, AIMessage):
+                    content = _message_content(message)
+                    if content:
+                        yield enc.text_delta(content)
+                    break
+
+        if not errored:
+            yield enc.finish()
+    except Exception as exc:  # noqa: BLE001 - surface as an AI SDK error part
+        yield enc.error(str(exc))
+    finally:
+        yield enc.done()
+
+
+@router.post("/agent/stream")
+async def chat_agent_stream(
+    request: Request, payload: AgentStreamRequest
+) -> StreamingResponse:
+    """Stream agent output as the AI SDK UI Message Stream (SSE parts)."""
+    graph = request.app.state.react_graph
+    return StreamingResponse(
+        _agent_stream(graph, payload),
+        media_type="text/event-stream",
+        headers=STREAM_HEADERS,
+    )
+
+
+@router.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}

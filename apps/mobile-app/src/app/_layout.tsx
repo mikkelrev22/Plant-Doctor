@@ -1,3 +1,4 @@
+import '@/polyfills';
 import { router, Stack } from 'expo-router';
 import { palette } from '@/constants/theme';
 import { Providers } from '@/components/Providers';
@@ -29,6 +30,7 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen name="plant/[id]" options={{ title: 'Plant' }} />
+        <Stack.Screen name="chat/[plantId]" options={{ title: 'Plant doctor' }} />
         <Stack.Screen name="report/[id]" options={{ title: 'Report' }} />
         <Stack.Screen name="add-plant" options={{ title: 'Add plant', presentation: 'modal' }} />
         <Stack.Screen

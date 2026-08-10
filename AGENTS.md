@@ -1,6 +1,6 @@
 # Plant-Doctor — Monorepo Guide
 
-Plant-Doctor is an AI project that helps diagnose houseplants. This is an [Nx](https://nx.dev) monorepo managed with npm workspaces. It contains two backends (Node + Python), three React web apps, one Expo mobile app, and two shared libraries.
+Plant-Doctor is an AI project that helps diagnose houseplants. This is an [Nx](https://nx.dev) monorepo managed with npm workspaces. It contains two backends (Node + Python), a separate Python agent service, three React web apps, one Expo mobile app, and two shared libraries.
 
 All commands run from the repo root after `npm install`. Copy `.env.example` to `.env` first. See `docs/nx-commands.md` and `docs/backend-endpoints.md` for details.
 
@@ -13,6 +13,7 @@ All commands run from the repo root after `npm install`. Copy `.env.example` to 
 | Architecture | `apps/architecture` | React + Vite + Mantine + React Flow | `architecture` | `npx nx serve architecture` (alias `npm run architecture`) |
 | Backend | `apps/backend` | Node + Fastify + AutoLoad | `backend` | `npx nx serve backend` |
 | Backend (Python) | `apps/backend-py` | Python + FastAPI + LangGraph (uv) | `backend-py` | `npx nx run backend-py:serve` |
+| Backend (Agent) | `apps/backend-agent` | Python + FastAPI + LangGraph (uv) | `backend-agent` | `npx nx run backend-agent:serve` (alias `npm run agent`) |
 | Mobile app | `apps/mobile-app` | Expo + React Native + Expo Router | `mobile-app` | `npx nx run mobile-app:start` / `expo start` |
 
 ### Frontend (`apps/frontend`)
@@ -40,6 +41,11 @@ The Python API: FastAPI + LangGraph, managed with `uv` (see `pyproject.toml`, `u
 
 **Status:** Work in progress.
 
+### Backend (Agent) (`apps/backend-agent`)
+A **minimal reference LangGraph agent service** — the pluggable, A/B-testable agent microservice the mobile app talks to. FastAPI + LangGraph, managed with `uv`. Streams the **AI SDK UI Message Stream** protocol (`POST /chat/agent/stream`) so the Expo app's `useChat` can consume it, and reaches plant/report data through the Node backend's `/agent/*` tool gateway (see `docs/agent-integration.md`). First real implementation of the documented `AgentClient` + four gateway tools. Source in `src/backend_agent`; run via `uv run python -m backend_agent` (or `npm run agent`). Tests via `uv run pytest tests/`. Default URL `http://localhost:4300` (`BACKEND_AGENT_PORT`, `BACKEND_AGENT_URL`). See `docs/backend-agent.md`. `backend-py` is unrelated and left untouched.
+
+**Status:** Working draft / reference example.
+
 ### Mobile app (`apps/mobile-app`)
 Expo + React Native (Expo Router) app named `mobile-plant-doctor` — the consumer-facing app. File-based routing under `src/app` (`index.tsx`, `explore.tsx`, `_layout.tsx`). Shared UI primitives in `src/components`, theme in `src/constants/theme.ts`. Primary targets: web + Expo Go to run on mobile devices. Targets: `start` (`expo start`), `ios`, `android`, `web`, `lint`. Config in `app.json`. See the `expo:*` skills for EAS builds, store submission, etc.
 
@@ -59,6 +65,7 @@ Expo + React Native (Expo Router) app named `mobile-plant-doctor` — the consum
 - Run a web app: `npm run dev` (frontend) / `dashboard` / `architecture`, or `npx nx serve <name>`.
 - Run the Node backend: `npx nx serve backend`.
 - Run the Python backend: `npx nx run backend-py:serve`.
+- Run the agent service: `npx nx run backend-agent:serve` (alias `npm run agent`).
 - Run mobile: `npx nx run mobile-app:start` (or `cd apps/mobile-app && expo start`).
 - Database migrations: `npx nx run db:generate` / `db:migrate`; inspect with `npx nx run db:studio` (alias `npm run db`).
 - Tests/lint: `npx nx run <name>:test` / `:lint` (Vitest/Jest for JS, `uv run pytest` for backend-py).
@@ -66,5 +73,7 @@ Expo + React Native (Expo Router) app named `mobile-plant-doctor` — the consum
 
 ## Further reading
 - `docs/backend-endpoints.md` — full API endpoint reference for both backends.
+- `docs/backend-agent.md` — agent service (`backend-agent`) endpoint + AI SDK stream protocol reference.
+- `docs/agent-integration.md` — the Node `/agent` tool gateway contract that the agent consumes.
 - `docs/database.md` / `docs/architecture.json` — database and architecture references.
 - `docs/nx-commands.md` — Nx cheat sheet and env-var table.
