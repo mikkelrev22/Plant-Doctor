@@ -37,6 +37,7 @@ export default function RootLayout() {
           name="new-report/[plantId]"
           options={{ title: 'New report', presentation: 'modal' }}
         />
+        <Stack.Screen name="chats/[plantId]" options={{ title: 'All chats', presentation: 'modal' }} />
         <Stack.Screen name="analyzing" options={{ title: 'Analyzing', headerShown: false }} />
       </Stack>
     </Providers>

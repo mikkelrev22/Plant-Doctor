@@ -2,6 +2,7 @@ import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -49,6 +50,17 @@ export default function PlantScreen() {
       router.push({ pathname: '/new-report/[plantId]', params: { plantId: String(plantId) } }),
     [plantId],
   );
+
+  // On native the chats list is a modal-presented route (real iOS/Android sheet);
+  // on web that route renders as a plain page, so we open the ChatsSheet dialog
+  // instead for a true popup.
+  const openChats = useCallback(() => {
+    if (Platform.OS === 'web') {
+      setChatsSheetOpen(true);
+    } else {
+      router.push({ pathname: '/chats/[plantId]', params: { plantId: String(plantId) } });
+    }
+  }, [plantId]);
 
   // Ask starts a fresh consultation: clear the plant's active thread so the first
   // turn has no `thread_id` and the agent mints a new chat, then push to the chat
@@ -208,7 +220,7 @@ export default function PlantScreen() {
               </Pressable>
             </View>
             <Pressable
-              onPress={() => setChatsSheetOpen(true)}
+              onPress={openChats}
               style={({ pressed }) => pressed && styles.dimmed}
             >
               <Text style={styles.allChatsLink}>All chats ({chats?.length ?? 0})</Text>
@@ -229,7 +241,9 @@ export default function PlantScreen() {
           )
         }
       />
-      <ChatsSheet plantId={plantId} visible={chatsSheetOpen} onClose={() => setChatsSheetOpen(false)} />
+      {Platform.OS === 'web' && (
+        <ChatsSheet plantId={plantId} visible={chatsSheetOpen} onClose={() => setChatsSheetOpen(false)} />
+      )}
     </Screen>
   );
 }
