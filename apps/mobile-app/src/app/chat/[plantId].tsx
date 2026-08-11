@@ -17,10 +17,11 @@ import { createAgentChatTransport } from '@/api/agent-client';
 import { ImageSourcePicker } from '@/components/capture/ImageSourcePicker';
 import { ChatComposer } from '@/components/chat/ChatComposer';
 import { ChatMessageList } from '@/components/chat/ChatMessageList';
+import { ChatReportHeader } from '@/components/chat/ChatReportHeader';
 import type { AgentChatData, AgentUIMessage } from '@/components/chat/agent-chat-types';
 import { Screen } from '@/components/ui/Screen';
 import { theme } from '@/constants/theme';
-import { useChatHistory, useSaveChatHistory } from '@/hooks/queries';
+import { useChatHistory, useReportsExtended, useSaveChatHistory } from '@/hooks/queries';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { useWebModalA11y } from '@/hooks/use-web-modal-a11y';
 import { useChatHolder } from '@/state/chat-holder';
@@ -47,9 +48,10 @@ import { useChatHolder } from '@/state/chat-holder';
  */
 export default function ChatScreen() {
   const user = useRequireAuth();
-  const { plantId: plantIdParam, q, chatToken: chatTokenParam } =
-    useLocalSearchParams<{ plantId: string; q?: string; chatToken?: string }>();
+  const { plantId: plantIdParam, q, chatToken: chatTokenParam, reportId: reportIdParamStr } =
+    useLocalSearchParams<{ plantId: string; q?: string; chatToken?: string; reportId?: string }>();
   const plantId = Number(plantIdParam);
+  const reportIdParam = reportIdParamStr ? Number(reportIdParamStr) : undefined;
   const reactId = useId();
 
   // `chatToken` present ⇒ reopening an existing chat (isolated `useChat` state
@@ -59,14 +61,19 @@ export default function ChatScreen() {
 
   const transport = useMemo(
     () =>
-      createAgentChatTransport(plantId, () =>
-        useChatHolder.getState().getThreadId(plantId),
+      createAgentChatTransport(
+        plantId,
+        () => useChatHolder.getState().getThreadId(plantId),
+        reportIdParam,
       ),
-    [plantId],
+    [plantId, reportIdParam],
   );
 
   const saveChat = useSaveChatHistory();
   const { data: history } = useChatHistory(chatTokenParam);
+  // All reports for the plant (latest first). The header strip resolves the
+  // in-context report from this list; it's cached from the plant/report pages.
+  const { data: reports } = useReportsExtended(plantId);
 
   const { messages, status, sendMessage, setMessages, stop } = useChat<
     UIMessage<unknown, AgentChatData>
@@ -79,6 +86,9 @@ export default function ChatScreen() {
         // thread_id == chatToken (see chat.py); stash it so follow-ups resume
         // and so the post-turn save targets the right chat row.
         useChatHolder.getState().setThreadId(plantId, part.data.thread_id);
+        if (part.data.default_report_id != null) {
+          setThreadReportId(part.data.default_report_id);
+        }
       }
     },
     onFinish: ({ messages: finishedMessages }) => {
@@ -94,6 +104,11 @@ export default function ChatScreen() {
   const hydratedRef = useRef(false);
   const sentQRef = useRef(false);
   const [photoReq, setPhotoReq] = useState<AgentPhotoRequestPartData | null>(null);
+  // The chat's server-pinned report id, captured from the first turn's
+  // `data-thread` part. Used to resolve the header strip's report for a
+  // brand-new plant-page Ask (where no `reportId` param or saved history exists
+  // until the first turn completes).
+  const [threadReportId, setThreadReportId] = useState<number | null>(null);
   useWebModalA11y(photoReq !== null);
 
   // Reopen: hydrate the saved history once it loads, and make this chat the
@@ -117,6 +132,17 @@ export default function ChatScreen() {
 
   if (!user) return null;
 
+  // Resolve the report in this chat's context, in priority order:
+  //  - `reportIdParam`: chat started from a specific report (known up front).
+  //  - `history.defaultReportId`: reopened chat (carried on the saved history).
+  //  - `threadReportId`: brand-new plant-page Ask, captured from the first
+  //    turn's `data-thread` part once it arrives.
+  //  - `reports[0]`: optimistic latest-report fallback so the strip shows
+  //    immediately on a plant-page Ask (matches what the backend will pin).
+  const resolvedReportId =
+    reportIdParam ?? history?.defaultReportId ?? threadReportId ?? reports?.[0]?.id ?? null;
+  const report = reports?.find((r) => r.id === resolvedReportId);
+
   const handleReply = (text: string) => {
     void sendMessage({ text });
   };
@@ -136,6 +162,7 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
       >
+        <ChatReportHeader report={report} />
         <ChatMessageList
           messages={messages as AgentUIMessage[]}
           status={status}

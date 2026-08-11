@@ -121,8 +121,9 @@ function formatPlantHeader(plant: PlantDto): string {
 
 /**
  * The plain-text context returned by `POST /agent/chats`. Summarizes the plant
- * and its latest report so the agent can start the session without an extra
- * tool call. `report` is null when the plant has no reports yet.
+ * and the report the chat was pinned to (the latest report, or a specific
+ * report the caller requested) so the agent can start the session without an
+ * extra tool call. `report` is null when the plant has no reports yet.
  */
 export function formatLatestReportContext(
   plant: PlantDto,
@@ -135,7 +136,7 @@ export function formatLatestReportContext(
     return sections.join('\n');
   }
 
-  sections.push('Latest report:');
+  sections.push('Report:');
   sections.push(indent(formatReportFull(report), '  '));
   return sections.join('\n');
 }

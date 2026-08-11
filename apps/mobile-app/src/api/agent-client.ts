@@ -5,11 +5,13 @@ import { fetch as expoFetch } from 'expo/fetch';
  * Chat transport for the Python agent service (`apps/backend-agent`), which
  * streams the AI SDK UI Message Stream protocol from `POST /chat/agent/stream`.
  *
- * The agent endpoint takes `{ plant_id, message, thread_id? }` — NOT the AI
- * SDK's default `{ messages }` body — so `prepareSendMessagesRequest` extracts
- * the last user message's text and shapes the body accordingly. `thread_id` is
- * read live via `getThreadId` (backed by the per-plant chat holder) so the
- * transport can be created once per plant and still resume correctly.
+ * The agent endpoint takes `{ plant_id, message, thread_id?, report_id? }` —
+ * NOT the AI SDK's default `{ messages }` body — so
+ * `prepareSendMessagesRequest` extracts the last user message's text and shapes
+ * the body accordingly. `thread_id` is read live via `getThreadId` (backed by
+ * the per-plant chat holder) so the transport can be created once per plant and
+ * still resume correctly. `report_id` pins the first turn to a specific report
+ * (so a user can ask about an older report); the agent ignores it on resume.
  *
  * `body` MUST be returned as a plain object — the AI SDK transport does the
  * `JSON.stringify(body)` itself (exactly once). Returning a string here would
@@ -47,6 +49,7 @@ function userTextFromMessage(message: {
 export function createAgentChatTransport(
   plantId: number,
   getThreadId: () => string | null,
+  reportId?: number,
 ) {
   return new DefaultChatTransport({
     fetch: expoFetch as unknown as typeof globalThis.fetch,
@@ -61,6 +64,7 @@ export function createAgentChatTransport(
           plant_id: plantId,
           message,
           ...(threadId ? { thread_id: threadId } : {}),
+          ...(reportId ? { report_id: reportId } : {}),
         },
         headers: {
           'x-api-key': API_KEY,

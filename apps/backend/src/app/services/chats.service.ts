@@ -4,43 +4,63 @@ import type { ChatHistoryDto, ChatListItemDto, CreateChatResponseDto } from '@pl
 import { RESEARCH_USER_ID } from '@plant-doctor/api-types';
 import type { Chat, Database } from '@plant-doctor/db';
 import { chats, plantReports, plants } from '@plant-doctor/db/schema';
-import { NotFoundError } from '../errors';
+import { BadRequestError, NotFoundError } from '../errors';
 import { getPlantForUser } from './plants.service';
 import { getReportDetail } from './reports.service';
 import { formatLatestReportContext } from './agent-format.service';
 
 /**
  * Creates a new agent chat bound to a plant. Validates the plant belongs to the
- * Research User, captures the plant's latest report as the default context
- * (nullable when the plant has no reports yet), generates an opaque chat token,
- * and returns the token plus a plain-text summary of the plant + latest report
- * for the agent to start the session with.
+ * Research User, captures a report as the default context (nullable when the
+ * plant has no reports yet), generates an opaque chat token, and returns the
+ * token plus a plain-text summary of the plant + report for the agent to start
+ * the session with.
+ *
+ * When `reportId` is provided the chat is pinned to that specific report
+ * (validated to belong to the plant), so a user can ask about an older report.
+ * Otherwise the plant's latest report (newest by `reportedAt`) is used.
  */
 export async function createChat(
   db: Database,
-  params: { plantId: number },
+  params: { plantId: number; reportId?: number },
 ): Promise<CreateChatResponseDto> {
   const plant = await getPlantForUser(db, params.plantId);
   if (!plant) {
     throw new NotFoundError('Plant not found');
   }
 
-  // Latest report id for the plant — newest by reported_at. Uses the
-  // `plant_reports_plant_reported_at_idx` index.
-  const [latestReport] = await db
-    .select({ id: plantReports.id })
-    .from(plantReports)
-    .where(eq(plantReports.plantId, params.plantId))
-    .orderBy(desc(plantReports.reportedAt))
-    .limit(1);
+  let defaultReportId: number | null;
+  let report: Awaited<ReturnType<typeof getReportDetail>>;
 
-  const defaultReportId = latestReport?.id ?? null;
+  if (params.reportId != null) {
+    // Pin to the requested report. `getReportDetail` scopes to the Research
+    // User, so a foreign-user report resolves to null → 404. Then guard that
+    // the report actually belongs to this plant.
+    const requested = await getReportDetail(db, params.reportId);
+    if (!requested) {
+      throw new NotFoundError('Report not found');
+    }
+    if (requested.plantId !== params.plantId) {
+      throw new BadRequestError('Report does not belong to this plant');
+    }
+    defaultReportId = requested.id;
+    report = requested;
+  } else {
+    // Latest report id for the plant — newest by reported_at. Uses the
+    // `plant_reports_plant_reported_at_idx` index.
+    const [latestReport] = await db
+      .select({ id: plantReports.id })
+      .from(plantReports)
+      .where(eq(plantReports.plantId, params.plantId))
+      .orderBy(desc(plantReports.reportedAt))
+      .limit(1);
 
-  // Reuse the full report assembler for the latest report so the context text
-  // mirrors what the dashboard sees (stress signs, identification, etc.).
-  const report = defaultReportId
-    ? await getReportDetail(db, defaultReportId)
-    : null;
+    defaultReportId = latestReport?.id ?? null;
+
+    // Reuse the full report assembler for the latest report so the context text
+    // mirrors what the dashboard sees (stress signs, identification, etc.).
+    report = defaultReportId ? await getReportDetail(db, defaultReportId) : null;
+  }
 
   const chatToken = randomUUID();
   await db.insert(chats).values({

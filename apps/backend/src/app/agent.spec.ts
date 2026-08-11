@@ -114,9 +114,23 @@ describe('/agent endpoints', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ chatToken: 'new-token', contextText: 'CONTEXT' });
-    expect(chatsService.createChat).toHaveBeenCalled();
+    expect(chatsService.createChat).toHaveBeenCalledWith(expect.anything(), { plantId: 1 });
     // Exempt route → preHandler must not look up a chat token.
     expect(chatsService.getChatByToken).not.toHaveBeenCalled();
+  });
+
+  it('POST /agent/chats threads reportId into createChat when provided', async () => {
+    const res = await server.inject({
+      method: 'POST',
+      url: '/agent/chats',
+      headers: { ...API_KEY, 'content-type': 'application/json' },
+      payload: { plantId: 1, reportId: 99 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(chatsService.createChat).toHaveBeenCalledWith(expect.anything(), {
+      plantId: 1,
+      reportId: 99,
+    });
   });
 
   it('GET /agent/plantReports returns plain text for a valid chat token', async () => {

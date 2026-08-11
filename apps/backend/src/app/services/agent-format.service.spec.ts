@@ -87,7 +87,7 @@ describe('agent-format.service', () => {
       expect(text).toContain('Plant: Aloe');
       expect(text).toContain('Species: Aloe vera');
       expect(text).toContain('Notes: On the windowsill');
-      expect(text).toContain('Latest report:');
+      expect(text).toContain('Report:');
       expect(text).toContain('2026-08-09');
       expect(text).toContain('Identified: Aloe vera (Aloe barbadensis), 95% confidence');
       expect(text).toContain('Likely stressors: water, light');

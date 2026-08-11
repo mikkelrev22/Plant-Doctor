@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AskBlock } from '@/components/chat/AskBlock';
 import { BottomLink } from '@/components/ui/BottomLink';
 import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -67,11 +68,15 @@ export default function ReportScreen() {
           ))}
         </View>
 
+        <AskBlock
+          plantId={report.plantId}
+          reportId={report.id}
+          initialQuestion="Can you explain this report?"
+          placeholder="Ask about this report…"
+        />
+
         <Section title="Summary">
           <Text style={styles.body}>{report.summary}</Text>
-        </Section>
-        <Section title="Recommendations">
-          <Text style={styles.body}>{report.recommendations}</Text>
         </Section>
 
         {report.stressSigns.length > 0 ? (

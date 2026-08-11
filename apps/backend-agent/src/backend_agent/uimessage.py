@@ -80,12 +80,19 @@ class UIStream:
 
     # --- tools -------------------------------------------------------------
     def tool_start(self, tool_call_id: str, tool_name: str, tool_input: object) -> str:
+        # ``dynamic: True`` is required: the AI SDK stream parser keys off it
+        # (process-ui-message-stream.ts `tool-input-start` / `tool-input-available`)
+        # to create a ``dynamic-tool`` UI part. Without it the SDK makes a static
+        # ``tool-<name>`` part, which the mobile chat doesn't render — so the
+        # tool call is silently invisible. The agent runs its tools server-side
+        # (no `tools` option on `useChat`), so every tool call is dynamic.
         out = self._close_text()
         out += self.emit(
             {
                 "type": "tool-input-start",
                 "toolCallId": tool_call_id,
                 "toolName": tool_name,
+                "dynamic": True,
             }
         )
         out += self.emit(
@@ -94,6 +101,7 @@ class UIStream:
                 "toolCallId": tool_call_id,
                 "toolName": tool_name,
                 "input": tool_input,
+                "dynamic": True,
             }
         )
         return out

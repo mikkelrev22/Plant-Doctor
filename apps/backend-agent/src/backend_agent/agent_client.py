@@ -47,12 +47,21 @@ class AgentClient:
         raise AgentClientError(f"{resp.status_code}: {msg}")
 
     # --- chat lifecycle (JSON) --------------------------------------------
-    async def create_chat(self, plant_id: int) -> dict[str, Any]:
-        """POST /agent/chats — mint an opaque chatToken + initial contextText."""
+    async def create_chat(
+        self, plant_id: int, report_id: int | None = None
+    ) -> dict[str, Any]:
+        """POST /agent/chats — mint an opaque chatToken + initial contextText.
+
+        ``report_id`` pins the chat to a specific report instead of the plant's
+        latest report (only honored on first-turn creation).
+        """
+        body: dict[str, Any] = {"plantId": plant_id}
+        if report_id is not None:
+            body["reportId"] = report_id
         r = await self._client.post(
             f"{self.base_url}/agent/chats",
             headers={**self._headers(), "Content-Type": "application/json"},
-            json={"plantId": plant_id},
+            json=body,
         )
         self._raise_for_status(r)
         return r.json()

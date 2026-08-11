@@ -1,8 +1,12 @@
 """Smoke tests for the FastAPI application and the UI-stream encoder."""
 
+import asyncio
+
 from fastapi.testclient import TestClient
 
+from backend_agent.agent_client import AgentClient
 from backend_agent.main import app
+from backend_agent.schemas import AgentStreamRequest
 from backend_agent.uimessage import UIStream, parse_chunks
 
 
@@ -61,6 +65,54 @@ def test_uistream_tool_and_custom_parts() -> None:
     parts = [p for p in parse_chunks(out) if isinstance(p, dict)]
     by_type = {p["type"]: p for p in parts}
     assert by_type["tool-input-start"]["toolName"] == "get_recent_reports"
+    assert by_type["tool-input-start"]["dynamic"] is True
     assert by_type["tool-input-available"]["input"] == {"plant_id": None}
+    assert by_type["tool-input-available"]["dynamic"] is True
     assert by_type["tool-output-available"]["output"] == "Last 3 reports ..."
     assert by_type["data-yesno"]["data"]["prompt"] == "Look at the photo?"
+
+
+class _FakeResp:
+    is_success = True
+
+    def json(self) -> dict:
+        return {
+            "chatToken": "t",
+            "contextText": "c",
+            "plantId": 1,
+            "plantName": "Aloe",
+            "defaultReportId": 99,
+        }
+
+
+def _client_with_captured_post() -> tuple[AgentClient, dict]:
+    """An `AgentClient` whose httpx client is replaced with a capturing fake so
+    we can assert on the JSON body `create_chat` posts without a network call."""
+    client = AgentClient("http://backend", "key")
+    captured: dict = {}
+
+    async def fake_post(url, *, headers=None, json=None, **_):
+        captured["url"] = url
+        captured["json"] = json
+        captured["headers"] = headers
+        return _FakeResp()
+
+    client._client.post = fake_post  # type: ignore[attr-defined]
+    return client, captured
+
+
+def test_agent_stream_request_accepts_optional_report_id() -> None:
+    assert AgentStreamRequest(plant_id=1, message="hi", report_id=99).report_id == 99
+    assert AgentStreamRequest(plant_id=1, message="hi").report_id is None
+
+
+def test_create_chat_sends_report_id_when_given() -> None:
+    client, captured = _client_with_captured_post()
+    asyncio.run(client.create_chat(1, 99))
+    assert captured["json"] == {"plantId": 1, "reportId": 99}
+
+
+def test_create_chat_omits_report_id_when_none() -> None:
+    client, captured = _client_with_captured_post()
+    asyncio.run(client.create_chat(1))
+    assert captured["json"] == {"plantId": 1}

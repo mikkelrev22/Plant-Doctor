@@ -287,7 +287,7 @@ async def _agent_stream(
         meta: dict[str, Any] = {"thread_id": thread_id, "chat_token": chat_token}
     else:
         try:
-            created = await client.create_chat(payload.plant_id)
+            created = await client.create_chat(payload.plant_id, payload.report_id)
         except AgentClientError as exc:
             yield enc.error(f"Failed to start chat: {exc}")
             yield enc.done()

@@ -19,23 +19,28 @@ export default async function (fastify: FastifyInstance) {
   // route opts out of the token preHandler via route config. The mobile app
   // calls it (it already sends x-api-key) and hands the returned token +
   // contextText to the agent to start the session.
+  //
+  // `reportId` is optional: when present the chat is pinned to that specific
+  // report (validated against the plant) instead of the plant's latest report,
+  // so a user can ask about an older report. When absent the latest report is
+  // used, as before.
   server.post(
     '/chats',
     {
       config: { requireChatToken: false },
       schema: {
-        body: z.object({ plantId: z.number().int() }),
+        body: z.object({ plantId: z.number().int(), reportId: z.number().int().optional() }),
       },
     },
     async function (request) {
-      const { plantId } = request.body;
+      const { plantId, reportId } = request.body;
       const start = Date.now();
-      const result = await createChat(fastify.db, { plantId });
+      const result = await createChat(fastify.db, { plantId, reportId });
       await logAgentEvent(fastify.db, {
         userId: RESEARCH_USER_ID,
         chatId: null,
         tool: 'createChat',
-        requestParams: { plantId },
+        requestParams: { plantId, reportId },
         responseText: result.contextText,
         latencyMs: Date.now() - start,
       });
