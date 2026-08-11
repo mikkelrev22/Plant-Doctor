@@ -27,6 +27,16 @@ export default defineConfig(() => ({
         target: 'http://localhost:4100',
         changeOrigin: true,
       },
+      // Python backend-agent (apps/backend-agent) — streams the AI SDK UI
+      // Message Stream from POST /chat/agent/stream. Proxied same-origin (like
+      // /api) so the dashboard, dev server, and any reverse tunnel to :4500 all
+      // reach it without CORS or an absolute URL in the bundle. http-proxy
+      // passes SSE through unchanged.
+      '/agent-api': {
+        target: 'http://localhost:4300',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/agent-api/, ''),
+      },
     },
   },
   preview: {

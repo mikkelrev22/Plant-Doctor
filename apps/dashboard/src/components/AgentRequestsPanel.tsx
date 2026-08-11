@@ -120,12 +120,16 @@ function ToolForm({
   );
 }
 
-/** POST /agent/chats — mints the token shared by every tool form below. */
+/** POST /agent/chats — mints the token shared by every tool form below.
+ *  `reportId` pins the chat to the current report instead of the plant's latest
+ *  report (editable — blank falls back to the plant's default/latest report). */
 function GetTokenCard({
   plantId,
+  reportId,
   onToken,
 }: {
   plantId: number;
+  reportId: number;
   onToken: (result: {
     chatToken: string;
     contextText: string;
@@ -133,6 +137,7 @@ function GetTokenCard({
   }) => void;
 }) {
   const [plantIdText, setPlantIdText] = useState(String(plantId));
+  const [reportIdText, setReportIdText] = useState(String(reportId));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState('');
@@ -141,7 +146,10 @@ function GetTokenCard({
     setLoading(true);
     setError(null);
     try {
-      const data = await createAgentChat(Number(plantIdText));
+      const data = await createAgentChat(
+        Number(plantIdText),
+        reportIdText ? Number(reportIdText) : undefined,
+      );
       const pretty = JSON.stringify(data, null, 2);
       setResult(pretty);
       onToken({
@@ -171,6 +179,11 @@ function GetTokenCard({
               label="plantId"
               value={plantIdText}
               onChange={(e) => setPlantIdText(e.currentTarget.value)}
+            />
+            <TextInput
+              label="reportId (blank = plant's default/latest report)"
+              value={reportIdText}
+              onChange={(e) => setReportIdText(e.currentTarget.value)}
             />
             <Group gap="xs" align="center">
               <Button onClick={handleGetToken} loading={loading}>
@@ -337,6 +350,7 @@ export function AgentRequestsPanel({
 
       <GetTokenCard
         plantId={plantId}
+        reportId={reportId}
         onToken={({ chatToken, defaultReportId: dri }) => {
           setToken(chatToken);
           setDefaultReportId(dri);

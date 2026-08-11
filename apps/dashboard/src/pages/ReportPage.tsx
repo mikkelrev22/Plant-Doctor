@@ -4,6 +4,7 @@ import { Alert, Button, Loader, SegmentedControl, Stack, Text } from '@mantine/c
 import { IconArrowLeft } from '@tabler/icons-react';
 import type { LlmDetectedRegion, LlmPlantAnalysisResult } from '@plant-doctor/api-types';
 import { AgentRequestsPanel } from '../components/AgentRequestsPanel';
+import { AgentStressTestPanel } from '../components/AgentStressTestPanel';
 import { LlmRequestLogTable } from '../components/LlmRequestLogTable';
 import { ReportView } from '../components/ReportView';
 import { useLlmRequest, useReport } from '../queries';
@@ -15,9 +16,10 @@ export function ReportPage() {
   const reportQuery = useReport(reportId);
   const report = reportQuery.data ?? null;
 
-  // Switch the bottom section between the agent test console and the existing
-  // LLM request log. Defaults to the agent console.
-  const [tab, setTab] = useState<'agent' | 'llm-log'>('agent');
+  // Switch the bottom section between the agent test console, the agent
+  // stress-test tool, and the existing LLM request log. Defaults to the agent
+  // console.
+  const [tab, setTab] = useState<'agent' | 'stress-test' | 'llm-log'>('agent');
 
   // Fetch the llm-request detail to get the raw LLM response, which contains
   // the detected stress regions. Deduped with LlmRequestLogTable's call by
@@ -80,14 +82,25 @@ export function ReportPage() {
         <SegmentedControl
           size="md"
           value={tab}
-          onChange={(v) => setTab(v as 'agent' | 'llm-log')}
+          onChange={(v) => setTab(v as 'agent' | 'stress-test' | 'llm-log')}
           data={[
             { value: 'agent', label: 'Agent requests' },
+            { value: 'stress-test', label: 'Agent stress test' },
             { value: 'llm-log', label: 'LLM request log' },
           ]}
+          styles={{
+            root: { background: 'var(--mantine-color-gray-4)' },
+            indicator: { background: 'var(--mantine-color-white)' },
+          }}
         />
         {tab === 'agent' ? (
           <AgentRequestsPanel
+            plantId={report.plantId}
+            reportId={report.id}
+            plantName={report.plantName}
+          />
+        ) : tab === 'stress-test' ? (
+          <AgentStressTestPanel
             plantId={report.plantId}
             reportId={report.id}
             plantName={report.plantName}

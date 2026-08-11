@@ -190,12 +190,14 @@ export function analyzePlantReport(params: {
 // docs/backend-endpoints.md.
 // ---------------------------------------------------------------------------
 
-/** POST /agent/chats — mints a chat token + initial plain-text context. */
-export function createAgentChat(plantId: number) {
+/** POST /agent/chats — mints a chat token + initial plain-text context.
+ *  Pass `reportId` to pin the chat to a specific report instead of the plant's
+ *  latest report (so a chat can be scoped to an older report). */
+export function createAgentChat(plantId: number, reportId?: number) {
   return fetchJson<CreateChatResponseDto>('/agent/chats', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plantId }),
+    body: JSON.stringify(reportId != null ? { plantId, reportId } : { plantId }),
   });
 }
 

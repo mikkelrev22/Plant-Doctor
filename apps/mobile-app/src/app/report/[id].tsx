@@ -68,16 +68,16 @@ export default function ReportScreen() {
           ))}
         </View>
 
+        <Section title="Summary">
+          <Text style={styles.body}>{report.summary}</Text>
+        </Section>
+
         <AskBlock
           plantId={report.plantId}
           reportId={report.id}
           initialQuestion="Can you explain this report?"
           placeholder="Ask about this report…"
         />
-
-        <Section title="Summary">
-          <Text style={styles.body}>{report.summary}</Text>
-        </Section>
 
         {report.stressSigns.length > 0 ? (
           <Section title="Stress signs">
