@@ -16,6 +16,15 @@ class Config:
     llm_model: str = os.getenv("LLM_API_MODEL", "")
     llm_max_tokens: int = int(os.getenv("LLM_MAX_TOKENS", "8192"))
     llm_timeout_ms: int = int(os.getenv("LLM_TIMEOUT_MS", "120000"))
+    # 0 is fully deterministic (rigid, repetitive phrasing). 0.3 loosens tone
+    # while keeping tool-calling reliable; don't push much higher for an agent
+    # with tools (tool-call errors rise sharply above ~0.6). Qwen3 free-chat
+    # guidance is ~0.6 if you want more variety at the cost of consistency.
+    llm_temperature: float = float(os.getenv("LLM_TEMPERATURE", "0.3"))
+    # Fireworks reasoning depth for thinking-capable models (qwen3 etc.):
+    # none | low | medium | high | xhigh | max. "medium" = solid reasoning
+    # without the latency/length of high. Empty/None lets the model default apply.
+    llm_reasoning_effort: str = os.getenv("LLM_REASONING_EFFORT", "medium")
 
     # --- tracing ------------------------------------------------------------
     langsmith_tracing: bool = os.getenv("LANGCHAIN_TRACING_V2", "").lower() == "true"

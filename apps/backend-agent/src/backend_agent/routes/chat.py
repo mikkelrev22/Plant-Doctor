@@ -1,4 +1,4 @@
-"""Agent chat streaming route — emits the AI SDK UI Message Stream protocol.
+"""Agent chat route — emits the AI SDK UI Message Stream protocol as one batch.
 
 POST /chat/agent/stream
   body: {"plant_id": int, "message": str, "thread_id": str | None}
@@ -11,9 +11,12 @@ its history. On resume, if the in-process checkpointer has lost the thread (an
 agent restart), the saved ``UIMessage[]`` history is re-seeded into a fresh
 thread so the conversation can continue with context.
 
-LangGraph ``astream_events(v2)`` is mapped to AI SDK typed parts so the mobile
-app's ``useChat`` can render streaming text, tool-progress cards, and custom
-interactive parts (``data-yesno`` etc.). ``thread_id`` (== ``chatToken``) is
+The LLM runs **non-streaming** (``clients.py``: ``streaming=False``), so no
+token deltas are produced. ``astream_events(v2)`` still drives the tool-call
+and custom-event parts (``dynamic-tool`` cards, ``data-yesno``, …), and the
+final assistant text is emitted as a single batched ``text-delta`` via the
+fallback below. The mobile app's ``useChat`` therefore receives the whole
+message at once and renders it whole. ``thread_id`` (== ``chatToken``) is
 emitted as a ``data-thread`` part so the client can resume later.
 """
 
@@ -49,10 +52,14 @@ async def _emit_event(enc: UIStream, event: dict) -> str:
         return enc.start_step()
 
     if kind == "on_chat_model_stream" and node == "agent":
-        chunk = event.get("data", {}).get("chunk")
-        delta = _message_content(chunk) if chunk is not None else ""
-        if delta:
-            return enc.text_delta(delta)
+        # Token streaming is intentionally off: we drop per-token deltas here
+        # and emit the full final assistant text as ONE batched `text_delta`
+        # via the fallback after the loop (the `not enc.emitted_text` block
+        # below). This is the actual "no streaming on the wire" guarantee —
+        # `astream_events` may still stream the LLM internally regardless of
+        # `ChatOpenAI(streaming=False)`, so skipping here is what matters.
+        # To re-enable token streaming: return `enc.text_delta(delta)` (and
+        # let `text_delta` set `enc.emitted_text = True` so the fallback skips).
         return ""
 
     if kind == "on_chat_model_end" and node == "agent":
@@ -169,10 +176,19 @@ async def _agent_stream(
             "messages": [
                 SystemMessage(
                     content=(
-                        "You are a friendly plant-care assistant for the user's "
-                        "houseplants. Use the provided tools to read the plant's "
-                        "reports, history, and photos before answering. Initial "
-                        f"context for this chat:\n{context_text}"
+                        "You are a friendly, concise plant-care assistant for the "
+                        "user's houseplants.\n"
+                        "- Use the provided tools to read the plant's reports, "
+                        "history, and photos BEFORE answering when the user asks "
+                        "about a specific plant or symptoms.\n"
+                        "- Lead with the direct answer. Keep replies short and "
+                        "conversational — a few sentences, not a wall of text. No "
+                        "long preambles, restatements, or wrap-up summaries.\n"
+                        "- Don't echo raw report contents back; extract what "
+                        "matters and turn it into plain, actionable advice.\n"
+                        "- Use a short bulleted list ONLY for concrete care "
+                        "actions, and keep each bullet to one line.\n\n"
+                        f"Initial context for this chat:\n{context_text}"
                     )
                 ),
                 HumanMessage(content=payload.message),
