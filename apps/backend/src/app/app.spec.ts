@@ -19,6 +19,20 @@ jest.mock('./services/plants.service', () => ({
   updatePlantSpecies: jest.fn(),
 }));
 
+// These integration specs exercise route wiring, not image/S3 IO. Stub the two
+// heaviest cold-load leaves (native `sharp` + the large `@aws-sdk/client-s3` via
+// storage) so the first server.ready() stays well under Jest's 60s hook budget.
+// uploads.service.spec.ts keeps the real sharp (separate worker).
+jest.mock('sharp', () => ({ __esModule: true, default: jest.fn() }));
+jest.mock('./services/storage', () => ({
+  storage: {
+    putObject: jest.fn(),
+    getObject: jest.fn(),
+    deleteObject: jest.fn(),
+    publicUrl: jest.fn(),
+  },
+}));
+
 import Fastify, { FastifyInstance } from 'fastify';
 import { app } from './app';
 import { BACKEND_VERSION } from '../version';
